@@ -1,0 +1,36 @@
+<?xml version="1.0" standalone="no"?>
+
+<kickstart>
+
+  <description>
+  DDT parallel debugger
+  </description>
+
+  <copyright>
+  Copyright (c) 2000 - 2008 The Regents of the University of California.
+  All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
+  </copyright>
+
+  <changelog>
+  $Log$
+  Revision 1.1  2009/05/11 23:12:16  jpg
+
+
+
+  initial gamess roll, compiled with gfortran and sockets and no optimized
+  math libraries
+
+  Jerry
+
+  Revision 1.1  2009/05/01 16:32:15  jhayes
+  Add DDT roll.
+
+  </changelog>
+
+  <!-- Set of RPMs to install, surrounded by individual package tags. -->
+  <package>gamess</package>
+
+  <post>
+  </post>
+
+</kickstart>
