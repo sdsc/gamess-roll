@@ -3,7 +3,7 @@
 <kickstart>
 
   <description>
-  DDT parallel debugger
+  GAMESS (General Atomic Molecular Electronic Structure System)
   </description>
 
   <copyright>
@@ -13,6 +13,13 @@
 
   <changelog>
   $Log$
+  Revision 1.2  2009/05/14 00:15:14  jpg
+
+
+  got rid of reference to DDT
+
+  Jerry
+
   Revision 1.1  2009/05/11 23:12:16  jpg
 
 
