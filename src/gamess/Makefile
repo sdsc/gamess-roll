@@ -60,14 +60,65 @@ PKGROOT = /opt/$(GAMESS_VERSION)
 REDHAT.ROOT = $(PWD)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
-
+GMS_TARGET=linux64
+ACTVTE_TARGET=UNX
 build:
 	mkdir -p BUILD
 	(cd BUILD;  tar xvf ../$(GAMESS_VERSION).tgz )
-	(cd BUILD/$(GAMESS_VERSION)/ddi;./compddi;mv ddikick.x ..)
-	(cd BUILD/$(GAMESS_VERSION);./compall)
-	(cd BUILD/$(GAMESS_VERSION);./lked )
-
+#note: editing commands should be added for a compiler change
+# set ddi target
+	 (cd BUILD/$(GAMESS_VERSION)/ddi;cat compddi.orig | \
+               sed -e '18c"         set TARGET = $(GMS_TARGET)"' >compddi.tmp)
+	 (cd BUILD/$(GAMESS_VERSION)/ddi;cat compddi.tmp | sed -e '18s/\"//g'>compddi.tmp2)
+	 (cd BUILD/$(GAMESS_VERSION)/ddi;cat compddi.tmp2 | \
+               sed -e '1c#!/bin/csh -f' >compddi;chmod 0755 compddi)
+# compiled actvte.x for unix
+	 (cd BUILD/$(GAMESS_VERSION)/tools;cat actvte.code | \
+               sed -e 's/^*$(ACTVTE_TARGET)/    /' >actvte.f)
+	 (cd BUILD/$(GAMESS_VERSION)/tools;gfortran -o actvte.x actvte.f)
+# set comp target
+	 (cd BUILD/$(GAMESS_VERSION);cat comp.orig | \
+               sed -e '15cset TARGET=$(GMS_TARGET)' >comp.tmp)
+	 (cd BUILD/$(GAMESS_VERSION);cat comp.tmp | \
+               sed -e '16cchdir .' >comp.tmp2)
+	 (cd BUILD/$(GAMESS_VERSION);cat comp.tmp2 | \
+               sed -e '1c#!/bin/csh -f' >comp;chmod 0755 comp)
+# set compall target
+	 (cd BUILD/$(GAMESS_VERSION);cat compall.orig | \
+               sed -e '16cset TARGET=$(GMS_TARGET)' >compall.tmp)
+	 (cd BUILD/$(GAMESS_VERSION);cat compall.tmp | \
+               sed -e '17cchdir .' >compall.tmp2)
+	 (cd BUILD/$(GAMESS_VERSION);cat compall.tmp2 | \
+               sed -e '1c#!/bin/csh -f' >compall;chmod 0755 compall)
+# set lked target
+	 (cd BUILD/$(GAMESS_VERSION);cat lked.orig | \
+               sed -e '18cset TARGET=$(GMS_TARGET)' >lked.tmp)
+	 (cd BUILD/$(GAMESS_VERSION);cat lked.tmp | \
+               sed -e '19cchdir .' >lked.tmp2)
+	 (cd BUILD/$(GAMESS_VERSION);cat lked.tmp2 | \
+               sed -e '1c#!/bin/csh -f' >lked.tmp3)
+	 (cd BUILD/$(GAMESS_VERSION);cat lked.tmp3 | \
+               sed -e '466c#        exit 4 jpg' >lked;chmod 0755 lked)
+# set local paths for rungms 
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.orig | \
+               sed -e '477,500d' >rungms.tmp)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp | \
+               sed -e '429c"   if ($$os == Linux)   set GMSPATH=/opt/gamess.1.2009"' >rungms.tmp2)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp2 | sed -e '429s/\"//g'>rungms.tmp3)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp3 | \
+                sed -e '130,135csetenv  MAKEFP  $$JOB.efp\nsetenv   GAMMA  $$JOB.gamma\n\
+setenv TRAJECT  $$JOB.trj\nsetenv RESTART $$JOB.rst\n\
+setenv INPUT $$JOB.F05\nsetenv   PUNCH $$JOB.dat' >rungms.tmp4)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp4 | \
+                sed -e '125,126csetenv ERICFMT /opt/gamess.1.2009/ericfmt.dat\n\
+setenv MCPPATH /opt/gamess.1.2009/gamess/mcpdata' >rungms.tmp5)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp5 | \
+                sed -e '58cset SCR=.' >rungms;chmod 0755 rungms)
+	 (cd BUILD/$(GAMESS_VERSION);rm -f comp.tmp* compall.tmp* lked.tmp* rungms.tmp*)
+	 (cd BUILD/$(GAMESS_VERSION);rm -f compddi.tmp*)
+	 (cd BUILD/$(GAMESS_VERSION)/ddi;./compddi;mv ddikick.x ..)
+	 (cd BUILD/$(GAMESS_VERSION);./compall)
+	 (cd BUILD/$(GAMESS_VERSION);./lked )
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	(cd BUILD/$(GAMESS_VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
