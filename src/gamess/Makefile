@@ -101,18 +101,21 @@ build:
                sed -e '466c#        exit 4 jpg' >lked;chmod 0755 lked)
 # set local paths for rungms 
 	 (cd BUILD/$(GAMESS_VERSION);cat rungms.orig | \
-               sed -e '477,500d' >rungms.tmp)
-	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp | \
-               sed -e '429c"   if ($$os == Linux)   set GMSPATH=/opt/gamess.1.2009"' >rungms.tmp2)
-	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp2 | sed -e '429s/\"//g'>rungms.tmp3)
+                sed -e '570c"      set spacer2=\"\""'>rungms.tmp)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp | sed -e '570s/\"//g' >rungms.tmp2)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp2 | \
+               sed -e '477,500d' >rungms.tmp3)
 	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp3 | \
+               sed -e '429c"   if ($$os == Linux)   set GMSPATH=/opt/gamess.1.2009"' >rungms.tmp4)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp4 | sed -e '429s/\"//g'>rungms.tmp5)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp5 | \
                 sed -e '130,135csetenv  MAKEFP  $$JOB.efp\nsetenv   GAMMA  $$JOB.gamma\n\
 setenv TRAJECT  $$JOB.trj\nsetenv RESTART $$JOB.rst\n\
-setenv INPUT $$JOB.F05\nsetenv   PUNCH $$JOB.dat' >rungms.tmp4)
-	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp4 | \
+setenv INPUT $$JOB.F05\nsetenv   PUNCH $$JOB.dat' >rungms.tmp6)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp6 | \
                 sed -e '125,126csetenv ERICFMT /opt/gamess.1.2009/ericfmt.dat\n\
-setenv MCPPATH /opt/gamess.1.2009/gamess/mcpdata' >rungms.tmp5)
-	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp5 | \
+setenv MCPPATH /opt/gamess.1.2009/gamess/mcpdata' >rungms.tmp7)
+	 (cd BUILD/$(GAMESS_VERSION);cat rungms.tmp7 | \
                 sed -e '58cset SCR=.' >rungms;chmod 0755 rungms)
 	 (cd BUILD/$(GAMESS_VERSION);rm -f comp.tmp* compall.tmp* lked.tmp* rungms.tmp*)
 	 (cd BUILD/$(GAMESS_VERSION);rm -f compddi.tmp*)
