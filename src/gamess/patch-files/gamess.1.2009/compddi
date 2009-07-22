@@ -578,7 +578,7 @@ endif
 
 #        for generic 64 bit Linux, choose one of the following,
 #           gfortran, pgf77, pathf90
-     if ($TARGET == linux64)    set FORTRAN=gfortran
+     if ($TARGET == linux64)    set FORTRAN=pgf77
 #
 #        for linux-ia64, leave the choice set to ifort (do not change!)
      if ($TARGET == linux-ia64) set FORTRAN=ifort
