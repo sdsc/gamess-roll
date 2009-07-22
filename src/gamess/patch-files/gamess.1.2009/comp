@@ -1,0 +1,1844 @@
+#!/bin/csh -f
+#
+#   9 Jan 09 - script to compile one GAMESS source file
+#
+#  Invoke this script by './comp MODULE >& MODULE.log &'.
+#
+#        ----- The next two lines require your attention -----
+#  1. Choose your machine, the legal values for TARGET are
+#        axp64,compaq-sc,cray-pvp,cray-t3e,cray-x1,cray-xd1,cray-xt3,
+#        fuji-pp32,fuji-pp64,hpux32,hpux64,ibm32,ibm64,ibm64-sp,ibm-bg,
+#        linux32,linux64,linux-ia64,mac32,mac64,macG5,necsx,
+#        sgi32,sgi64,sun32,sun64
+#  2. Choose your GAMESS directory tree.
+#
+set TARGET=linux64
+chdir .
+#
+#    ---- and now the script begins...
+#
+unset echo
+set MODULE=$1
+set ACTONLY=$2   # this argument is almost always omitted
+if (null$MODULE == null) then
+   echo No compile module name given...
+   exit
+endif
+#
+echo ======================== $MODULE ==============================
+date
+#
+#   let's be sure they typed the intended target correctly
+#
+set OK=false
+if ($TARGET == axp64)      set OK=true
+if ($TARGET == compaq-sc)  set OK=true
+if ($TARGET == cray-pvp)   set OK=true
+if ($TARGET == cray-t3e)   set OK=true
+if ($TARGET == cray-x1)    set OK=true
+if ($TARGET == cray-xd1)   set OK=true
+if ($TARGET == cray-xt3)   set OK=true
+if ($TARGET == fuji-pp32)  set OK=true
+if ($TARGET == fuji-pp64)  set OK=true
+if ($TARGET == hpux32)     set OK=true
+if ($TARGET == hpux64)     set OK=true
+if ($TARGET == ibm32)      set OK=true
+if ($TARGET == ibm64)      set OK=true
+if ($TARGET == ibm64-sp)   set OK=true
+if ($TARGET == ibm-bg)     set OK=true
+if ($TARGET == linux32)    set OK=true
+if ($TARGET == linux64)    set OK=true
+if ($TARGET == linux-ia64) set OK=true
+if ($TARGET == mac32)      set OK=true
+if ($TARGET == mac64)      set OK=true
+if ($TARGET == macG5)      set OK=true
+if ($TARGET == necsx)      set OK=true
+if ($TARGET == sgi32)      set OK=true
+if ($TARGET == sgi64)      set OK=true
+if ($TARGET == sun32)      set OK=true
+if ($TARGET == sun64)      set OK=true
+if ($OK == false) then
+   echo The comp script does not select a correct TARGET machine type.
+   echo What you typed when editing this script was $TARGET
+   exit 4
+endif
+#
+#   ----- Is this a vector machine? -----
+#
+set VECTORIZE=false
+if ($TARGET == cray-pvp) set VECTORIZE=true
+if ($TARGET == cray-x1)  set VECTORIZE=true
+if ($TARGET == necsx)    set VECTORIZE=true
+#
+#   ----- Are level 3 BLAS in a system library? -----
+#   If so, some matrix multiplies in MTHLIB.SRC can use DGEMM calls
+#   If not, print a warning to try to get people to find a BLAS library.
+#
+#   N.B.  Machines that use vector.src accomplish this business in a
+#   different manner, so ignore this part.
+#
+set BLAS3=false
+if ($MODULE == mthlib) then
+#
+if (($TARGET == axp64)  && \
+    ((-e /usr/lib/libdxml.a)||(-e /usr/lib/libcxml.a))) set BLAS3=true
+if  ($TARGET == compaq-sc)    set BLAS3=true
+if  ($TARGET == cray-t3e)     set BLAS3=true
+if  ($TARGET == cray-x1)      set BLAS3=true
+if (($TARGET == cray-xd1)||($TARGET == cray-xt3)) then
+    if (-e $ACML_DIR) set BLAS3=true
+    if (-e $PGI/linux86-64/$PGI_VERS_STR/lib/libblas.a) set BLAS3=true
+endif
+if  ($TARGET == fuji-pp32)    set BLAS3=true
+if  ($TARGET == fuji-pp64)    set BLAS3=true
+if  ($TARGET == hpux32)       set BLAS3=true
+if  ($TARGET == hpux64)       set BLAS3=true
+if  ($TARGET == ibm32)        set BLAS3=true
+if  ($TARGET == ibm64)        set BLAS3=true
+if  ($TARGET == ibm64-sp)     set BLAS3=true
+if  ($TARGET == ibm-bg)       set BLAS3=true
+#      1st is Fedora Core's, 2nd is ASCI download from ORNL, 3rd is Atlas
+#      the names of the latter two files on your system might well be
+#      different from these, edit here and in 'lked' to match your paths.
+if (($TARGET == linux32) && (-e /usr/lib/libblas.a))            set BLAS3=true
+if (($TARGET == linux32) && (-e /usr/local/bin/libblas-asci.a)) set BLAS3=true
+if (($TARGET == linux32) && (-e /usr/local/lib/libatlas.a))     set BLAS3=true
+#      For next two, assume that a math library will exist when
+#      we arrive at the link step: MKL or Atlas or ACML....
+if  ($TARGET == linux64)      set BLAS3=true
+if  ($TARGET == linux-ia64)   set BLAS3=true
+if  ($TARGET == mac32)        set BLAS3=true
+if  ($TARGET == mac64)        set BLAS3=true
+if  ($TARGET == macG5)        set BLAS3=true
+if  ($TARGET == sgi32)        set BLAS3=true
+if  ($TARGET == sgi64)        set BLAS3=true
+if (($TARGET == sun32) && (-e /opt/SUNWspro/lib/libsunperf.so)) set BLAS3=true
+if (($TARGET == sun64) && (-e /opt/SUNWspro/lib/libsunperf.so)) set BLAS3=true
+#
+if ($BLAS3 == true) then
+  echo Compiling matrix multiply routines to use a system BLAS library...
+else
+  echo "--------------------------------------------------------------"
+  echo '        Warning\!  Warning\!  Warning\!  Warning\!'
+  echo "No mathematical library containing the BLAS has been detected."
+  echo "Use of a DGEMM from a good library will speed up computations"
+  echo "at the MP2, CCSD, or similar correlated levels, perhaps a lot."
+  echo "In the meantime, mthlib.src and all other calls to DGEMM will"
+  echo "rely on the slower blas.src provided with GAMESS."
+  echo "--------------------------------------------------------------"
+endif
+endif
+#
+#        Normally we are sitting above the source code and objects,
+#        and want to make sure they go in their normal directory.
+#
+#        N.B.  A few places below prepare temporary copies of the
+#        code being compiled in the current directory level (.),
+#        and these are always deleted at the end of this script.
+#        These places are vector, valence bond, and sed hacking.
+#
+set SRCDIR=source
+set OBJDIR=object
+#
+#        a few source files are kept in non-standard places, defined here
+#
+if ($MODULE == blaswrap) set SRCDIR=misc
+if ($MODULE == ddi)      set SRCDIR=ddi/oldsrc
+if ($MODULE == ddishm)   set SRCDIR=ddi/shmem
+if ($MODULE == ddio3k)   set SRCDIR=ddi/shmem
+if ($MODULE == ddixt3)   set SRCDIR=ddi/shmem
+#        
+#        some kind of problem using GMCPT on mac64's gfortran???
+#        unresolved as of 3/2008, see ~/gamess/misc/gmcpt.src for info.
+if (($MODULE == gmcpt) && ($TARGET == mac64)) then
+   echo ' '
+   echo '= * = * = warning: using dummy gmcpt.src on target=mac64 = * = * ='
+   echo ' '
+   set SRCDIR=misc
+endif
+#
+#   ----- delete scalar code before compiling on vector systems -----
+#   UNIX's 'ld' loader is incapable of loading two copies of the
+#   object code for a routine, and simply using the first one.
+#   So, if we are using VECTOR.SRC on this machine, we must split
+#   up some of the modules, delete the scalar code for the routines
+#   which are found in VECTOR.SRC, and then recombine the rest of
+#   the code in that module.  Ugh!
+#   Note that some of Cray's fsplit's are no longer able to work
+#   with any extension except .f.
+#
+if ($VECTORIZE == true) then
+   rm -f *.f
+   if ($TARGET == cray-x1) alias fsplit ftnsplit
+   switch ($MODULE)
+      case int2a:
+         echo Deleting scalar code forms, genral
+         cp source/int2a.src xxxxxx.f
+         fsplit xxxxxx.f
+         rm -f xxxxxx.f
+         if (-e forms.f) rm -f forms.f genral.f 
+         if (-e FORMS.f) rm -f FORMS.f GENRAL.f
+         cat *.f > int2a.src
+         rm -f *.f
+         set SRCDIR=.
+         breaksw
+      case grd2c:
+         echo Deleting scalar code dspdfv, jdxyzv, jkgnmv, jkxyzv
+         cp source/grd2c.src xxxxxx.f
+         fsplit xxxxxx.f
+         rm -f xxxxxx.f
+         if (-e dspdfv.f) rm -f dspdfv.f jdxyzv.f jkgnmv.f jkxyzv.f
+         if (-e DSPDFV.f) rm -f DSPDFV.f JDXYZV.f JKGNMV.f JKXYZV.f
+         cat *.f > grd2c.src
+         rm -f *.f
+         set SRCDIR=.
+         breaksw
+      case hss2b:
+         echo Deleting scalar code jddspd.f
+         cp source/hss2b.src xxxxxx.f
+         fsplit xxxxxx.f
+         rm -f xxxxxx.f
+         if (-e jddspd.f) rm -f jddspd.f
+         if (-e JDDSPD.f) rm -f JDDSPD.f
+         cat *.f > hss2b.src
+         rm -f *.f
+         set SRCDIR=.
+         breaksw
+      case eigen:
+         echo Deleting scalar code gldiag.f
+         cp source/eigen.src xxxxxx.f
+         fsplit xxxxxx.f
+         rm -f xxxxxx.f
+         if (-e gldiag.f) rm -f gldiag.f
+         if (-e GLDIAG.f) rm -f GLDIAG.f
+         cat *.f > eigen.src
+         rm -f *.f
+         set SRCDIR=.
+         breaksw
+      case mthlib:
+         echo Deleting scalar code mtarbr, tfsqb, tftri.
+         cp source/mthlib.src xxxxxx.f
+         fsplit xxxxxx.f
+         rm -f xxxxxx.f
+         if (-e mtarbr.f) rm -f mtarbr.f tfsqb.f tftri.f
+         if (-e MTARBR.f) rm -f MTARBR.f TFSQB.f TFTRI.f
+         cat *.f > mthlib.src
+         rm -f *.f
+         set SRCDIR=.
+         breaksw
+      case scflib:
+         echo Deleting scalar code dirfck.
+         cp source/scflib.src xxxxxx.f
+         fsplit xxxxxx.f
+         rm -f xxxxxx.f
+         if (-e dirfck.f) rm -f dirfck.f
+         if (-e DIRFCK.f) rm -f DIRFCK.f
+         cat *.f > scflib.src
+         rm -f *.f
+         set SRCDIR=.
+         breaksw
+      default:
+         breaksw
+   endsw
+endif
+#
+#        optional SIMOMM method using Tinker MM program
+#              Do not edit here
+#              == === ==== ====
+#        If SIMOMM is required, edit compall and lked, but not this file!
+#
+set TINKER=false
+if ($MODULE == Libtad)  set TINKER=true
+if ($MODULE == Libteac) set TINKER=true
+if ($MODULE == Libtedl) set TINKER=true
+if ($MODULE == Libtemo) set TINKER=true
+if ($MODULE == Libterx) set TINKER=true
+if ($MODULE == Libtfi)  set TINKER=true
+if ($MODULE == Libtjo)  set TINKER=true
+if ($MODULE == Libtpr)  set TINKER=true
+if ($MODULE == Libtsx)  set TINKER=true
+if ($MODULE == Tdrive)  set TINKER=true
+if ($MODULE == Tinkin)  set TINKER=true
+if ($MODULE == Toys)    set TINKER=true
+#       We must compile directly out of the Tinker directory,
+#       so that its INCLUDE statements will work.
+#       Note that Tinker must also skip the code deletion at end!
+if ($TINKER == true) then
+   chdir tinker
+   set SRCDIR=.   
+   set OBJDIR=../object
+   goto cmp
+endif
+#
+#        optional Valence Band method using VB2000
+#        Do Not Edit the "VB2000" value,
+#        but you may needto edit the variable VBPATH just below.
+set VB2000=false
+if ($MODULE == vb2000) set VB2000=true
+if ($MODULE == vb2gms) set VB2000=true
+#        compiling in the top level directory means code is erased later
+if ($VB2000 == true ) then
+   set VBPATH=~/VB/SRC
+   echo Copying $MODULE.src from VB2000 directory named $VBPATH
+   set SRCDIR=.
+   if ($MODULE == vb2000) then
+#        Some messy sed stuff to set up.
+      sed "s/^CTMAP/     /g" $VBPATH/vb2000.src | \
+      sed "s/^CGMS/    /g"  > vb2000.src
+   endif
+   if ($MODULE == vb2gms) cp $VBPATH/vb2gms.src .
+endif
+#
+#        Nuclear Electronic Orbital (NEO) method plugin
+#             Do not edit here
+#             == === ==== ====
+#        If NEO is required, edit compall and lked, but not this file!
+#
+set NEOCMP=false
+if ($MODULE =~ neo*)   set NEOCMP=true
+if ($MODULE == neostb) set NEOCMP=false
+if ($NEOCMP == true && $ACTONLY != true) set SRCDIR=qmnuc/neo
+#
+#   ----- Does this module need to be activated? -----
+#
+#   Machines where "DOUBLE PRECISION" translates to more than a 64
+#   bit floating point quantity must be passed into the activation
+#   to ensure the source is made single precision.
+#
+if ($TARGET == cray-pvp) goto act
+if ($TARGET == cray-t3e) goto act
+if ($TARGET == cray-x1)  goto act
+if ($TARGET == necsx)    goto act
+#
+#   Machines needing the 64->32 bit BLAS wrappers must activate everything
+#   This depends on whether or not the BLAS library is OK with 64 bit
+#   integers in its argument, or not (in which case a sed hack to use
+#   a 64 to 32 bit wrapper file is needed, by always branching here).
+#
+if ($TARGET == fuji-pp64) goto act
+if ($TARGET == ibm64)     goto act
+if ($TARGET == ibm64-sp)  goto act
+if ($TARGET == mac64)     goto act
+if ($TARGET == sgi64)     goto act
+if ($TARGET == sun64)     goto act
+#
+#   Any module with machine dependent code must be activated...
+#
+if ($MODULE == aldeci) goto act
+if ($MODULE == ccsdt)  goto act
+if ($MODULE == cisgrd) goto act
+if ($MODULE == cphf)   goto act
+if ($MODULE == cpmchf) goto act
+if ($MODULE == cprohf) goto act
+if ($MODULE == dcint2) goto act
+if ($MODULE == dcmp2)  goto act
+if ($MODULE == dctran) goto act
+if ($MODULE == ddi)    goto act
+if ($MODULE == ddishm) goto act
+if ($MODULE == dft)    goto act
+if ($MODULE == dftint) goto act
+if ($MODULE == elgscf) goto act
+if ($MODULE == gmcpt)  goto act
+if ($MODULE == grd2a)  goto act
+if ($MODULE == gugdga) goto act
+if ($MODULE == gugdgb) goto act
+if ($MODULE == gugdm2) goto act
+if ($MODULE == gugem)  goto act
+if ($MODULE == gugsrt) goto act
+if ($MODULE == gvb)    goto act
+if ($MODULE == gvvpt2) goto act
+if ($MODULE == hss2a)  goto act
+if ($MODULE == int2a)  goto act
+if ($MODULE == iolib)  goto act
+if ($MODULE == ivocas) goto act
+if ($MODULE == lagran) goto act
+if ($MODULE == local)  goto act
+if ($MODULE == locpol) goto act
+if ($MODULE == mccas)  goto act
+if ($MODULE == mcqdpt) goto act
+if ($MODULE == mcqud)  goto act
+if ($MODULE == mcscf)  goto act
+if ($MODULE == mctwo)  goto act
+if ($MODULE == morokm) goto act
+if ($MODULE == mp2)    goto act
+if ($MODULE == mp2grd) goto act
+if ($MODULE =~ neo*)   goto act
+if ($MODULE == nmr)    goto act
+if ($MODULE == ordint) goto act
+if ($MODULE == rhfuhf) goto act
+if ($MODULE == rohfcc) goto act
+if ($MODULE == tddint) goto act
+if ($MODULE == tdhf)   goto act
+if ($MODULE == trans)  goto act
+if ($MODULE == trfdm2) goto act
+if ($MODULE == unport) goto act
+if ($MODULE == utddft) goto act
+if ($MODULE == vb2gms) goto act
+if ($MODULE == vector) goto act
+if ($MODULE == xmvb)   goto act
+#
+#   We may need to do a hack below on the matrix multiply routines
+#
+if (($BLAS3 == true) && ($MODULE == mthlib)) goto act
+#
+#   All other modules are straight FORTRAN, just copy them.
+#
+echo Copying source code, $MODULE.src does not require activation.
+cp $SRCDIR/$MODULE.src $MODULE.f
+goto cmp
+#
+#   ----- Choose which version is to be activated -----
+#   The setting for 'ddi' applies to the possible use of the first version
+#   of the Distributed Data Interface, and probably should be sockets only.
+#   Most machines use the 2nd version of DDI, implemented entirely in C,
+#   and compiled by the separate 'compddi' script.
+#   In contrast, machines using the SHMEM library will compile ddishm.src
+#
+act:
+#
+if ($TARGET == axp64) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*DEC'
+endif
+#       SHMEM on Compaq has to activate its particular type
+if ($TARGET == compaq-sc) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddishm) setenv MACHIN '*DEC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*DEC'
+endif
+#       the old Cray vector systems would use TCP/IP sockets in DDI
+if ($TARGET == cray-pvp) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*CRY'
+   if ($MODULE == vector) setenv MACHIN '*CRY'
+endif
+#       the CRAY T3E has a special SHMEM implementation of DDI
+if ($TARGET == cray-t3e) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddishm) setenv MACHIN '*T3E'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*T3E'
+endif
+#       the CRAY X1 has a special SHMEM implementation of DDI
+if ($TARGET == cray-x1) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddishm) setenv MACHIN '*CX1'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*CX1'
+   if ($MODULE == vector) setenv MACHIN '*CRY'
+endif
+#       the CRAY XD1 uses TCP/IP sockets, until GPSHMEM is working
+if ($TARGET == cray-xd1) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddishm) setenv MACHIN '*XD1'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*L64'
+endif
+#       the CRAY XT3 is using pure MPI, from the old version of DDI
+if ($TARGET == cray-xt3) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddixt3) setenv MACHIN '*XT3'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*XT3'
+endif
+if (($TARGET == fuji-pp32) || ($TARGET == fuji-pp64)) then
+                             setenv MACHIN '*I32'
+   if ($TARGET == fuji-pp64) setenv MACHIN '*I64'
+   if ($MODULE == ddi)       setenv MACHIN '*SOC'
+   if ($MODULE == iolib)     setenv MACHIN '*UNX'
+   if ($MODULE == unport)    setenv MACHIN '*SUN'
+endif
+if (($TARGET == hpux32) || ($TARGET == hpux64)) then
+                          setenv MACHIN '*I32'
+   if ($TARGET == hpux64) setenv MACHIN '*I64'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*HP '
+endif
+if (($TARGET == ibm32) || ($TARGET == ibm64) || ($TARGET == ibm64-sp)) then
+                          setenv MACHIN '*I64'
+   if ($TARGET == ibm32)  setenv MACHIN '*I32'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*AIX'
+endif
+#
+if ($TARGET == ibm-bg) then
+                          setenv MACHIN '*I32'
+   if ($MODULE == ddi)    setenv MACHIN '*MPI'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*AIX'
+endif
+if ($TARGET == linux32) then
+                          setenv MACHIN '*I32'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*L32'
+endif
+#
+if ($TARGET == linux64) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*L64'
+endif
+if ($TARGET == linux-ia64) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*INT'
+endif
+if (($TARGET == mac32) || ($TARGET == macG5)) then
+                          setenv MACHIN '*I32'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*L32'
+endif
+if ($TARGET == mac64) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*L64'
+endif
+if ($TARGET == necsx) then
+                          setenv MACHIN '*I64'
+   if ($MODULE == ddi)    setenv MACHIN '*MPI'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*NEC'
+   if ($MODULE == vector) setenv MACHIN '*NEC'
+endif
+if (($TARGET == sgi32) || ($TARGET == sgi64)) then
+                          setenv MACHIN '*I32'
+   if ($TARGET == sgi64)  setenv MACHIN '*I64'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*SGI'
+endif
+if (($TARGET == sun32) || ($TARGET == sun64)) then
+                          setenv MACHIN '*I32'
+   if ($TARGET == sun64)  setenv MACHIN '*I64'
+   if ($MODULE == ddi)    setenv MACHIN '*SOC'
+   if ($MODULE == iolib)  setenv MACHIN '*UNX'
+   if ($MODULE == unport) setenv MACHIN '*SUN'
+endif
+#
+#   ----- Activate the source code to produce FORTRAN -----
+#
+set echo
+setenv   SRCIN $SRCDIR/$MODULE.src
+setenv CODEOUT $MODULE.f
+#
+tools/actvte.x
+unset echo
+#
+#   --------------- special machine "sed hacks" --------------------
+#   Not everything can be done with ACTVTE, so we use "sed" (ugh!).
+#
+#            The "record length" hack.
+#    Direct access record length is measured in bytes on most Unix,
+#    but some kinds insist in measuring 4-byte words.  This changes
+#    only one line in RAOPEN and one line in OPENDA in IOLIB.SRC.
+#    SGI's f90 should not execute the following, but SGI's f77 must.
+#
+if (($MODULE == iolib) && \
+   ($TARGET == axp64 || $TARGET == compaq-sc || \
+    $TARGET == sgi32 || $TARGET == sgi64)) then
+   mv -f iolib.f iolib.junk
+   sed -e "s/     \*      RECL=8\*IRECLN/     *      RECL=2*IRECLN/" \
+     iolib.junk > iolib.f
+   rm -f iolib.junk
+endif
+#
+#            The "I'm no longer a 32 bit company" hack.
+#   For 64 bit machines which also have a traditional 32 bit product
+#   line, the source code typically assumes 32 bits.  This change lets
+#   the source code know it is going to be running as a 64 bit machine.
+#
+if (($MODULE == unport) && \
+    (($TARGET == fuji-pp64) || \
+     ($TARGET == hpux64)    || \
+     ($TARGET == ibm64)     || \
+     ($TARGET == ibm64-sp)  || \
+     ($TARGET == sgi64)     || \
+     ($TARGET == sun64))) then
+   mv -f unport.f unport.junk
+   sed -e "s/      NWDVAR = 2/      NWDVAR = 1/" unport.junk > unport.f
+   rm -f unport.junk
+endif
+#
+#            The "old matrix multiply can be BLAS" hack.
+#   If "BLAS3" is set, indicating a math library is found, change a
+#   few of the oldest matrix multiply routines to call BLAS routines.
+#
+if (($MODULE == mthlib) && ($BLAS3 == true)) then
+   mv -f mthlib.f mthlib.junk
+   sed -e "s/\*BL3/    /" mthlib.junk > mthlib.f
+   rm -f mthlib.junk
+endif
+#
+#            The "64 to 32 bit math library" hack.
+#   This one is necessary if compiler flags below request the use of
+#   64 bit integers in GAMESS -AND- if the vendor's BLAS library
+#   insists any integer arguments passed to it be 32 bit quantities.
+#   There is a special wrapper file gamess/misc/blaswrap.src that deals
+#   with this problem, if we change the source to call the wrappers.
+#
+if (($TARGET == fuji-pp64) || ($TARGET == ibm64) || ($TARGET == ibm64-sp) || \
+    ($TARGET == mac64)     || ($TARGET == sgi64) || ($TARGET == sun64)) then
+#
+   set par="("
+   switch ($MODULE)
+#
+#          blaswrap.src carefully copies 64 bit ints to 32 bit ints,
+#                       and then calls the real BLAS routines, so it
+#                       must not be altered here.
+      case blaswrap:
+      breaksw
+#          blas.src has to learn it will be receiving 32 bit integer args,
+#                   in case the system math library is for some reason not
+#                   installed, and we unfortunately end up using blas.src!
+#                   Note that it is OK to also change its local integers
+#                   when we change the IMPLICIT, but we must ensure any
+#                   integer function present returns 64 bits to GAMESS.
+      case blas:
+         sed -e "s/INTEGER FUNCTION/INTEGER*8 FUNCTION/g" \
+             -e "s/INTEGER(I-N)/INTEGER*4(I-N)/g" \
+                blas.f > blas.munged
+         mv -f blas.munged blas.f
+      breaksw
+#           A few files have annoying type and/or EXTERNAL declarations,
+#           which lack parentheses, causing woes if we don't omit it. 
+#           These are then allowed to fall into the default sed change,
+#           w/o an open parenthesis to help ensure string uniqueness.
+      case dgeev:
+      case dgesvd:
+      case tdx:
+      case tdxitr:
+      case tdxni:
+      case zheev:
+         set par=""
+#           Most files will attempt to change a string including an
+#           open parenthesis (set above), such as DDOT(... to XDOT(...
+#           This is not a perfect strategy, imagine an unrelated
+#           routine named MDSCAL, which will be caught up in this!
+      default:
+         sed -e "s/DASUM$par/XASUM$par/g"   -e "s/dasum$par/XASUM$par/g" \
+             -e "s/DAXPY$par/XAXPY$par/g"   -e "s/daxpy$par/XAXPY$par/g" \
+             -e "s/DCOPY$par/XCOPY$par/g"   -e "s/dcopy$par/XCOPY$par/g" \
+             -e "s/DDOT$par/XDOT$par/g"     -e "s/ddot$par/XDOT$par/g"   \
+             -e "s/DNRM2$par/XNRM2$par/g"   -e "s/dnrm2$par/XNRM2$par/g" \
+             -e "s/DROT$par/XROT$par/g"     -e "s/drot$par/XROT$par/g"   \
+             -e "s/DROTG$par/XROTG$par/g"   -e "s/drotg$par/XROTG$par/g" \
+             -e "s/DSCAL$par/XSCAL$par/g"   -e "s/dscal$par/XSCAL$par/g" \
+             -e "s/DSWAP$par/XSWAP$par/g"   -e "s/dswap$par/XSWAP$par/g" \
+             -e "s/IDAMAX$par/IXAMAX$par/g" -e "s/idamax$par/IXAMAX$par/g" \
+             -e "s/DGER$par/XGER$par/g"     -e "s/dger$par/XGER$par/g"   \
+             -e "s/DTRMM$par/XTRMM$par/g"   -e "s/dtrmm$par/XTRMM$par/g" \
+             -e "s/DTRMV$par/XTRMV$par/g"   -e "s/dtrmv$par/XTRMV$par/g" \
+             -e "s/DTRSM$par/XTRSM$par/g"   -e "s/dtrsm$par/XTRSM$par/g" \
+             -e "s/DGEMV$par/XGEMV$par/g"   -e "s/dgemv$par/XGEMV$par/g" \
+             -e "s/DGEMM$par/XGEMM$par/g"   -e "s/dgemm$par/XGEMM$par/g" \
+             -e "s/DSPMV$par/XSPMV$par/g"   -e "s/dspmv$par/XSPMV$par/g" \
+             $MODULE.f > $MODULE.munged
+          mv -f $MODULE.munged $MODULE.f
+      breaksw
+   endsw
+endif
+#
+#            The "file-get-environment" hack.
+#  This works around inadequate O/S support for environment values.
+#  The change consists of changing iolib's getenv call into file_getenv,
+#  and activating the subroutine named file_getenv in unport.
+#
+#  Blue Gene needs this due to a very very small total environment space.
+#  Sometimes MPI implementations will need this, if mpirun does not pass
+#  the environment on to the processes it creates.  You'll have to request
+#  the change manually in these case, yourself!
+#
+                       set FGEhack=false
+if ($TARGET == ibm-bg) set FGEhack=true
+#
+if ($FGEhack == true) then
+   if($MODULE == iolib) then
+      sed -e "s/CALL GETENV/CALL FILE_GETENV/g" iolib.f > iolib.munged
+      mv -f iolib.munged iolib.f
+   endif
+   if($MODULE == unport) then
+      sed -e "s/\*FGE/    /" unport.f > unport.munged
+      mv -f unport.munged unport.f
+   endif
+endif
+#
+#   The following hack makes an Apple version print a different banner.
+#   The Apple version is source code identical to Linux, but we print
+#   something to keep MAC from looking like PC.  Those TV ads demand it!
+#
+if (($TARGET == mac32) || ($TARGET == mac64) || ($TARGET == macG5)) then
+   if ($MODULE == unport) then
+      mv -f unport.f unport.junk
+      sed -e "s/BIT LINUX VERSION/BIT APPLE VERSION/" \
+          unport.junk > unport.f
+      rm -f unport.junk
+   endif
+endif
+#
+#   The following hack selects AOINTS=DIST as the default on high end
+#   Compaq and IBM systems, where we know we have a high quality network.
+#
+if (($MODULE == unport) &&  \
+   (($TARGET == compaq-sc) || ($TARGET == ibm64-sp))) then
+   mv -f unport.f unport.junk
+   sed -e "s/\*TRF/    /" unport.junk > unport.f
+   rm -f unport.junk
+endif
+#
+#    HP has a FORTRAN callable delay, we just have to change to HP's name
+#
+if (($TARGET == hpux32) || ($TARGET == hpux64)) then
+   if ($MODULE == unport) then
+      mv -f unport.f unport.junk
+      sed -e "s/NAPTIME(IDELAY)/SLEEP(IDELAY)/" \
+          unport.junk > unport.f
+      rm -f unport.junk
+   endif
+endif
+#
+#    IBM Blue Gene can't run a command -after- GAMESS execution
+#    to rescue the various log files produced by GDDI runs, so
+#    we should at least make sure that the master group's log
+#    file is kept in 'standard output' by deleting its OPEN.
+#
+if (($TARGET == ibm-bg) && ($MODULE == gamess)) then
+   mv -f gamess.f gamess.junk
+   sed -e "s/         CALL SEQOPN(IW,'OUTPUT','NEW',.FALSE.,'FORMATTED')/C/" \
+        gamess.junk > gamess.f
+   rm -f gamess.junk
+endif
+#
+#   ...and this is the end of the ugly "sed hack"s.
+#
+#   --------- Now we are ready to compile on the target machine ----------
+#
+cmp:
+#
+#   Optionally, save pure FORTRAN in temporary directory for
+#   syntax scan by the nifty FORTRAN analysis program FTNCHEK.
+#
+if ($ACTONLY == true) then
+   mv -f $MODULE.f ~/scr
+   exit
+endif
+#
+if (-e $OBJDIR/$MODULE.o) rm -f $OBJDIR/$MODULE.o
+#
+#  Options for the Compaq AXP FORTRAN 5.2 compiler under Tru64 V4.0F are
+#     -O0 turns off all optimization
+#     -O1 does local optimizations
+#     -O2 also does global optimizations
+#     -O3 also does additional global optimizations
+#     -O4 also does routine inlining (default)
+#     -O5 also does software pipelining
+#     -fast implies less accurate but faster libraries, etc. and -O4.
+#     -c means compile only
+#     -i8 selects use of 64 bit integers
+#     -v gives compiler phase information, and timings
+#     -automatic and -static use/avoid stack for local variables
+#     -col72 chops source lines past 72 columns
+#     -stand nosemantic means don't warn of nonANSI usage (default)
+#     -stand nosource_form means don't warn of tabs/lowercase (default)
+#     -stand nosyntax means don't warn of nonANSI syntax (default)
+#
+#  Note that we've tried f77 3.3, 3.7, 3.8, and 5.2, but nothing in between.
+#  This is an excellent compiler, and probably all versions work.
+#  Under AXP Linux, it has a different name, but is the same great compiler.
+#
+if ($TARGET == axp64) then
+                         set FORT='f77'
+   if (`uname` == Linux) set FORT='fort'
+   set OPT = '-O4'
+   if ($MODULE == zheev) set OPT='-O0'
+   set echo
+   $FORT -c -i8 -v -automatic -col72 $OPT $MODULE.f
+   unset echo
+endif
+#      The SuperCluster assumes a specific AXP chip...
+if ($TARGET == compaq-sc) then
+   set OPT = '-fast -tune ev67 -arch ev67'
+   if ($MODULE == zheev) set OPT='-O0'
+   set echo
+   f77 -c -i8 -v -col72 $OPT $MODULE.f
+   unset echo
+endif
+#
+#    Cray parallel vector processor (e.g. T90, J90, SV1...)
+#    Cray T90 tested in February of 2000
+#    Cray SV1 rev C with CF90 3.4.0.0.4 tested in March of 2000
+#    Note that all Cray clauses now use f90 compiler only.
+#
+if ($TARGET == cray-pvp) then
+   set OPT = '-O2 '
+   if ($MODULE == int2a)  set OPT='-Ovector0,scalar3 '
+   if ($MODULE == grd2a)  set OPT='-Ovector0,scalar2 '  # Jerry says
+   if ($MODULE == grd2b)  set OPT='-Ovector0,scalar3 '
+   if ($MODULE == grd2c)  set OPT='-Ovector0,scalar3 '
+   if ($MODULE == gugem)  set OPT='-Ovector0,scalar3 '
+   if ($MODULE == vector) set OPT='-O1 '
+   if ($MODULE == gvb)    set OPT='-O1 '   # use -O0 if exam15,16,21 fail
+   if ($MODULE == gamess) set OPT='-O0 '
+   if ($MODULE == efinp)  set OPT='-O0 '
+   if ($MODULE == efinta) set OPT='-Ovector0,scalar3 '
+   if ($MODULE == efintb) set OPT='-Ovector0,scalar3 '
+   if ($MODULE == efgrda) set OPT='-Ovector0,scalar3 '
+   if ($MODULE == efgrdb) set OPT='-Ovector0,scalar3 '
+   if ($MODULE == efgrdc) set OPT='-Ovector0,scalar3 '
+   if ($MODULE == efgrd2) set OPT='-Ovector0,scalar3 '
+   if ($MODULE == ormas1) set OPT='-O0 '   # also from Jerry
+   if ($MODULE == zheev)  set OPT='-O0'    # defensive compiling
+   set echo
+   f90 -c -V $OPT $MODULE.f
+   unset echo
+endif
+#
+#  Compiler flags for Cray T3E under UNICOS/mk 2.0.3.18, cf90 3.1.0.3
+#  -Oscalarn is various scalar optimizations (n=0,1,2,3)
+#  -Oaggress increases table sizes used during optimizations
+#  -O[no]msgs,[no]negmsgs [disables]enables compiler optimization messages
+#  -dp disables double precision
+#
+if ($TARGET == cray-t3e) then
+   set OPT = '-Oscalar3,aggress'
+   if ($MODULE == grd2c) set OPT='-O1'   # for cf90 3.1.0.3 and others
+   if ($MODULE == hss1b) set OPT='-O1'   # for cf90 3.4.0.0
+   if ($MODULE == zheev) set OPT='-O0'   # defensive compiling
+   set echo
+   env TARGET=cray-t3e f90 -c $OPT -dp -Onomsgs,nonegmsgs $MODULE.f
+   unset echo
+endif
+#
+#  Compiler flags for Cray X1 under UNICOS/mp 2.5+, ftn 5.3+
+#  -O[no]msgs,[no]negmsgs [disables]enables compiler optimization messages.
+#  -Oscalarn is various scalar optimizations (n=0,1,2,3)
+#  -Ovectorn is various vector optimizations (n=0,1,2,3)
+#  -Oaggress causes the compiler to treat each subroutine as a single
+#       optimization region.
+#  -Ossp will build GAMESS in SSP (single-streaming processor) mode.
+#        remove -Ossp to use multi-streaming processor mode (discouraged)
+#  -dp disables double precision.
+#  -rm generates listing files.
+#  -xomp disables all OpenMP statements.
+#  -sdefault64 uses default 64-bit integers and reals (among others).
+#
+if ($TARGET == cray-x1) then
+   set OPT = '-O2'
+   set LST = ' '         # change to '-rm -Omsgs,negmsgs' for listing file
+   if ($MODULE == int2a)  set OPT='-O1' 
+   if ($MODULE == vector) set OPT='-Oscalar3,vector3' 
+   if ($MODULE == zheev)  set OPT='-O0'   # defensive compiling
+   set echo
+   ftn -c -V $OPT $LST -Ossp,aggress -xomp -dp -sdefault64 $MODULE.f
+   unset echo
+endif
+#
+#  Compiler flags for Cray XD1/XT3 using PGI F90 6.0 or higher
+#
+#  -fastsse is a smorgasboard of
+#      -fast -Mvect=sse -Mscalarsse -Mcache_align -Mflushz
+#  and -fast is a further feast, namely
+#      -O2 -Munroll=c:1 -Mnoframe -Mlre
+#  typing "pgf77 -fastsse -help" can be a bit more expansive on the -M's.
+#
+#  For the XD1, make sure your "mpif90" script points to pgf90 and not a
+#    different compiler.
+#  'setenv PGI' should not be needed as this should be done automatically
+#    by modules.  If you do not have $PGI environment variable set,
+#    uncomment these 2 lines (first change /usr/pgi to wherever the
+#    PGI compiler is installed):
+#    setenv PGI /usr/pgi
+#    setenv PATH $PATH\:$PGI/linux86-64/bin 
+#
+if (($TARGET == cray-xd1)||($TARGET == cray-xt3)) then
+   if ($TARGET == cray-xt3) set USE_FTN = ftn
+   if ($TARGET == cray-xd1) set USE_FTN = 'mpif90'  
+
+#     choose 'amd64e' in next line if your Opteron supports SSE3 instructions
+   set AMD_TRGT = amd64
+
+   if (($MODULE == qeigen) || ($MODULE == int2c)) then
+      mv -f $MODULE.f $MODULE.junk
+      sed -e "s/Q-/D-/g" \
+          -e "s/Q+00/D+00/g" \
+          -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+      rm -f $MODULE.junk
+   endif
+
+#      these are probably very aggressive optimizations.
+#      The settings for mcpgrd below are gentler, and therefore safer.
+   set OPT = '-fastsse -Munroll -Mipa=fast,safe'
+   if ($MODULE == dftgrd) set OPT='-fastsse -Munroll -Mipa=fast,safe -Minline'
+   if ($MODULE == int2a)  set OPT='-fastsse -Munroll -Mipa=fast,safe -Minline'
+   if ($MODULE == int2b)  set OPT='-fast -Mnounroll'
+   if ($MODULE == mcpgrd) set OPT='-O2 -Mscalarsse -Munroll -Mcache_align -Mflushz'
+   if ($MODULE == prppop) set OPT='-fastsse -Munroll -Mipa=fast,safe -Minline'
+   
+   if (($MODULE == mpcdat) || ($MODULE == mpcgrd) || ($MODULE == mpcint) || \
+       ($MODULE == mpcmol) || ($MODULE == mpcmsc)) set OPT = '-O0'
+   
+   set echo 
+   $USE_FTN -c $OPT -Mnosecond_underscore -tp $AMD_TRGT -i8 $MODULE.f
+   unset echo
+endif
+#
+#   Fujitsu PrimePower
+#   Split into 32bit and 64bit versions, since the 32bit executable is
+#   slightly (5%) faster but cannot use larger than 2Gbyte memory.
+#   From Roger Amos at ANU Supercomputer Facility, 1/2005
+#
+#   Compilation options: do not use -O5 or FMADD as code is slower. 
+#   More complicated cache optimisation does not improve performance.
+#
+#   64bit version tested with largepage=1, and largepage=2, the
+#   program executes correctly but there is no performance advantage.
+#
+#   tested with Solaris8 and Solaris9 and compiler
+#   Fujitsu Fortran 5.5 (Feb 19 2004 17:23:48)
+#   note: the compiler has two names, f90 and frt, which are the same.
+#
+if ($TARGET == fuji-pp32) then
+   set OPT = '-Kfast_GP2=3,prefetch=5'
+   set echo
+   f90 -c -fs $OPT $MODULE.f
+   unset echo
+endif
+
+#   -KV9 allows large memory space
+#   -CcdII8 causes all generic integer variables to be 64 bit
+#
+if ($TARGET == fuji-pp64) then
+   set OPT = '-Kfast_GP2=3,prefetch=5,largepage=2'
+   if ($MODULE == gamess) set OPT='-O0'  # only fails in 64 bit mode
+   set echo
+   f90 -c -fs $OPT -KV9 -CcdII8  $MODULE.f
+   unset echo
+endif
+#
+#  HP-UX systems,
+#         the latest tested version numbers are
+#  HP-UX B.11.0,  using f90 2.4.10  on PA-RISC  32 bit
+#  HP-UX B.11.23, using f90 2.8     on Itanium2 64 bit
+#       (f90 +version reports version number)
+#
+#  The f90 options apply to both 32 and 64 bit compilations, and mean:
+#    +On   selects optimization level; n=0,1,2,3,4  (-O means +O2)
+#          0 is none
+#          1 is block transforms
+#          2 is full within subprograms
+#          3 crosses subprograms (includes inlining) also loop transforms
+#          4 is link time iptimizations, applies only to Itanium processors.
+#
+#    +Oaggressive selects the following four additions to +O2:
+#    +Oentrysched  = instruction scheduling on entry/exit
+#    +Olibcalls    = special trig and power functions (lacking error hand.)
+#    +Onofltacc    = permits use of a faster single multiply/add instruction.
+#    +Onoinitcheck = disable initialization of any unitialized datum
+#         other optimizations include
+#    +Onolimit     = ignores time and memory limits when optimizing
+#    +Ofastaccess  = gives fast access to global data
+#
+#    +Oaggressive is a decremented optimization, to be replaced in newer
+#    systems by +Ofast.  +Ofast selects the combination +O2, +Olibcalls,
+#    +Onolimit, +Ofltacc=relaxed, +FPD, +DSnative (on IPF), +Oshortdata
+#    and requires f90 2.5 or higher.
+#
+#    +[no]save governs automatic variable allocation strategy
+#    +[no]ppu governs postpend underscores on names of external refs.
+#    +U77 gives access to BSD's 3F library
+#    +DD64 uses the LP64 data model.
+#    +i8 treats all integer or logical data as 64 bits
+#
+if ($TARGET == hpux32) then
+   set OPT='+O2 +Oaggressive +Onolimit +Ofastaccess'
+   if ($MODULE == unport) set OPT="$OPT +U77"
+   if ($MODULE == zheev)  set OPT='+O0'   # defensive compiling
+   set echo
+   f90 -c $OPT +nosave +noppu $MODULE.f
+   unset echo
+endif
+#
+if ($TARGET == hpux64) then
+#
+#    the 64 bit libraries have a name conflict with our ICOPY
+#
+   if ($MODULE == guess) then
+      mv -f guess.f guess.junk
+      sed -e "s/SUBROUTINE ICOPY/SUBROUTINE IYPOC/" \
+          guess.junk > guess.f
+      rm -f guess.junk
+   endif
+#      +O3 failed to run 9 of 37 example jobs correctly, so +O2 is safer.
+   set OPT='+O2'
+   if ($MODULE == unport) set OPT="$OPT +U77"
+   if ($MODULE == trfdm2) set OPT="+O1"   # for CI gradients, exam05
+   if ($MODULE == zheev)  set OPT='+O0'   # defensive compiling
+   set echo
+   f90 -c $OPT +DD64 +i8 +nosave +noppu $MODULE.f
+   unset echo
+endif
+#
+#   For IBM 32 or 64 bit RS/6000 workstations or SP parallel systems,
+#   the options for XL FORTRAN 7.1.0 and AIX 4.3.3 are
+#       -c means compile only
+#       -O2 and -O3 choose optimization levels (there is no -O1)
+#       -qarch=com,601,pwr,pwr2,pwr3 (see also -qtune)
+#       -qflag requests I,L,W,E,S,Q (information, language,
+#              warning, error, severe, quiet) messages
+#       -qflttrap=ov:zero:inv:inex:enable traps bad arithmetic
+#       -qhalt stops compiler after certain error level
+#       -qnosave forces non-static storage
+#       -qinitauto=ff initializes non-static storage (useful if debugging)
+#       -qextchk checks calling args and common lengths at link
+#       -qsource requests a printable .lst file.
+#       -qtune selects target chip
+#
+#   The following clause requires XL FORTRAN 3.2 or higher.
+#   Use of 64 bit integers requires XL FORTRAN 6.1 or higher.
+#   The command to find your FORTRAN version level depends on your
+#   AIX version: v3 is "lslpp -h xlfcmp.obj", v4/v5="lslpp -h xlfcmp".
+#
+#   To look for XLF optimization problems in one routine, place
+#          @PROCESS OPT(0) SAVE
+#   above the suspect routine.  Note that the directive remains in
+#   force for only one subprogram, and must be above its first line.
+#
+#   To profile code during development stages,
+#     1. "comp" desired modules with -pg added to the xlf flags
+#     2. "lked" after adding -p to the xlf flags.
+#     3. execute to completion, generating 'mon.out' file.
+#     4. generate results by 'prof gamess.00.x mon.out'.
+#
+#   A possible way to look for memory allocation problems is VALGRIND.
+#   Compile with the -p flag, and then be sure to look at child's
+#   memory use: "valgrind --trace-children=yes rungms".  This program
+#   is available for Linux (not AIX) at valgrind.org.  Untried by MWS.
+#
+if (($TARGET == ibm32) || ($TARGET == ibm64) || ($TARGET == ibm64-sp)) then
+   set FORT='xlf'
+   if ($TARGET == ibm64-sp) set FORT='mpxlf_r'
+#         old 32 bit workstations, whether Power, Power2, or PowerPC
+#         should all select plain vanilla common architecture.  It is
+#         faster, and runs on any combination of these chips you own.
+#         under xlf 4.1.0 a few files won't fully optimize
+   if ($TARGET == ibm32) then
+      set BITS=''
+      set OPT='-O3'
+      if ($MODULE == gugdm)  set OPT='-O2'
+      if ($MODULE == gugem)  set OPT='-O2'
+      if ($MODULE == qrel)   set OPT='-O2'
+      if ($MODULE == trnstn) set OPT='-O2'
+      set ARCH='com'
+      set TUNE='604'   # PowerPC tuning makes even Power1 run faster
+   endif
+#         64 bit workstations (or SP) is sure to be Power3 or higher chip.
+#         ISU's AIX systems are a mix of Power3 and Power4, while our
+#         Linux systems are all Power5 (else clause).  Please change
+#         the arch/tuning to better match your system, as you like.
+#
+#         xlf 5.1.1 and 6.1.0 and 7.1.0 and 8.1.0 and 9.1.0 are mostly OK,
+#         but 10.1.0 has a few more problems than usual.  Ever notice that
+#         IBM never puts out anything but x.1.x?
+   if (($TARGET == ibm64) || ($TARGET == ibm64-sp)) then
+      set BITS='-q64 -qintsize=8'
+      set OPT='-O3'
+      if (`uname` == AIX) then
+         set ARCH='pwr3'
+         set TUNE='pwr3'
+      else
+         set ARCH='pwr5'
+         set TUNE='pwr5'
+         if ($MODULE == mcpgrd) set ARCH='pwr3'  # or: -O2/pwr5 in xlf 9.1
+         if ($MODULE == mcpgrd) set TUNE='pwr3'
+      endif
+      if ($MODULE == fmoint) set OPT="-O3 -qstrict"
+      if ($MODULE == gugdga) set OPT="-O2"  # 10.1 (OK on older xlf)
+      if ($MODULE == gugdgb) set OPT="-O2"  # 10.1 (OK on older xlf)
+      if ($MODULE == mpcmol) set OPT="-O2"  # 10.1 (OK on older xlf)
+   endif
+#
+   set echo
+   $FORT -c $OPT $BITS -qarch=$ARCH -qtune=$TUNE \
+         -qflag=W:W -qhalt=W -qspillsize=2500 -qnosave $MODULE.f
+   unset echo
+endif
+#
+#   Blue Gene is a 32 bit processor based on the PPC440 embedded CPU
+#   with the addition of a dual FPU.  
+#   Blue Gene is rather specialized, so let's not mix with other IBM,
+#   even though its xlf arguments are clearly rather similar.
+#
+if ($TARGET == ibm-bg) then
+   set FORT="blrts_xlf"
+   set INCL="-I/bgl/BlueLight/ppcfloor/bglsys/include"
+   set ARCH='440'
+   set TUNE='440'
+   set OPT='-O3 -qmaxmem=-1'
+   if ($MODULE == grd2b)  set OPT='-O3 -qspillsize=1500'
+   if ($MODULE == gugdm)  set OPT='-O2'
+   if ($MODULE == gugem)  set OPT='-O2'
+   if ($MODULE == qrel)   set OPT='-O2'
+   if ($MODULE == trnstn) set OPT='-O2'
+   if ($MODULE == ormas1) set OPT='-O2'
+   if ($MODULE == zheev)  set OPT='-O0'
+   if ($MODULE == qeigen) set OPT="$OPT -qstrict"
+   if ($MODULE == fmoint) set OPT="$OPT -qstrict"
+   if ($MODULE == ddi)    set OPT="$OPT $INCL"
+#  further optimization for selected modules
+   if ($MODULE == scflib) set OPT="$OPT -qhot"
+   if ($MODULE == int2a)  set OPT="$OPT -qhot"
+   if ($MODULE == int2b)  set OPT="$OPT -qhot"
+   if ($MODULE == int2r)  set OPT="$OPT -qhot"
+   if ($MODULE == grd2a)  set OPT="$OPT -qhot"
+   if ($MODULE == grd2b)  set OPT="$OPT -qhot"
+   if ($MODULE == grd2c)  set OPT="$OPT -qhot"
+   if ($MODULE == mp2ddi) set OPT="$OPT -qhot"
+   if ($MODULE == rhfuhf) set OPT="$OPT -qhot"
+
+   set echo
+   $FORT -c $OPT -qarch=$ARCH -qtune=$TUNE \
+         -qflag=W:W -qhalt=W -qnosave $MODULE.f
+   unset echo
+endif
+#
+#   ------ RedHat Linux on 32 bit chips such as x86 or AMD ------
+#                (See 'linux64' for newer chips)
+#   Note also that we have only used Redhat, so this is not necessarily
+#   correct for Slackware, SUSE, FreeBSD, Debian, ..., although many
+#   people have been able to get other distributions to work.
+#
+if ($TARGET == linux32) then
+#
+#   The target of linux32 requires that you select a FORTRAN compiler.
+#   There are five choices,
+#          g77,
+#             the default, because it is on our PCs at Iowa State!
+#             lacks support for unit numbers over 99, or REAL*16
+#          gfortran,
+#             the gnu FORTRAN being included in recent Linux distributions
+#             this allows unit numbers over 99, but not REAL*16
+#          Intel's commercial ifort,
+#             this is usually a bit faster, and supports both unit
+#             numbers above 99 and REAL*16 (i.e. runs all of GAMESS)
+#          Portland's commercial pgf77, 
+#             lacks support for REAL*16
+#          the obsolete combination of f2c/gcc.  
+#             lacks support for unit numbers over 99, or REAL*16
+#
+#   Note that the source code is the same for any of the possibilities, so
+#   something missing means only that you can't run that particular thing:
+#      Use of RUNTYP=TDHFX requires file numbers over 99.
+#      Use of quadruple precision (MODEQR) in relativity requires REAL*16.
+#
+#   The only thing you need to change is the next line.
+#   Note: you must make the analogous choice in compddi and lked, as well.
+#
+    set FORTRAN=g77       # choose from g77, gfortran, ifort, pgf77, f2c
+#
+    switch ($FORTRAN)
+#
+#   1. Using g77 compiler.     compiler version query: rpm -q gcc-g77
+#   If your RedHat is older than 6.0, see the f2c/gcc clause below.
+#
+#   The meaning of g77's flags are
+#      -O0, -O1, -O2, -O3 are the optimization levels, -O means -O1
+#      -Wno-globals -fno-globals together suppress argument type checking.
+#      -fautomatic defeats use of static storage
+#      -malign-double uses 64 bit data alignment
+#   Tests on a representative GAMESS test suite (executing energy, gradient
+#   hessian code, as well as various SCF, MCSCF, MP2 runs, show that each
+#   of the more aggressive optimizations -ffast-math, -march=i586, and -O3
+#   gave speedups of less than 1% each.  (-march=i686 slows a Celeron type
+#   Pentium II fractionally).  None of these optimizations are used below.
+#
+   case g77:
+   set OPT = '-O2'
+   if ($MODULE == ormas1) set OPT='-O2 -fno-move-all-movables' # RH9, g77 3.3
+   if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
+#
+#   g77 does not support FORTRAN logical units above 99, or 128 bit math.
+#
+   if (($MODULE == qeigen) || ($MODULE == int2c)) then
+      mv -f $MODULE.f $MODULE.junk
+      sed -e "s/Q-/D-/g" \
+          -e "s/Q+00/D+00/g" \
+          -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+      rm -f $MODULE.junk
+   endif
+   if (($MODULE == iolib) || ($MODULE == inputa) || ($MODULE == mp2ims)) then
+      mv -f $MODULE.f $MODULE.junk
+      sed -e "s/MXUNIT=299/MXUNIT=99/g" $MODULE.junk > $MODULE.f
+      rm -f $MODULE.junk
+   endif
+   set echo
+   g77 -c $OPT -malign-double -fautomatic \
+           -Wno-globals -fno-globals $MODULE.f
+   unset echo
+   breaksw
+#
+#   2. Using gfortran compiler.     Tested with gfortran 4.1.1 on FC5.
+#   gfortran was included with Fedora Core distributions starting around FC4.
+#   compiler version query: rpm -q gcc-gfortran
+#
+#   This is a 32 bit version, i.e. not using -fdefault-integer-8!
+#   Unlike g77, gfortran allows for unit numbers above 100.
+#   Like g77, gfortran does not support quadruple precision.
+#
+#      -Ox optimization level is from the gcc back end, x can be 0,1,2,3
+#      -std=legacy  suppresses warnings about use of f77 constructs.
+#
+   case gfortran:
+   set OPT='-O2'
+   if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
+   if ($MODULE == pcmcv2) set OPT='-O1'  # EFP+CPCM, ala Francois, v4.1.2
+   if (($MODULE == qeigen) || ($MODULE == int2c)) then
+      mv -f $MODULE.f $MODULE.junk
+      sed -e "s/Q-/D-/g" \
+          -e "s/Q+00/D+00/g" \
+          -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+      rm -f $MODULE.junk
+   endif
+   set echo
+   gfortran -c $OPT -std=legacy $MODULE.f
+   unset echo
+   breaksw
+#
+#    3. Intel Fortran Compiler for Linux
+#    Please see the 64 bit Linux target for more details as to where
+#    to get this compiler, and its cost, and for an explanation of
+#    the command line arguments.
+#
+#    Note that this is more agressive (-O3 compared to -O2) than the
+#    64 bit compile below.  If an ifort version gives you problems,
+#    drop the optimization back to -O2.
+#
+#    Dmitri likes to use "-O3 -xN -ssp -unroll8 -ip -pad -opt_report",
+#    but that may cause certain ifort versions to fail on some files.
+#    See http://staff.aist.go.jp/d.g.fedorov/compgms.html for aggressive
+#    optimizations in 32 bit mode, as a function of the ifort version.
+#
+   case ifort:
+   set OPT = '-O3'
+   if ($MODULE == delocl) set OPT='-O0'  # from Cheol
+   if ($MODULE == zheev)  set OPT='-O0'
+   set echo
+   ifort -c -i4 $OPT -ftz -auto -assume byterecl \
+         -vec-report0 -w95 -cm $MODULE.f
+   unset echo
+   breaksw
+#
+#    4. Portland Group compiler.
+#    This is a synthesis of recommendations from Fred Arnold and Brian
+#    Salter-Duke.  -fast means -O2 -Munroll -Mnoframe, the latter option
+#    seems to be the source of several incorrect results.  It is said that
+#    "-Munroll" and "-tp p6" gives no significant improvement in run times.
+#    The -Mlfs flag is supposed to cure the 2 GB file size limit.
+#    exam19 may hang when using this compiler.  -Mlfs at link-time
+#    enables large file support.  Your login script must set
+#    up the use of this compiler, along the lines of
+#          setenv PATH $PATH\:/usr/pgi/linux86/bin
+#          setenv PGI /usr/pgi
+#
+   case pgf77:
+   if (($MODULE == qfmm) || ($MODULE == solib) || ($MODULE == zheev)) then
+       mv -f $MODULE.f $MODULE.junk
+       sed -e s/DREAL/DBLE/g $MODULE.junk > $MODULE.f
+       rm -f $MODULE.junk
+   endif
+   if (($MODULE == qeigen) || ($MODULE == int2c)) then
+      mv -f $MODULE.f $MODULE.junk
+      sed -e "s/Q-/D-/g" \
+          -e "s/Q+00/D+00/g" \
+          -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+      rm -f $MODULE.junk
+   endif
+   set OPT = '-O2'
+   if ($MODULE == zheev)  set OPT = '-O2 -Kieee'
+   if ($MODULE == bassto) set OPT = '-O0'  # Takako
+   set echo
+   pgf77 -c $OPT -Msecond_underscore $MODULE.f
+   unset echo
+   breaksw
+#
+#   5. RedHat 4.x and 5.x's FORTRAN compiler was f2c/gcc.
+#   This is a totally obsolete option, actually.
+#
+   case f2c:
+   if (($MODULE == qfmm) || ($MODULE == solib) || ($MODULE == zheev)) then
+       mv -f $MODULE.f $MODULE.junk
+       sed -e s/DREAL/DBLE/g $MODULE.junk > $MODULE.f
+       rm -f $MODULE.junk
+   endif
+   if (($MODULE == qeigen) || ($MODULE == int2c)) then
+      mv -f $MODULE.f $MODULE.junk
+      sed -e "s/Q-/D-/g" \
+          -e "s/Q+00/D+00/g" \
+          -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+      rm -f $MODULE.junk
+   endif
+   if (($MODULE == iolib) || ($MODULE == inputa) || ($MODULE == mp2ims)) then
+      mv -f $MODULE.f $MODULE.junk
+      sed -e "s/MXUNIT=299/MXUNIT=99/g" $MODULE.junk > $MODULE.f
+      rm -f $MODULE.junk
+   endif
+   set OPT = '-O3 -malign-double'
+   set echo
+   f2c -w66 -a -Nn1604 -Nx800 $MODULE.f
+   gcc -c $OPT $MODULE.c
+   rm -f $MODULE.c
+   unset echo
+   breaksw
+#
+   default:
+      echo "Please spell your Linux 32 bit FORTRAN compiler name correctly."
+      exit 4
+      breaksw
+   endsw
+#                     ... end of Linux on 32 bit PC compiler choices.
+endif
+#
+#   ------ RedHat Linux on 64 bit chips ------
+#        (See 'linux32' for older chips)
+#   This should work on any 64 bit Linux release, for any type of
+#   chip, ranging from AXP to SPARC to PowerPC to AMD to Intel.
+#  
+#   Typical software requirement:
+#     Fedora (or other Linux distribution) in a 64 bit version,
+#     the 64 bit gcc 4.x included for free in this Linux distribution,
+#     one of the possible FORTRAN compilers: gfortran, pgf77, pathf90,
+#     and an appropriate math library containing the BLAS.
+#
+#   You will have to choose your FORTRAN below these comments, look
+#   down several screens, but the linking step will try to detect
+#   automatically which math library you have chosen.
+#
+#  sources for FORTRAN
+#  ===================
+#
+#  Note that gfortran generates run times quite competive with the
+#  commercial compilers, so it is the default.
+#
+#  Gnu's gfortran:       (tested with version 4.1.1-1 on FC5, and others)
+#     This is included in recent Linux distributions, free compiler.
+#     gfortran is a rapidly maturing software product, and appears
+#     destined to be a successful replacement for the g77 compiler.
+#     gfortran 4.0 won't compile CHARACTER FUNCTIONs in inputc/tdxio,
+#     so it is important to have version 4.1.  Our experience with
+#     the various subversions we have used (e.g. the 4.1.2-12 which
+#     is standard in Fedora 7) is that gfortran is quite robust.
+#
+#  Portland Group's pgf77:   (note that you don't need pgcc)
+#     You need a "pgf77 workstation" license, which was priced at $449
+#     for academic use in the US as of June 2006: www.pgroup.com
+#     You can install a math library called ACML (AMD core math library),
+#     most easily while installing pgf77, or as a free download from AMD.
+#     Be sure to set up the use of this compiler, in .cshrc for example,
+#         setenv PATH $PATH\:/usr/pgi/linux86-64/bin
+#         setenv PGI /usr/pgi
+#
+#  Pathscale's pathf90: use Google to find out about this compiler
+#
+#  Intel's ifort: 
+#     use the target of linux-ia64 if you are using this compiler.
+#     Any chip which answers "uname -p" by x86_64 (Opteron or EM64T)
+#     or by ia64 (Itanium2) can use ifort, and thus target=linux-ia64.
+#
+#  sources for math library
+#  ========================
+#     MKL is a very fast library for x86_64 or ia64 processors,
+#         and will work with gfortran.  See linux-ia64 below for source.
+#
+#     Atlas is packaged as a RPM for Linux, e.g. rpmfind.net will help
+#         you find atlas-3.6.0-11.fc6.x86_64.rpm  (or other processor)
+#
+#     ACML is a free download from AMD, from
+#         http:/developer.amd.com -> developer tools -> libraries -> 
+#               ACML for Linux built with GFORTRAN (INT*8)
+#
+#  The linux64 target was constructed by putting together advice
+#  from Shiro Koseki, Hiroaki Umeda, Ted Packwood, and others.
+#
+if ($TARGET == linux64) then
+#
+#   The only thing you need to change is the next line.
+#   Note: you must make the analogous choice in compddi and lked, as well.
+#   If you wish to use ifort in 64 bit mode, use only target=linux-ia64.
+#
+   set FORTRAN=pgf77      # choose from gfortran, pgf77, pathf90
+#
+   switch ($FORTRAN)
+
+   case gfortran:
+      set OPT='-O2'
+      if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
+      if (($MODULE == qeigen) || ($MODULE == int2c)) then
+         mv -f $MODULE.f $MODULE.junk
+         sed -e "s/Q-/D-/g" \
+             -e "s/Q+00/D+00/g" \
+             -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+         rm -f $MODULE.junk
+      endif
+      set echo
+      gfortran -c -fdefault-integer-8 $OPT -std=legacy $MODULE.f
+      unset echo
+      breaksw
+
+   case pgf77:
+      if (($MODULE == qeigen) || ($MODULE == int2c)) then
+         mv -f $MODULE.f $MODULE.junk
+         sed -e "s/Q-/D-/g" \
+             -e "s/Q+00/D+00/g" \
+             -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+         rm -f $MODULE.junk
+      endif
+      set OPT = '-fastsse -Mipa=fast,safe -Mprof=func'
+      if ($MODULE == int2b)  set OPT = "$OPT -Mnounroll"
+      if ($MODULE == mcpgrd) set OPT = '-O1'
+      if ($MODULE == mpcdat) set OPT = '-Mprof=func -O0'
+      if ($MODULE == mpcgrd) set OPT = '-Mprof=func -O0'
+      if ($MODULE == mpcint) set OPT = '-Mprof=func -O0'
+      if ($MODULE == mpcmol) set OPT = '-Mprof=func -O0'
+      if ($MODULE == mpcmsc) set OPT = '-Mprof=func -O0'
+      if ($MODULE == zheev)  set OPT = '-Mprof=func -O0' # defensive compiling
+      set echo
+      pgf77 -c -i8 -i8storage $OPT $MODULE.f
+      unset echo
+      breaksw
+#
+#        Please use Google to learn more about this compiler, e.g.
+#           source of compiler, price, math library, et cetera.
+#
+   case pathf90:
+      if (($MODULE == qeigen) || ($MODULE == int2c)) then
+         mv -f $MODULE.f $MODULE.junk
+         sed -e "s/Q-/D-/g" \
+             -e "s/Q+00/D+00/g" \
+             -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+         rm -f $MODULE.junk
+      endif
+      set OPT = '-O2'
+      if ($MODULE == zheev)  set OPT='-O0'
+      set echo
+      pathf90 -c -r8 -i8 $OPT $MODULE.f
+      unset echo
+      breaksw
+#
+   default:
+      echo "Please spell your Linux 64 bit FORTRAN compiler name correctly."
+      exit 4
+      breaksw
+   endsw
+#                     ... end of Linux on 64 bit processors.
+endif
+#
+#     64 bit Linux on EM64T/IA64 chips (e.g. Itanium or Xeon CoreDuo or ...)
+#     using Intel FORTRAN and MKL, and the system's gcc for C.
+#     This sections works if and only if "uname -p" says x86_64 or ia64,
+#     and requires properly licensed Intel software ifort and MKL.
+#
+#     By omitting chip specific compiler options like "-mcpu=itanium2 -tpp2",
+#     this version is able to run on Pentium 4/EMT64 as well as Itanium.
+#
+#     Intel's compilers are commercially licensed software, but Intel allows
+#     downloads of a "non-commercial unsupported version" at no charge:
+#         http://developer.intel.com/software/products/compilers
+#     If you are not a "non-commercial" site, we suggest you consider
+#     Intel's remarketer, Programmer's Paradise, at least in the USA, 
+#         http://www.pparadise.com
+#     You do not need to have the Intel C compiler, GAMESS requires gcc.
+#     Be sure to obtain the Intel Math Kernel Library (MKL) too!
+#
+#     Remember to set up using the compiler by executing the proper
+#     setup commands for your shell, e.g. something like
+#        set path=($path /opt/intel/fc/9.0/bin)
+#        setenv MANPATH /usr/share/man:/opt/intel/fc/9.0/man
+#     You will need to make sure that 'lked' finds Intel's MKL library,
+#     for Intel frequently changes its path name too.  Note that the MKL
+#     library should be used only serially, by adding this to 'rungms':
+#        setenv MKL_SERIAL YES
+#
+#     We run this on a SGI Altix system, using the following software:
+#       linux kernel:  2.4.21-sgi230r3 (aka Propack 2.3)
+#       Intel efc/ecc compilers: Version 7.1, Build 20030307
+#       libraries: libgcc-3.0.4-1
+#     We run this on HP rx2600 workstations, using the following software:
+#       linux kernel: 2.4.18-e.12smp (aka RedHat 2.1AS (Derry))
+#       Intel ifort/icc compilers: Version 8.0, Build 20031017
+#     Fred Arnold and Jan Fredin have used various older compilers,
+#     such as 6.0 and 7.0, and older kernels and glibc's as well.
+#
+#     At version 8.0, Intel changed the names of these compilers
+#     to ifort and icc.  To deal with this, we have used the newer
+#     names in the scripts, and placed softlinks in /bin pointing
+#     from ifort to efc and icc to ecc on our old 7.0 machine.
+#     Or, you could change the script names back to the originals.
+#
+#     command line arguments:
+#
+#     -i4/-i8 set default integer length
+#     -On can have n=1,2,3.  Use of 3 caused problems with earlier
+#          compilers, so it isn't being used here.  Try it if you like.
+#     stack storage for locals is governed by -auto versus -save.
+#     -assume byterecl was introduced at ifort 8.0 (older versions will
+#        print a message saying this flag is ignored).  Newer versions
+#        need this so that direct access file opens are measured in
+#        bytes rather than the new default in v8.0, namely 4-byte units.
+#              (this argument might also be needed when linking?)
+#     -vec-report0 suppresses loop vectorization messages (new in 10.0)
+#     -w95 suppresses Hollerith initialization and other f90-like warnings
+#     -cm means suppress comments about programming practices
+#     -WB means warn but don't fail on out-of-bounds array references
+#     -ftz flushes underflow results to zero
+#       -xT would generate Xeon-type instructions on EM64T platforms,
+#     -tpp2 would generate Itanium2  instructions on IA64  platforms.
+#
+if ($TARGET == linux-ia64) then
+   set OPT = '-O2'
+   if ($MODULE == guess)  set OPT='-O0' # 10.0, exam39
+   if ($MODULE == locpol) set OPT='-O1' # 10.0, makefp/gmres
+   if ($MODULE == morokm) set OPT='-O0' # Jan Fredin
+   if ($MODULE == prpel)  set OPT='-O1' # 10.0, exam13
+   if ($MODULE == tdxitr) set OPT='-O1' # 10.0, exam39
+   if ($MODULE == zheev)  set OPT='-O0' # defensive compiling
+   set echo
+   ifort -c -i8 $OPT -ftz -auto -assume byterecl \
+         -vec-report0 -w95 -cm $MODULE.f
+   unset echo
+endif
+#
+#   Apple Macintosh system using OS X 
+#
+#   mac32 tested on G5 Xserve blade, OS X 10.4.4 (Tiger), Xcode 2.4.1,
+#         using both gfortran 4.3.0 and g77 3.4.6
+#   mac64 tested on the same system, both tests in February 2008.
+#   So far, Intel not tested, but it is expected to work just fine.
+#
+#   Step 1 is to install the "Xcode" software to get a C compiler, gcc.
+#   The Xcode development environment is available for download at
+#          http://developer.apple.com
+#   but Xcode can also be found on the installation media, as of Tiger.
+#   The Xcode must match your OS X version, and also must be new enough
+#   to match the requirement shown on the web page in the next step.
+#   The only way to learn the Xcode version is reading its PDF file.
+#
+#   Step 2 is to download the FORTRAN compiler from
+#          http://hpc.sourceforge.net
+#   Thanks to Gourav Khanna, we no longer have to mess with fink!
+#   Take note of the Xcode release he used, and download the appropriate
+#   FORTRAN, such as gfortran-bin.tar for PowerPC Macs.  g77 is also
+#   there, but these scripts default to gfortran in the mac32 target,
+#   and only gfortran will work for mac64.  Don't download a C compiler,
+#   as the gcc compiler is provided by Xcode.
+#
+#   Step 3 is to install gfortran (or g77), requiring admin priveledges:
+#       sudo tar -xvf gfortran-bin.tar -C /
+#   which installs under /usr/local.  Add /usr/local/bin to your path.
+#
+if ($TARGET == mac32) then
+   set FORTRAN=gfortran       # choose from g77 or gfortran
+   switch ($FORTRAN)
+   case g77:
+      set OPT = '-O2'
+      if ($MODULE == zheev) set OPT='-O0'
+      if (($MODULE == qeigen) || ($MODULE == int2c)) then
+         mv -f $MODULE.f $MODULE.junk
+         sed -e "s/Q-/D-/g" \
+             -e "s/Q+00/D+00/g" \
+             -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+         rm -f $MODULE.junk
+      endif
+      if (($MODULE == iolib) || ($MODULE == inputa)) then
+         mv -f $MODULE.f $MODULE.junk
+         sed -e "s/MXUNIT=299/MXUNIT=99/g" $MODULE.junk > $MODULE.f
+         rm -f $MODULE.junk
+      endif
+      set echo
+      g77 -c $OPT -fautomatic -Wno-globals -fno-globals $MODULE.f
+      unset echo
+      breaksw
+   case gfortran:
+      set OPT='-O2'
+      if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
+      if (($MODULE == qeigen) || ($MODULE == int2c)) then
+         mv -f $MODULE.f $MODULE.junk
+         sed -e "s/Q-/D-/g" \
+             -e "s/Q+00/D+00/g" \
+             -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+         rm -f $MODULE.junk
+      endif
+      set echo
+      gfortran -c $OPT -std=legacy $MODULE.f
+      unset echo
+      breaksw
+   default:
+      exit 55
+      breaksw
+   endsw
+endif
+#
+if ($TARGET == mac64) then
+   set OPT='-O2'
+   if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
+   if (($MODULE == qeigen) || ($MODULE == int2c)) then
+      mv -f $MODULE.f $MODULE.junk
+      sed -e "s/Q-/D-/g" \
+          -e "s/Q+00/D+00/g" \
+          -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+      rm -f $MODULE.junk
+   endif
+   set echo
+   gfortran -c -m64 -fdefault-integer-8 $OPT -std=legacy $MODULE.f
+   unset echo
+endif
+#
+#   Apple Macintosh G5 system using OS X, xlf 8.1, and gcc.
+#
+#   This should work for Panther or Tiger, but it is a 32 bit version.
+#   The xlf compiler does not support the 64 bit address space of Tiger,
+#   so this is strictly a 32 bit version.  Sunt lacrimae rerum.
+#
+#   Why would you want to buy xlf in spite of being blocked from full
+#   64 bit computing?   Some representative tests show that it is good
+#   good to use a compiler that knows the chip's instruction set, these
+#   are from a 2.3 GHz G5 Xserve running Tiger,
+#                        g77 3.4      xlf 8.1
+#       RHF gradient       371          238 CPU seconds
+#       MP2 gradient       622          523
+#        GVB hessian       667          572
+#     MCSCF gradient       890          523
+#   The xlf FORTRAN compiler is marketed by Absoft, at www.absoft.com.
+#   Absoft's initial pricing (as of 2/2004) for this compiler was
+#      $399 academic, $599 government, and $999 commercial.
+#   Note that the macG5 version uses gcc, so you do not need to buy xlc.
+#   See the mac32 target just above about obtaining Apple's gcc.
+#
+#   The G5 version is essentially an IBM AIX version, due to the compiler
+#   being the same one.  See the 'ibm32' comments for compiler options.
+#   -qextname lets us access the BLAS routines found in Apple's vecLib.
+#
+if ($TARGET == macG5) then
+   set  OPT='-O3 -qarch=g5 -qtune=g5'
+   set echo
+   xlf -c $OPT -qintsize=4 -qnosave -qspillsize=2500 -qextname \
+       -qflag=W:W -qhalt=W $MODULE.f
+   unset echo
+endif
+#
+# Options for f90 under SUPER-UX on the NEC SX Series are
+#      -ebw enable passing scalar arguments and set all word size 64bit
+#      -size_t64 flags 64bit size_t and associated libraries
+#      -pvtcl noassume vwork=stack sets vectorization temporaries parameters
+#      -Nv  vectorization is turned off
+#
+if ($TARGET == necsx) then
+   set OPT = '-Wf"-v -pvctl noassume vwork=stack"'
+   if ($MODULE == mcqdpt) \
+       set OPT='-Wf"-v -pvctl noassume vwork=stack noaltcode nodivloop -NO"'
+   if ($MODULE == ddi) \
+       set OPT='-Wf"-v -pvctl noassume vwork=stack -I /usr/include"'
+#         compiler character problem
+   if ($MODULE == inputc) set OPT='-Wf"-Nv"'
+#         next ones are faster in scalar
+   if ($MODULE == int2a)  set OPT='-Wf"-Nv"'
+   if ($MODULE == int2b)  set OPT='-Wf"-Nv"'
+   if ($MODULE == grd2a)  set OPT='-Wf"-Nv"'
+   if ($MODULE == grd2b)  set OPT='-Wf"-Nv"'
+   if ($MODULE == grd2c)  set OPT='-Wf"-Nv"'
+   if ($MODULE == gugem)  set OPT='-Wf"-Nv"'
+   if ($MODULE == gugdrt) set OPT='-Wf"-Nv"'
+#
+   set echo
+   f90 -c -ebw -size_t64 $OPT $MODULE.f
+   unset echo
+endif
+#
+#  Options for SGI f77 under Irix, this pertains only to MIPS processors.
+#  If you have an Altix from SGI, please use target 'linux-ia64'.
+#
+#  Different versions of the SGI compiler may not work with the fairly
+#  aggressive -O3 optimization used below.  If you experience any numerical
+#  problems, please try using -O2 rather than -O3 below.  It is unsafe to
+#  use very aggressive optimizations like "-OPT:IEEE_arith=3:roundoff=3".
+#
+#  If you use f90, do not reset the units for RECL in the sed hacks above.
+#
+#  -i8/-i4 selects 8/4 byte integer and logical data types.
+#  -show would add verbose printing of compiler phase information.
+#  -automatic is the opposite of -static storage allocation.
+#  -OPT:Olimit=0 removes subroutine size optimization limits.
+#  -woff suppresses warnings (2290=type checking on calling args).
+#
+if (($TARGET == sgi32) || ($TARGET == sgi64)) then
+   if($TARGET == sgi32) set FORT=f77  ! don't do RECL hack if you change this
+   if($TARGET == sgi64) set FORT=f77  ! f90 doesn't work in parallel/MEMDDI?
+   set OPT='-O3'
+   if ($MODULE == grd2a)  set OPT='-O2'
+   if ($MODULE == grd2c)  set OPT='-O2'
+   if ($MODULE == mcpinp) set OPT='-O2'
+   if ($MODULE == mcpint) set OPT='-O2'
+   if ($MODULE == rxncrd) set OPT='-O2'
+   if ($MODULE == zheev)  set OPT='-O0'
+   if ($MODULE == gmsnbo) set OPT='-O2 -backslash'
+   if ($TARGET == sgi64) set INTS=' -64 -i8'
+   if ($TARGET == sgi32) set INTS='-n32 -i4'
+   set FLAGS='-automatic -G0 -woff 2290 -OPT:Olimit=0'
+   set echo
+   $FORT -c $OPT $INTS $FLAGS $MODULE.f
+   unset echo
+endif
+#
+#  There is a united clause for UltraSPARC and Opteron chips!
+#  Options for UltraSPARC Sun f90 7.0 under Solaris  9, and
+#  options for    Opteron Sun f90 8.1 under Solaris 10.
+#  See also a f77 compiling clause for older systems commented out below.
+#
+#     -c        compile only
+#     -v        print verbose information on compiler phases and options
+#     -stackvar forces non-static storage
+#     -fast     is a smorgasbord of all the below, if you wish to
+#               override one you must *follow* the -fast with it.
+#         -xtarget=native  (optimize for chip being compiled upon)
+#         -O5        (see below)
+#         -libmil    (inline some math routines)
+#         -fsimple=2 (0,1,2 control floating point simplifications)
+#         -dalign    (double word alignment and instructions)
+#         -xlibmopt  (link to optimized math library)
+#         -depend    (DO loop data dependency analysis)
+#         -fns       (fast underflow handling)
+#         -ftrap=common   (floating point error handling)
+#         -xvector=yes    (select vectorized math library)
+#         -xprefetch=yes  (auto generation of instruction prefetching)
+#     -O1 = minimal optimization (must turn off -depend to use this)
+#            you may want to set this a particular chip if you run
+#            more times on a different system than you compile on.
+#     -O2 = basic local and global optimizations (must turn off -depend)
+#     -O3 = loop unrolling and additional global optimizations
+#     -O4 = automatic inlining
+#     -O5 = aggressive optimizations
+#  Experience suggests that setting OPT to '-fast -O2 -nodepend' is
+#  normally very safe, for any Solaris/f90 versions.
+#
+#  Address space selection up to SunSuite 11 is by -xarch=nnn,
+#  where the more likely values for nnn might be
+#     v8plus        any UltraSPARC, using 32 bit instructions
+#     v9            any UltraSPARC, using 64 bit instruction set
+#     pentium_pro   most Intel chips, using 32 bits
+#     amd64         Opteron, using 64 bits
+#  "uname -p" says the processor is sparc or i386, as a generic reply,
+#  allowing us to distinguish the families, e.g. Opteron replies "i386"!
+#  N.B.  We have not tested the "pentium_pro" 32 bit stuff below.
+#
+#  Sun Studio 12 (f90 version 8.3, type "f90 -V" to see your version)
+#  changed to more rational address space specifiers -m32 or -m64.
+#  If you change "newf90", change all scripts: compall/comp/compddi/lked
+#
+set newf90=false  # change if you have Sun f90 version 8.3 or higher
+#
+if ($TARGET == sun32) then
+   set BITS=32
+   if ($newf90 == true) then
+      set ARCH=-m32
+   else
+      if (`uname -p` == sparc) set ARCH='-xarch=v8plus'
+      if (`uname -p` == i386)  set ARCH='-xarch=pentium_pro'
+   endif
+endif
+if ($TARGET == sun64) then
+   set BITS=64
+   if ($newf90 == true) then
+      set ARCH=-m64
+   else
+      if (`uname -p` == sparc) set ARCH='-xarch=v9'
+      if (`uname -p` == i386)  set ARCH='-xarch=amd64'
+   endif
+#         the Opteron does not support quadruple precision.
+   if (`uname -p` == i386) then
+      if (($MODULE == qeigen) || ($MODULE == int2c)) then
+         mv -f $MODULE.f $MODULE.junk
+         sed -e "s/Q-/D-/g" \
+             -e "s/Q+00/D+00/g" \
+             -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+         rm -f $MODULE.junk
+      endif
+   endif
+endif
+if (($TARGET == sun32) || ($TARGET == sun64)) then
+   set OPT='-fast -O4'
+#       next are detunings for f90 7.5 under Solaris 9 on SPARC,
+#                detunings for f90 8.1 under Solaris 10 on Opteron,
+#       and a few more discoverd by people with other compiler versions.
+   if ($MODULE == grd2b)  set OPT='-fast -O2 -nodepend'
+   if ($MODULE == grd2c)  set OPT='-fast -O2 -nodepend'
+   if ($MODULE == gugdrt) set OPT='-fast -O2 -nodepend'
+   if ($MODULE == eigen)  set OPT='-fast -O2 -nodepend'
+   if ($MODULE == mcpgrd) set OPT='-fast -O4 -nodepend'
+   if ($MODULE == mp2ddi) set OPT='-fast -O4 -nodepend'
+   if ($MODULE == scfmi)  set OPT='-fast -O4 -nodepend'
+   if ($MODULE == trnstn) set OPT='-fast -O2 -nodepend'
+   if ($MODULE == umpddi) set OPT='-fast -O4 -nodepend'
+   if ($MODULE == vibanl) set OPT='-fast -O4 -nodepend'  # for PRJGRD
+   if ($MODULE == zheev)  set OPT='-O0'
+   set WARN='-erroff=WARNING_1278,WARNING_1279,WARNING_1615'
+   set echo
+   f90 -c -stackvar -xtypemap=integer:$BITS $OPT $WARN $ARCH $MODULE.f
+   unset echo
+endif
+#
+#  Following is a potted history of Solaris versions that support
+#  UltraSPARC chips.  64 bit O/S support came with Solaris 7, and
+#  support for the UltraSPARC III chip came with Forte/f90 6.1.
+#      year  Solaris   compilers      FORTRAN
+#      1997   2.6      WorkShop 3.0   f77 4.2
+#      1998     7      WorkShop 5.0   f90 2.0
+#      2000     8      Forte 6        f90 6.0
+#      2002     9      Forte 7        f90 7.0
+#      2005    10      Sun Studio 10  f90 8.1
+#      2008     ?      Sun Studio 12  f90 8.3
+#  Version of   Solaris: "uname -sr", reply of 5.6 means 2.6, 5.9 means 9.
+#  Version runs  64 bit: "isainfo -v"
+#  Version of   FORTRAN: "f77 -V" or "f90 -V"
+#  Version of processor: "fpversion", look at the -xtarget response.
+#
+#  We ran a E450 for many years with f77 4.2 under Solaris 2.6,
+#  never using Solaris 7 or 8, instead we jumped directly to 9.
+#  It would appear that the compiling clause above should be used for
+#  Solaris 7, 8, or 9, so the below is relevant only to Solaris 2.6.
+#
+#  If you use the following old clause, change LDR to f77 in "lked",
+#  and change a library name from -lrt to -lposix4 as well.
+#
+#  If you have a pre-ultraSPARC system, try OPT='-O2' or '-O3' while
+#  eliminating the -xarch flag, and you might also need -Nl30.
+#
+#--if ($TARGET == sun32) then
+#--   set OPT='-fast -O4 -xarch=v8plus'
+#--   if ($MODULE == ddi)    set OPT='-fast -O4 -nodepend -xarch=v8plus'
+#--   if ($MODULE == grd2c)  set OPT='-fast -O4 -nodepend -xarch=v8plus'
+#--   if ($MODULE == ormas1) set OPT='-fast -O4 -nodepend -xarch=v8plus'
+#--   if ($MODULE == symslc) set OPT='-fast -O4 -nodepend -xarch=v8plus'
+#--   if ($MODULE == zheev)  set OPT='-O0'
+#--   set echo
+#--   f77 -c $OPT -stackvar $MODULE.f
+#--   unset echo
+#--endif
+#
+#  Store the generated object code, clean up, and quit
+#
+mv -f $MODULE.o $OBJDIR/$MODULE.o
+if ($TINKER == true) exit
+rm -f $MODULE.f
+if ($SRCDIR == .) rm -f $MODULE.src    # delete copy with no scalar code
+unset echo
+date
+time

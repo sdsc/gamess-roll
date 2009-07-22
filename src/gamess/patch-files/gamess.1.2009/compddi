@@ -1,0 +1,1017 @@
+#!/bin/csh -f
+#
+#   5 Nov 08 - script to compile the Distributed Data Interface (DDI)
+#
+#     This produces a library 'libddi.a' which GAMESS links against,
+#     and on many systems, a process kickoff program called 'ddikick.x'.
+#
+#     ----- The following statements require your attention -----
+#
+#         Most sites will only need to pick the machine target!
+#
+#  1. Choose your machine, the legal values for TARGET are
+#      axp64,compaq-sc,cray-pvp,cray-t3e,cray-x1,cray-xd1,cray-xt3,
+#      fuji-pp32,fuji-pp64,hpux32,hpux64,ibm32,ibm64,ibm64-sp,ibm-bg,
+#      linux32,linux64,linux-ia64,mac32,mac64,macG5,necsx,
+#      sgi32,sgi64,sun32,sun64
+#
+         set TARGET = linux64
+
+#  2. Choose DDI communication layer, the only legal values are
+#                   sockets,mixed,mpi,shmem,lapi,armci
+#     Please note that the correct choice is very often "sockets"!
+#
+#     Use 'sockets' if a TCP/IP stack is available.
+#                   Choosing 'sockets' will produce a process kickoff
+#                   program 'ddikick.x', as well as the DDI library.
+#                   Every Unix has TCP/IP for its ethernet, but some
+#                   exotic adapters may not support TCP/IP, or may run
+#                   faster if you select "mixed" below.
+#     Use 'mixed' or 'mpi' only for specialized hardware situations,
+#                   for example if your network supports only MPI.
+#                   The 'mpi' option runs using 100% MPI-1 calls, but
+#                   this almost invariably bogs down in polling, and
+#                   is thus much slower than 'mixed'.
+#                   The 'mixed' option uses almost entirely MPI-1 calls,
+#                   but uses TCP sockets to avoid some of MPI's polling,
+#                   resulting in better wall clock times than 100% MPI.
+#                   Do not choose either of these without carefully
+#                   reading about MPI usage in readme.ddi!
+#     Use  'lapi' only for the IBM SP platform.
+#     Use 'armci' only for the IBM Blue Gene platform.
+#     Use 'shmem' for the Cray T3E, Cray X1, Cray XT3, or Compaq Supercluster.
+#     Use 'shmem' for the SGI Origin.  This machine can use 'sockets', but
+#       we've had problems starting many processes on Origin for 'sockets'.
+#     Use 'sockets' or 'shmem' for the SGI Altix.  Since the socket
+#       code works fine, we've left it the default, but this can use
+#       the same SHMEM implementation that came from the old Origins.
+#
+         set COMM = sockets
+         if ($TARGET == compaq-sc)    set COMM=shmem
+         if ($TARGET == cray-t3e)     set COMM=shmem
+         if ($TARGET == cray-x1)      set COMM=shmem
+         if ($TARGET == cray-xd1)     set COMM=sockets
+         if ($TARGET == cray-xt3)     set COMM=shmem
+         if ($TARGET == ibm-bg)       set COMM=armci
+         if ($TARGET == ibm64-sp)     set COMM=lapi
+         if ($TARGET == sgi64)        set COMM=shmem
+
+#  3. DDI options
+#     a. Maximum number of processors contained in your SMP enclosures
+#     b. Maximum number of nodes (number of physical SMP enclosures)
+#
+         set MAXCPUS  = 8
+         set MAXNODES = 64
+         if ($TARGET == cray-xd1) set MAXCPUS=2     # use 4 here if dual core
+         if ($TARGET == cray-xd1) set MAXNODES=256
+         if ($TARGET == cray-xt3) set MAXCPUS=2
+         if ($TARGET == cray-xt3) set MAXNODES=1024 # bump to match your XT3
+         if ($TARGET == ibm-bg)   set MAXCPUS=1
+         if ($TARGET == ibm-bg)   set MAXNODES=2048 # bump to match your BG/L
+
+#     c. Use System V-style shared-memory (true or false)
+#        Please see ~/gamess/ddi/readme.ddi for checking and changing
+#        the System V shared memory/IPC limits for your particular OS.
+#        Turn System V memory off if and only if:
+#        1) if you are unable to adjust system limits to higher values,
+#           which may be necessary on some systems, but which requires
+#           cooperation by the 'root' account.
+#        2) on some systems with micro-kernels, SysV may be taboo.
+#        3) if SysV is just missing, e.g. in Cygwin under Windows.
+#
+         set SYSV = true
+         if ($TARGET == cray-xt3) set SYSV=false
+         if ($TARGET == ibm-bg)   set SYSV=false
+         if ($COMM == armci)      set SYSV=false
+
+#     d. If you are unable to compile the new DDI source code, in case
+#        your operating system is very old (e.g. > 8 years) you might
+#        choose to compile the original version of DDI by picking 'old'.
+#        The execution script 'rungms' will need to use the old syntax
+#        for ddikick.x, see 'readme.ddi' and inside that script.
+#
+         set DDI_SOURCE=new
+
+#     e. If using MPI, select the path to the include file mpi.h,
+#        For example, Myrinet's GM library keeps this in
+#           set MPI_INCLUDE_PATH = '-I/usr/local/mpich-gm/include'
+#        but a Voltaire IB will have this file at
+#           set MPI_INCLUDE_PATH = '-I/usr/voltaire/mpi.gcc.rsh/include'
+#        If using MPI, you will also need to manually change 'lked'
+#        in order to search appropriate MPI libraries.  Please see
+#        the 'readme.ddi' file for some idea of what you are getting
+#        into regarding compiling, linking, and particularly, execution.
+#
+         set MPI_INCLUDE_PATH = ' '
+#
+#   This is the end of the user selectable options!
+#
+   echo "       Building the Distributed Data Interface library"
+   echo "           started at `date`"
+   echo " "
+   if ($DDI_SOURCE == new) then
+      echo "Compiling for machine type $TARGET,"
+      echo "using communication model $COMM,"
+      echo "System V shared memory option set $SYSV,"
+      echo "with maxima of $MAXCPUS processors/node and $MAXNODES nodes."
+   else
+      echo "Note, using DDI version 1 source code, for machine $TARGET."
+   endif
+   echo " "
+   echo "This compilation should produce the DDI library libddi.a"
+   if ($COMM == sockets) \
+   echo "It should also produce the kick-off program ddikick.x"
+   echo " "
+#
+# ------------------------------------------------------------------------- #
+# Troubleshooting -- If you should run into any errors while compiling,
+# check the following lists of common failures.
+#
+# 1) socklen_t is not defined.  Uncomment the following line.
+#    set SOCKLEN_T = "-Dsocklen_t=int"
+#
+# 2) turn on debugging output.  set DEBUG_LEVEL to the level of debugging.
+#    0 ==> Debugging (e.g. arg checking) compiled in, but no extra output.
+#          Note that 0 selects more debugging than the normal compilation.
+#    1 ==> Minimum debugging output.
+#    5 ==> Standard debugging output.
+#   10 ==> Significantly more output.
+#   15 ==> Even more ... probably best to avoid this one.
+#    One can also call DDI_DEBUG(level) to set the desired level
+#    around a troublesome piece of code.
+#    Uncomment the following line to enable more argument checking:
+#
+#    set DEBUG_LEVEL=0
+#
+# 3) If you want debugging output from only a particular CPU.
+#    set DEBUG_CPU=RANK
+#    set DEBUG_CPU=0
+#
+# 4) To make all point to point send/recv messages fully synchronous,
+#    add the flag "-DSOC_SYNC" somewhere below, if TCP/IP, of course.
+#
+# For other compiling issues, please email ryan@si.fi.ameslab.gov with the
+# subject "Compiling DDI"
+#
+# ------------------------------------------------------------------------- #
+
+
+# ------------------------------------------------------------------------- #
+# Here is an index of the options that can be defined on the command-line:
+#
+# -DDDI_SOC  -- use sockets; requires ddikick if mpi is not used.
+# -DDDI_MPI  -- use mpi; must be kicked off with mpi kickoff;
+#               assumes 1:1 mapping of compute processes and data servers
+# -DDDI_LAPI -- use lapi for distributed data operations; kickoff using
+#               the poe command; NO data servers
+# -DUSE_SYSV -- make use of system v shared-memory
+#
+# -DMACHINE              -- defines the target architecture
+# -D_32_BIT              -- specifies a 32-bit machine (64-bit default)
+# -DINT_SIZE=(int,long)  -- defines the size of a FORTRAN integer
+# -D_UNDERSCORES=(0,1,2) -- number of underscores on a FORTRAN object
+# -DF77_UPPERCASE        -- use UPPERCASE names for FORTRAN objects
+#
+# ------------------------------------------------------------------------- #
+
+
+# ------------- set options forced by the choices made above ------------- #
+
+# --------------------- #
+# Communication Options #
+# --------------------- #
+  if($COMM == sockets) then
+     set DDI_COMM = '-DDDI_SOC'
+  endif
+
+  if($COMM == mixed) then
+     set DDI_COMM = '-DDDI_MPI -DDDI_SOC'
+  endif
+
+  if($COMM == mpi) then
+     set DDI_COMM = '-DDDI_MPI'
+  endif
+
+  if($COMM == lapi) then
+     set DDI_COMM = '-DDDI_MPI -DDDI_LAPI'
+  endif
+
+  if($COMM == shmem) then
+     set DDI_COMM = ' '
+  endif
+
+  if($COMM == armci) then
+     set DDI_COMM="-DDDI_MPI -DDDI_ARMCI"
+     set DDI_COMM="$DDI_COMM -DDDI_ARMCI_IMPLICIT_NBPUT"
+     set DDI_COMM="$DDI_COMM -DDDI_ARMCI_IMPLICIT_NBGET"
+     set DDI_COMM="$DDI_COMM -DDDI_ARMCI_IMPLICIT_NBACC"
+     set DDI_COMM="$DDI_COMM -DDDI_ARMCI_IMPLICIT_WAIT"
+  endif
+
+
+# ---------------------- #
+# System V Shared-Memory #
+# ---------------------- #
+  if ($SYSV == true) set DDI_COMM = "$DDI_COMM -DUSE_SYSV"
+
+
+# --------------------- #
+# Troubleshooting Flags #
+# --------------------- #
+  set DDI_OPTS = "$DDI_COMM"
+
+# 1) socklen_t
+  if($?SOCKLEN_T == 0) set SOCKLEN_T = " "
+  set DDI_OPTS = "$DDI_OPTS $SOCKLEN_T"
+
+# 2) debugging options
+  if($?DEBUG_LEVEL == 0) then
+     set DEBUG_LEVEL = ""
+  else
+     set DEBUG_LEVEL = "-DDDI_DEBUG=$DEBUG_LEVEL"
+  endif
+  set DDI_OPTS = "$DDI_OPTS $DEBUG_LEVEL"
+
+# 3) debugging a particular cpu
+  if($?DEBUG_CPU == 0) then
+     set DEBUG_CPU = ""
+  else
+     set DEBUG_CPU = "-DDDI_DEBUG_CPU=$DEBUG_CPU"
+  endif
+  set DDI_OPTS = "$DDI_OPTS $DEBUG_CPU"
+
+
+# ------------- start of machine specific option selection -------------- #
+
+  unset CFLAGS
+
+# ------------ #
+# Compaq Tru64 #
+# ------------ #
+#    Notes:
+#    AXP systems may be labeled Digital, Compaq, or HP depending on age.
+#    Similarly the O/S has various names, including OSF/1, Digital Unix.
+#    This target is used for all such systems, and works for Linux too.
+#
+#    Old C compilers ("cc -V | more -5") such as 5.6 require that you
+#    add -Dsocklen_t=int to CFLAGS below, while newer versions such
+#    as 5.9, 6.1, ... have the new data type socklen_t present.
+#
+  if($TARGET == axp64) then
+
+     set UNAME = `uname`
+                         set CC = 'cc'
+     if($UNAME == Linux) set CC = 'ccc'
+                         set NumUS=1
+     if($UNAME == Linux) set NumUS=2
+
+     set CFLAGS = "-DCOMPAQ -O4 -ansi_alias -std -I./include"
+     set CLIBS  = "-lpthread"
+     set F77_OPTS = "-DINT_SIZE=long -D_UNDERSCORES=$NumUS"
+     set AR_FLAGS     = 'cr'
+     set RANLIB_FLAGS = ' '
+
+  endif
+
+
+# ------------------- #
+# Compaq SuperCluster #
+# ------------------- #
+  if($TARGET == compaq-sc) then
+     set AR_FLAGS     = 'cr'
+     set RANLIB_FLAGS = ' '
+     echo "Compiling: ddishm.o"
+     ../comp ddishm
+     mv -f ../object/ddishm.o .
+     if(-e ddishm.o) then
+        ar cr libddi.a ddishm.o
+        rm -f ddishm.o
+        echo "Finished compiling: ddishm.o"
+        goto finishiOK
+     else
+        echo "Error compiling: ddishm.o"
+        goto bombout
+     endif
+  endif
+
+
+# ------------------------------ #
+# Cray parallel vector platforms #
+# ------------------------------ #
+#    Caution!  This has not been tested, but rather it is an educated guess.
+  if($TARGET == cray-pvp) then
+     set CC = 'cc'
+     set CFLAGS = "-DCRAY -O -I./include"
+     set CLIBS  = "-lpthread"
+     set F77_OPTS = '-DINT_SIZE=long -D_UNDERSCORES=0 -DF77_UPPERCASE'
+     set AR_FLAGS     = 'cr'
+     set RANLIB_FLAGS = ' '
+  endif
+
+
+# -------- #
+# Cray T3E #
+# -------- #
+  if($TARGET == cray-t3e) then
+     echo "Compiling: ddishm.o"
+     ../comp ddishm
+     mv -f ../object/ddishm.o .
+     if(-e ddishm.o) then
+        ar cr libddi.a ddishm.o
+        rm -f ddishm.o
+        echo "Finished compiling: ddishm.o"
+        goto finishOK
+     else
+        echo "Error compiling: ddishm.o"
+        goto bombout
+     endif
+  endif
+
+
+# ------- #
+# Cray X1 #
+# ------- #
+  if($TARGET == cray-x1) then
+     set RANLIB_FLAGS = ' '
+     echo "Compiling: ddishm.o"
+     cd ..
+     ./comp ddishm
+     cd ddi
+     mv -f ../object/ddishm.o .
+     if(-e ddishm.o) then
+        ar cr libddi.a ddishm.o
+        rm -f ddishm.o
+        echo "Finished compiling: ddishm.o"
+        goto finishOK
+     else
+        echo "Error compiling: ddishm.o"
+        goto bombout
+     endif
+  endif
+
+
+# ---------#
+# Cray XD1 #
+# ---------#
+  if (($TARGET == cray-xd1)) then
+     set CC = 'pgcc'
+     set CFLAGS='-DLINUX -fastsse -tp amd64 -Minfo=all -I./include'
+     set CLIBS='-lpthread'
+     set AR_FLAGS = "cr"
+     set F77_OPTS = " -DINT_SIZE=long -D_UNDERSCORES=1"
+     set RANLIB_FLAGS = ' '
+  endif
+
+
+# -------- #
+# Cray XT3 #
+# -------- #
+#   This is so different to every other machine, that we just hard
+#   code a special clause.
+#
+if ($TARGET == cray-xt3) then
+   echo "Cray XT3 uses Cray Shmem, with a mix of MPI."
+   echo "A special version of ddishm is used, called ddixt3.src."
+   echo "Compiling ddixt3.src..."
+   set F77_OPTS = "-DINT_SIZE=long -D_UNDERSCORES=1"
+   set AR_FLAGS      = "cr"
+   set RANLIB_FLAGS = ' '
+   cd ..
+   ./comp ddixt3
+   cd ddi
+   mv -f ../object/ddixt3.o .
+   if(-e ddixt3.o) then
+      ar cr libddi.a ddixt3.o
+      rm -f ddixt3.o
+      echo "Done creating DDI library for Cray XT3."
+      echo "There is no kickoff program, Shmem handles the kickoff."
+      goto finishOK
+   else
+      echo "ERROR compiling: ddixt3.o"
+      goto bombout
+   endif
+endif
+
+
+# ------------------- #
+# Fujitsu Prime Power #
+# ------------------- #
+  if($TARGET == fuji-pp32) then
+     set CC = 'fcc'
+     set CFLAGS='-DSUN32 -O -I./include'
+     set CLIBS='-lpthread -lsocket -lnsl'
+     set F77_OPTS='-DINT_SIZE=int -D_UNDERSCORES=1'
+     set AR_FLAGS     = '-cr'
+     set RANLIB_FLAGS = '-c'
+  endif
+
+  if($TARGET == fuji-pp64) then
+     set CC = 'fcc'
+     set CFLAGS='-KV9 -DSUN64 -O -I./include'
+     set CLIBS='-KV9 -lsocket -lnsl -lpthread'
+     set F77_OPTS='-DINT_SIZE=long -D_UNDERSCORES=1'
+     set AR_FLAGS     = '-cr'
+     set RANLIB_FLAGS = '-c'
+  endif
+
+
+# ----- #
+# HP-UX #
+# ----- #
+  if($TARGET == hpux32) then
+     set CC       = 'cc'
+     set CFLAGS   = '-DHPUX32 +O3 +DD32 -D_32_BIT +O3 -I./include'
+     set CLIBS    = '-lpthread'
+     set F77_OPTS = '-DINT_SIZE=int -D_UNDERSCORES=0'
+     set AR_FLAGS     = 'cr'
+     set RANLIB_FLAGS = '-c'
+  endif
+
+#    see the note in readme.ddi if you have trouble compiling with
+#    the socklen_t redefinition (this may occur on PA-RISC systems).
+  if($TARGET == hpux64) then
+     set CC     = 'cc'
+     set CFLAGS = '-DHPUX64 +O3 +DD64 -D_REENTRANT -Dsocklen_t=int -I./include'
+     set CLIBS  = '-lpthread'
+     set F77_OPTS = '-DINT_SIZE=long -D_UNDERSCORES=0'
+     set AR_FLAGS     = 'cr'
+     set RANLIB_FLAGS = ' '
+  endif
+
+
+# ---------- #
+# IBM 32-bit #
+# ---------- #
+  if($TARGET == ibm32) then
+
+     set CC = 'xlc_r'
+     set CFLAGS = "-DIBM32 -D_32_BIT -O3"
+     set CFLAGS = "$CFLAGS -qalias=ansi -qthreaded -qarch=auto"
+     set CFLAGS = "$CFLAGS -qtune=auto  -qstrict -I./include"
+     set CLIBS  = "-lpthread"
+
+     set F77_OPTS = "-DINT_SIZE=int -D_UNDERSCORES=0"
+
+     set AR_FLAGS     = '-r -s -X 32'
+     set RANLIB_FLAGS = ' '
+
+  endif
+
+
+# ---------- #
+# IBM 64-bit #
+# ---------- #
+  if($TARGET == ibm64 || $TARGET == ibm64-sp) then
+     if (`uname` == AIX) then
+                                  set CC = 'xlc_r'
+        if($TARGET   == ibm64-sp) set CC = 'mpcc_r'
+        set CFLAGS   = "-O3 -q64 -DIBM64"
+        set CFLAGS   = "$CFLAGS -qalias=ansi -qthreaded -qarch=auto"
+        set CFLAGS   = "$CFLAGS -qtune=auto  -qstrict -I./include"
+        set AR_FLAGS = '-r -s -X 64'
+     else
+        set CC       = 'gcc'
+        set CFLAGS   = '-O2 -m64 -DIBM64 -I./include'
+        set AR_FLAGS = 'cr'
+
+     endif
+
+     set CLIBS    = "-lpthread"
+     set F77_OPTS = "-DINT_SIZE=long -D_UNDERSCORES=0"
+     set RANLIB_FLAGS = ' '
+
+  endif
+
+
+# ------------- #
+# IBM Blue Gene #
+# ------------- #
+#  IBM seems to put the BG/L compilers on the path, but not ar,
+#  so the full path is given to it.
+#  This is a limited memory machine, so request a smaller buffer
+#  for global sum than the default.
+#
+#  However, ARMCI is installed, it can be run using ARMCI as a
+#  one-sided library, without data servers.  Installation of
+#  ARMCI must have been performed already, you may need to check
+#  the path name below for its include files.
+
+#  This machine can run over MPI-1 with data servers (COMM=mpi),
+#  if your Blue Gene does not have AMRCI installed.
+#
+  if ($TARGET == ibm-bg) then
+     set CC = 'blrts_xlc'
+     set CFLAGS = "-O3 -DIBMBG -DDDI_BGL -D_32_BIT -DDDI_BUFFER_SIZE=1048576"
+     set CFLAGS = "$CFLAGS -qalias=ansi -qthreaded -qarch=auto"
+     set CFLAGS = "$CFLAGS -qtune=auto -qstrict"
+     set CFLAGS = "$CFLAGS -I./include"
+     set CFLAGS = "$CFLAGS -I/bgl/BlueLight/ppcfloor/bglsys/include"
+#        Include files for ARMCI, not always the same on all BGs:
+     set CFLAGS = "$CFLAGS -I/bgl/BlueLight/ppcfloor/bglsys/include/ga"
+#--- set CFLAGS = "$CFLAGS -I/soft/tools/ga/include"
+#--- set CFLAGS = "$CFLAGS -I/soft/tools/ga/include/ga"
+
+     set CLIBS  = ""
+
+     set F77_OPTS = "-DINT_SIZE=int -D_UNDERSCORES=0"
+
+     set AR="/bgl/BlueLight/ppcfloor/blrts-gnu/bin/powerpc-bgl-blrts-gnu-ar"
+     set AR_FLAGS     = '-cr'
+     set RANLIB_FLAGS = ' '
+  endif
+
+
+# ---------------------------------------- #
+# Linux for 32 bit systems (Red Hat, etc.) #
+# ---------------------------------------- #
+#       note that DDI is in C, so FORTRAN below is not used for anything
+#       but in this scripting clause.  It lets this script choose the
+#       the number of trailing underscores needed, but more importantly,
+#       deals with gfortran's use of names prefixed by _gfortran_ in its
+#       library of FORTRAN callable routines.
+#
+#       Note that in all cases, we use the gcc compiler from Linux for
+#       the compilation of DDI, even if a commercial FORTRAN is used.
+#
+#    *******  You must select your FORTRAN compiler's name just below *****
+#
+  if($TARGET == linux32) then
+
+     set FORTRAN=g77       # choose from g77, gfortran, ifort, pgf77, f2c
+
+     set CC = 'gcc'
+     set CFLAGS = "-DLINUX -O3 -fstrict-aliasing -I./include"
+
+     switch ($FORTRAN)
+        case g77:
+        case pgf77:
+        case f2c:
+           set NumUS=2
+           breaksw
+        case gfortran:
+           set CFLAGS = "$CFLAGS -Dgetarg_=_gfortran_getarg_i4"
+           set CFLAGS = "$CFLAGS -Diargc_=_gfortran_iargc"
+           set NumUS=1
+           breaksw
+        case ifort:
+           set NumUS=1
+           breaksw
+        default:
+           echo Please spell your ia32 compiler correctly.
+           exit 4
+     endsw
+
+     set CLIBS  = "-lpthread"
+     set F77_OPTS = "-DINT_SIZE=int -D_UNDERSCORES=$NumUS"
+     set AR_FLAGS     = 'cr'
+     set RANLIB_FLAGS = ' '
+  endif
+
+# ---------------------------------------------- #
+# Linux for 64 bit PCs (both AMD and Intel chips #
+# ---------------------------------------------- #
+# See just above for comments in the 32 bit Linux section.
+#
+#    ***** You must select your FORTRAN compiler's name just below *****
+#
+  if(($TARGET == linux64) || ($TARGET == linux-ia64)) then
+
+#        for generic 64 bit Linux, choose one of the following,
+#           gfortran, pgf77, pathf90
+     if ($TARGET == linux64)    set FORTRAN=gfortran
+#
+#        for linux-ia64, leave the choice set to ifort (do not change!)
+     if ($TARGET == linux-ia64) set FORTRAN=ifort
+
+     set CC = 'gcc'
+
+     if ($TARGET == linux64) then
+        set CFLAGS = "-DLINUX -m64 -O3 -fstrict-aliasing -I./include"
+     endif
+
+#        gcc on Itan2 does not have -m32/-m64 flags, it's all 64 bit pointers.
+#        Ubuntu on x86_64 returns a string of 'unknown'!
+     if ($TARGET == linux-ia64) then
+        set CFLAGS="-DLINUX -m64" # in case uname doesn't give good response
+        if (`uname -p` == x86_64)  set CFLAGS="-DLINUX -m64"
+        if (`uname -p` == ia64)    set CFLAGS="-DLINUX"
+        set CFLAGS = "$CFLAGS -O3 -fstrict-aliasing -I./include"
+     endif
+
+     switch ($FORTRAN)
+        case gfortran:
+           set CFLAGS = "$CFLAGS -Dgetarg_=_gfortran_getarg_i4"
+           set CFLAGS = "$CFLAGS -Diargc_=_gfortran_iargc"
+           set NumUS=1
+           breaksw
+        case pgf77:
+        case ifort:
+           set NumUS=1
+           breaksw
+        case pathf90:
+           set NumUS=2
+           breaksw
+        default:
+           echo "Please spell your 64 bit FORTRAN compiler name correctly."
+           exit 4
+     endsw
+
+     set CLIBS  = "-lpthread"
+     set F77_OPTS = "-DINT_SIZE=long -D_UNDERSCORES=$NumUS"
+     set AR_FLAGS     = 'cr'
+     set RANLIB_FLAGS = ' '
+  endif
+
+
+# ----------------------- #
+# NEC SX vector processor #
+# ----------------------- #
+#    Caution!  This has not been tested, but rather it is an educated guess.
+  if($TARGET == necsx) then
+
+     set CC = 'c++'
+     set CFLAGS = "-DNECSX -O -I./include -size_t64"
+     set CLIBS  = "-lpthread"
+
+     set F77_OPTS = '-DINT_SIZE=long -D_UNDERSCORES=1'
+
+     set AR_FLAGS     = 'cr'
+     set RANLIB_FLAGS = ' '
+
+  endif
+
+
+# -------- #
+# Mac OS X #
+# -------- #
+# OS X 10.1 will not work at all, 10.2 is primitive, 10.3 needs an edit below.
+# for 64 bit mode, we need at least OS X 10.4.
+# targets mac64 and macG5 must use gfortran and xlf, respectively.
+#
+  if (($TARGET == mac32) || ($TARGET == mac64) || ($TARGET == macG5)) then
+
+     set FORTRAN=gfortran       # for mac32, choose from g77 or gfortran
+
+     if ($TARGET == mac64) set FORTRAN=gfortran   # force the only choice
+     if ($TARGET == macG5) set FORTRAN=xlf        # force the only choice
+
+     set CC = 'gcc'
+                           set CFLAGS = "-DMACOSX"
+     if ($TARGET == mac64) set CFLAGS = "-DLINUX -m64"
+     set CFLAGS = "$CFLAGS -O3 -fstrict-aliasing -I./include"
+
+     #       uncomment next line for OS X 10.3
+     #---set CFLAGS = "$CFLAGS -Dsocklen_t=int"
+
+     switch ($FORTRAN)
+        case g77:
+           set NumUS=2
+           breaksw
+        case gfortran:
+           set CFLAGS = "$CFLAGS -Dgetarg_=_gfortran_getarg_i4"
+           set CFLAGS = "$CFLAGS -Diargc_=_gfortran_iargc"
+           set NumUS=1
+           breaksw
+        case xlf:
+           set NumUS=1
+           breaksw
+        default:
+           echo Your OS X FORTRAN compiler was not correctly specified.
+           exit
+           breaksw
+     endsw
+
+                          set F77_OPTS = "-DINT_SIZE=int"
+     if($TARGET == mac64) set F77_OPTS = "-DINT_SIZE=long"
+     set F77_OPTS = "$F77_OPTS -D_UNDERSCORES=$NumUS"
+
+     set CLIBS  = "-lpthread"
+     set AR_FLAGS     = 'cr'
+     set RANLIB_FLAGS = '-c'
+
+  endif
+
+
+# ---------- #
+# SGI 32-bit #
+# ---------- #
+  if($TARGET == sgi32) then
+     set CC='cc'
+     set CFLAGS='-DSGI32 -n32 -i4 -O -I./include'
+     set CLIBS='-lpthread'
+     set F77_OPTS='-DINT_SIZE=int -D_UNDERSCORES=1'
+     set AR_FLAGS='-cr'
+     set RANLIB_FLAGS=' '
+  endif
+
+
+# ---------- #
+# SGI 64-bit #
+# ---------- #
+#    There is a bit of trouble with the Origin:
+#    The SHMEM option dies upon touching AO integral files
+#    The Sockets option usually can't start 16 or more processes
+#    The old version has to start data servers which are awkward on Origin
+  if($TARGET == sgi64) then
+     switch ($COMM)
+        case shmem:
+           echo "Compiling: ddio3k.o"
+           ../comp ddio3k
+           mv -f ../object/ddio3k.o .
+           if(-e ddio3k.o) then
+              ar -cr libddi.a ddio3k.o
+              rm -f ddio3k.o
+              echo "Finished compiling: ddio3k.o"
+              goto finishOK
+           else
+              echo "Error compiling: ddio3k.o"
+              goto bombout
+           endif
+           breaksw
+        case sockets:
+           set CC = 'cc -64 -mips4'
+           set CFLAGS = '-DSGI64 -O -I./include'
+           set CLIBS='-lpthread'
+           set F77_OPTS='-DINT_SIZE=long -D_UNDERSCORES=1'
+           set AR_FLAGS     = '-cr'
+           set RANLIB_FLAGS = '-c'
+           breaksw
+        default:
+           echo SGI 64 bits requires COMM of sockets or shmem.
+           exit 3
+           breaksw
+     endsw
+  endif
+
+
+# ---------- #
+# Sun 32-bit #
+# ---------- #
+  if($TARGET == sun32) then
+
+     set CC = 'cc'
+# set next line true if you have Sun f90 version 8.3 or higher
+     set newf90=false
+     if ($newf90 == true) then
+        set ARCH=-m32
+     else
+        if(`uname -p` == sparc) set ARCH='-xarch=v8plus'
+        if(`uname -p` == i386)  set ARCH='-xarch=pentium_pro'
+     endif
+     set CFLAGS = "$ARCH -DSUN32 -O -Dsocklen_t=int -D_32_BIT -I./include"
+     set CLIBS  = '-lsocket -lnsl -lpthread'
+
+     set F77_OPTS = "-DINT_SIZE=int -D_UNDERSCORES=1"
+
+     set AR_FLAGS     = '-cr'
+     set RANLIB_FLAGS = '-c'
+
+  endif
+
+
+# ---------- #
+# Sun 64-bit #
+# ---------- #
+  if($TARGET == sun64) then
+
+     set CC = 'cc'
+# set next line true if you have Sun f90 version 8.3 or higher
+     set newf90=false
+     if ($newf90 == true) then
+        set ARCH=-m64
+     else
+        if(`uname -p` == sparc) set ARCH='-xarch=v9'
+        if(`uname -p` == i386)  set ARCH='-xarch=amd64'
+     endif
+     set CFLAGS = "$ARCH -DSUN64 -O -I./include"
+     set CLIBS  = '-lsocket -lnsl -lpthread'
+
+     set F77_OPTS = "-DINT_SIZE=long -D_UNDERSCORES=1"
+
+     set AR_FLAGS     = '-cr'
+     set RANLIB_FLAGS = '-c'
+
+  endif
+
+  if ($?CFLAGS) then
+  else
+    echo The compddi script does not select a correct TARGET machine type.
+    echo What you typed when editing this script was $TARGET
+    exit 4
+  endif
+
+# ------------- end of machine specific option selection -------------- #
+
+
+rm -f *.a *.x ./obj/*.o
+
+# -------------------- #
+# Compile object files #
+# -------------------- #
+  if($COMM == mixed) set CFLAGS = "$CFLAGS $MPI_INCLUDE_PATH"
+  if($COMM == mpi)   set CFLAGS = "$CFLAGS $MPI_INCLUDE_PATH"
+  set CC_CMD = "$CC $CFLAGS $DDI_OPTS"
+  set CC_CMD = "$CC_CMD -DMAX_SMP_PROCS=$MAXCPUS -DMAX_NODES=$MAXNODES"
+
+
+  if($DDI_SOURCE == old) goto old
+
+# ---------------------- #
+# Compile common objects #
+# ---------------------- #
+  foreach OBJ ( soc_create      std_system     tcp_sockets   \
+                debug           parse_node_args              \
+              )
+    echo "Compiling common object: $OBJ.o"
+    set echo
+    $CC_CMD -c ./src/$OBJ.c -o ./obj/$OBJ.o
+    unset echo
+    if(-e ./obj/$OBJ.o) then
+       echo "Finished compiling: $OBJ.o"
+    else
+       echo "Error compiling: $OBJ.o"
+       goto bombout
+    endif
+    ar $AR_FLAGS libddi.a      ./obj/$OBJ.o
+    ar $AR_FLAGS libddikick.a  ./obj/$OBJ.o
+    echo " "
+  end
+
+
+# ------------------- #
+# Compile DDI objects #
+# ------------------- #
+  set OBJ_LIST=(ddi            ddi_send        ddi_recv        \
+                ddi_get        ddi_put         ddi_acc         \
+                ddi_getacc     ddi_distrib     \
+                ddi_subpatch   ddi_index       ddi_recvany     \
+                ddi_create     ddi_destroy     ddi_server      \
+                ddi_finalize   ddi_memory      ddi_lapi        \
+                ddi_isend      ddi_irecv       ddi_wait        \
+                ddi_signals    ddi_id          ddi_timer       \
+                ddi_gdlb       ddi_dlb         ddi_dlb_proc    \
+                ddi_init       sysv_ipc       \
+                ddi_comm       ddi_comm_group  ddi_comm_send   \
+                ddi_comm_recv  ddi_comm_sync   ddi_comm_gsum   \
+                ddi_comm_bcast ddi_smp         ddi_comm_create \
+                ddi_comm_nproc ddi_comm_nnode  ddi_runtime     \
+                ddi_util )
+
+# extra source files are required for the IBM Blue Gene using ARMCI
+  if ($TARGET == ibm-bg) then
+    set OBJ_LIST=($OBJ_LIST ddi_bgl)
+  endif
+  if ($COMM == armci) then
+    set OBJ_LIST=($OBJ_LIST ddi_armci ddi_armci_init \
+                  ddi_armci_acc  ddi_armci_get ddi_armci_put )
+  endif
+
+  foreach OBJ ($OBJ_LIST)
+    echo "Compiling DDI object: $OBJ.o"
+    set echo
+    $CC_CMD -c ./src/$OBJ.c -o ./obj/$OBJ.o
+    unset echo
+    if(-e ./obj/$OBJ.o) then
+       echo "Finished compiling: $OBJ.o"
+    else
+       echo "Error compiling: $OBJ.o"
+       goto bombout
+    endif
+    ar $AR_FLAGS libddi.a      ./obj/$OBJ.o
+    echo " "
+  end
+
+
+# ----------------------- #
+# Compile DDIKICK objects #
+# ----------------------- #
+  if($COMM == sockets) then
+  foreach OBJ ( ddikick        ddikick_error  accept_tasks   \
+                finalize_tasks kickoff_local  kickoff_remote \
+                kickoff_pbs \
+              )
+    echo "Compiling ddikick object: $OBJ.o"
+    set echo
+    $CC_CMD -c ./tools/ddikick/$OBJ.c -o ./obj/$OBJ.o
+    unset echo
+    if(-e ./obj/$OBJ.o) then
+       echo "Finished compiling: $OBJ.o"
+    else
+       echo "Error compiling: $OBJ.o"
+       goto bombout
+    endif
+    ar $AR_FLAGS libddikick.a  ./obj/$OBJ.o
+    echo " "
+  end
+  endif
+
+
+# ------------------------ #
+# Compile FORTRAN Wrappers #
+# ------------------------ #
+  echo "Compiling FORTRAN wrappers"
+  set echo
+  $CC_CMD $F77_OPTS -c ./src/ddi_fortran.c -o ./obj/ddi_fortran.o
+  unset echo
+    if(-e ./obj/ddi_fortran.o) then
+       echo "Finished compiling: ddi_fortran.o"
+    else
+       echo "Error compiling: ddi_fortran.o"
+       goto bombout
+    endif
+  ar $AR_FLAGS libddi.a  ./obj/ddi_fortran.o
+  echo " "
+
+
+# ----------------------- #
+# Compile kickoff program #
+# ----------------------- #
+#     The reason for not inserting a "mv ddikick.x .." command in
+#     this script is for situations when rebuilding the library is
+#     done later, when one might not want to erase the previous
+#     ddikick.x (i.e. if GAMESS jobs are running at the moment).
+  if($COMM == sockets) then
+     ranlib $RANLIB_FLAGS libddikick.a
+     echo " "
+     echo "Compiling DDI kickoff program"
+     set echo
+     $CC $CFLAGS -o ddikick.x ./obj/ddikick.o -L./ -lddikick $CLIBS
+     unset echo
+     echo " "
+     echo "Don't forget to move ddikick.x up one directory level,"
+     echo "by a   'mv ddikick.x ..'   command."
+     echo " "
+     rm -f libddikick.a
+     rm -f obj/*.o
+  else
+     rm -f libddikick.a
+     rm -f obj/*.o
+  endif
+
+
+# --------------------------- #
+# Compile OLD DDI source code #
+# --------------------------- #
+old:
+  if($DDI_SOURCE == old) then
+
+      # ddisoc.c
+        echo "Compiling: ddisoc.o"
+        set echo
+        $CC $CFLAGS -c ./oldsrc/ddisoc.c -o ./obj/ddisoc.o
+        unset echo
+        if(-e ./obj/ddisoc.o) then
+           echo "Finished compiling: ddisoc.o"
+        else
+           echo "Error compiling: ddisoc.c"
+           goto bombout
+        endif
+        ar $AR_FLAGS libddi.a  ./obj/ddisoc.o
+        echo " "
+
+      # ddi.src
+        echo "Compiling: ddi.o"
+        ../comp ddi
+        mv -f ../object/ddi.o .
+        if(-e ddi.o) then
+           echo "Finished compiling: ddi.o"
+        else
+           echo "Error compiling: ddi.o"
+           goto bombout
+        endif
+        ar $AR_FLAGS libddi.a ddi.o
+        rm -f ddi.o
+        echo " "
+
+      # ddikick.x
+        if(-e ddikick.x) rm -f ddikick.x
+        echo "Compiling: ddikick.x"
+        set echo
+        $CC $CFLAGS -o ddikick.x oldsrc/ddikick.c $CLIBS
+        unset echo
+        echo " "
+  endif
+
+# ------------------------------------------------------------ #
+# End of compile script, run "ranlib" on the library and exit"
+# ------------------------------------------------------------ #
+finishOK:
+
+#   SGI has its ranlib built into its ar command (very rational)
+  if (($TARGET != sgi64) && ($TARGET != sgi32)) then
+     ranlib $RANLIB_FLAGS libddi.a
+  endif
+
+  echo "DDI compilation ended successfully."
+  date
+  time
+  exit
+
+bombout:
+  echo "DDI compilation did not finish correctly, please fix, and try again"
+  if (-e libddi.a)     rm -f libddi.a
+  if (-e libddikick.a) rm -f libddikick.a
+  if (-e ddikick.x)    rm -f ddikick.x
+  date
+  time
+  exit 8
