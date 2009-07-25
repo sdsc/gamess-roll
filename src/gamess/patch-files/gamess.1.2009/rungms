@@ -55,7 +55,7 @@
 #       of using LoadLeveler via a "llgms" front end in ~/gamess/misc.
 #
 set TARGET=sockets
-set SCR=.
+set SCR=`pwd`
 #
 set JOB=$1      # name of the input file xxx.inp, give only the xxx part
 set VERNO=$2    # revision number of the executable created by 'lked' step
