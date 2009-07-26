@@ -60,7 +60,7 @@
 #     a. Maximum number of processors contained in your SMP enclosures
 #     b. Maximum number of nodes (number of physical SMP enclosures)
 #
-         set MAXCPUS  = 8
+         set MAXCPUS  = 32
          set MAXNODES = 64
          if ($TARGET == cray-xd1) set MAXCPUS=2     # use 4 here if dual core
          if ($TARGET == cray-xd1) set MAXNODES=256
