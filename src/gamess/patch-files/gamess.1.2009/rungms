@@ -124,18 +124,18 @@ set echo
 #                        ASCII input files (see explanation above)
 setenv ERICFMT /opt/gamess.1.2009/ericfmt.dat
 
-setenv MCPPATH /opt/gamess.1.2009/gamess/mcpdata
+setenv MCPPATH /opt/gamess.1.2009/mcpdata
 setenv  EXTBAS /dev/null
 setenv  NUCBAS /dev/null
 #
 setenv  MAKEFP  $JOB.efp
 setenv   GAMMA  $JOB.gamma
 
-setenv TRAJECT  $JOB.trj
+setenv TRAJECT  `pwd`/$JOB.trj
 setenv RESTART $JOB.rst
 
 setenv INPUT $JOB.F05
-setenv   PUNCH $JOB.dat
+setenv   PUNCH `pwd`/$JOB.dat
 setenv  AOINTS $SCR/$JOB.F08
 setenv  MOINTS $SCR/$JOB.F09
 setenv DICTNRY $SCR/$JOB.F10
