@@ -55,38 +55,37 @@
 # @Copyright@
 #
 
-GAMESS_VERSION=gamess.1.2009
-PKGROOT = /opt/$(GAMESS_VERSION)
+PKG_NAME=gamess
+VERSION=1.2009
+PKGROOT = /opt/pgi/$(PKG_NAME)
 REDHAT.ROOT = $(PWD)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
-GMS_TARGET=linux64
-ACTVTE_TARGET=UNX
 build:
 	mkdir -p BUILD
-	(cd BUILD;  tar xvf ../$(GAMESS_VERSION).tgz )
+	(cd BUILD;  tar xvf ../$(PKG_NAME).$(VERSION).tgz )
 #note: editing commands should be added for a compiler change
 # set ddi target
-	 (cp patch-files/gamess.1.2009/compddi BUILD/$(GAMESS_VERSION)/ddi)
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/compddi BUILD/$(PKG_NAME).$(VERSION)/ddi)
 # compiled actvte.x for unix
-	 (cp patch-files/gamess.1.2009/actvte.f BUILD/$(GAMESS_VERSION)/tools)
-	 (cd BUILD/$(GAMESS_VERSION)/tools;pgf90 -o actvte.x actvte.f)
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/actvte.f BUILD/$(PKG_NAME).$(VERSION)/tools)
+	 (cd BUILD/$(PKG_NAME).$(VERSION)/tools;pgf90 -o actvte.x actvte.f)
 # set comp target
-	 (cp patch-files/gamess.1.2009/comp BUILD/$(GAMESS_VERSION))
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/comp BUILD/$(PKG_NAME).$(VERSION) )
 # set compall target
-	 (cp patch-files/gamess.1.2009/compall BUILD/$(GAMESS_VERSION))
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/compall BUILD/$(PKG_NAME).$(VERSION))
 # set lked target
-	 (cp patch-files/gamess.1.2009/lked BUILD/$(GAMESS_VERSION))
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/lked BUILD/$(PKG_NAME).$(VERSION))
 # set local paths for rungms 
-	 (cp patch-files/gamess.1.2009/rungms BUILD/$(GAMESS_VERSION))
-	 (cd BUILD/$(GAMESS_VERSION)/ddi;./compddi;mv ddikick.x ..)
-	 (cd BUILD/$(GAMESS_VERSION);./compall)
-	 (cd BUILD/$(GAMESS_VERSION);./lked )
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/rungms BUILD/$(PKG_NAME).$(VERSION))
+	 (cd BUILD/$(PKG_NAME).$(VERSION)/ddi;./compddi;mv ddikick.x ..)
+	 (cd BUILD/$(PKG_NAME).$(VERSION);./compall)
+	 (cd BUILD/$(PKG_NAME).$(VERSION);./lked )
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
-	(cd BUILD/$(GAMESS_VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
+	(cd BUILD/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
                  *.DOC $(ROOT)/$(PKGROOT))
-	(cd BUILD/$(GAMESS_VERSION);cp -r mcpdata runall rungms tests \
+	(cd BUILD/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
                   $(ROOT)/$(PKGROOT))
 
 clean::
