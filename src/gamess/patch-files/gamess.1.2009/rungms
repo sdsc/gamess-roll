@@ -122,9 +122,9 @@ endif
 #
 set echo
 #                        ASCII input files (see explanation above)
-setenv ERICFMT /opt/gamess.1.2009/ericfmt.dat
+setenv ERICFMT /opt/pgi/gamess/ericfmt.dat
 
-setenv MCPPATH /opt/gamess.1.2009/mcpdata
+setenv MCPPATH /opt/pgi/gamess/mcpdata
 setenv  EXTBAS /dev/null
 setenv  NUCBAS /dev/null
 #
@@ -429,7 +429,7 @@ if ($TARGET == sockets) then
    if ($os == AIX)     set GMSPATH=/u1/mike/gamess
    if ($os == Darwin)  set GMSPATH=/Users/mike/desktop/gamess
    if ($os == HP-UX)   set GMSPATH=/zr/mike/gamess
-   if ($os == Linux)   set GMSPATH=/opt/gamess.1.2009
+   if ($os == Linux)   set GMSPATH=/opt/pgi/gamess
    if ($os == OSF1)    set GMSPATH=/in/mike/gamess
    if ($os == SunOS)   set GMSPATH=/hf/mike/gamess
 #       special compilation for Sun E450 uSPARC       (uname also= SunOS)
