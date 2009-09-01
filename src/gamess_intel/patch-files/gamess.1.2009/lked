@@ -423,8 +423,11 @@ if ($TARGET == linux64) then
 #           setenv MKLPATH /opt/intel/mkl/10.0.3.020/lib/em64t
 #           set mklver=10
 #
-      if (-d /opt/intel/Compiler/11.1/046/mkl) then
-         setenv MKLPATH `ls -d /opt/intel/mkl/lib/em64t`
+      if (-d /opt/intel/mkl) then
+         if(`uname -p` == x86_64) \
+              setenv MKLPATH `ls -d /opt/intel/mkl/*/lib/em64t`
+         if(`uname -p` == ia64) \
+              setenv MKLPATH `ls -d /opt/intel/mkl/*/lib/64`
          set mklver=`ls /opt/intel/mkl`
          set mklver=$mklver:r  # burn off decimal points
          set mklver=$mklver:r  # Intel's paths contain as many as 3 decimals
@@ -503,32 +506,11 @@ if ($TARGET == linux-ia64) then
 #              Use a BLAS library, if one seems to exist.
 #        Standard choice = Intel's Math Kernel Library
 #        Much more MKL explanation is found under target=linux64, quo vadis.
-   if (-d /opt/intel/mkl) then
-      if(`uname -p` == x86_64) \
-           setenv MKLPATH `ls -d /opt/intel/mkl/*/lib/em64t`
-      if(`uname -p` == ia64) \
-           setenv MKLPATH `ls -d /opt/intel/mkl/*/lib/64`
-      set mklver=`ls /opt/intel/mkl`
-      set mklver=$mklver:r  # burn off decimal points
-      set mklver=$mklver:r  # Intel's paths contain as many as 3 decimals
-      set mklver=$mklver:r
-      echo Linking to Intel Math Kernel Library version $mklver
-      switch ($mklver)
-         case 8:
+   if (-d /opt/intel/Compiler/11.1/046/mkl) then
+         setenv MKLPATH `ls -d /opt/intel/Compiler/11.1/046/mkl/lib/em64t`
            set LIBRARIES="-L$MKLPATH -lmkl_lapack64 -lmkl -lguide -lpthread"
-           breaksw
-         case 9:
-           set LIBRARIES="-L$MKLPATH -lmkl_lapack   -lmkl -lguide -lpthread"
-           breaksw
-         case 10:
-      set LIBRARIES="-L$MKLPATH -lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
-           breaksw
-         default:
-           echo "unknown version number for MKL/linux64"
-           exit
-           breaksw
-      endsw
-      set BLAS=' '
+           set LIBRARIES="-L$MKLPATH -lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
+         set BLAS=' '
 #                 note that Atlas can also be used...
    else if (-d /usr/lib64/atlas) then
       set ATLASPATH=/usr/lib64/atlas
