@@ -84,7 +84,7 @@ build:
 	 (cp patch-files/$(PKG_NAME).$(VERSION)/rungms BUILD/$(PKG_NAME).$(VERSION))
 	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd BUILD/$(PKG_NAME).$(VERSION)/ddi;./compddi;mv ddikick.x ..)
 	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd BUILD/$(PKG_NAME).$(VERSION);./compall)
-	 (. $(F_INTEL_ENV);. $(C_INTEL_END); cd BUILD/$(PKG_NAME).$(VERSION);./lked )
+	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd BUILD/$(PKG_NAME).$(VERSION);./lked )
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	(cd BUILD/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
