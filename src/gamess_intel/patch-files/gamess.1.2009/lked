@@ -423,11 +423,8 @@ if ($TARGET == linux64) then
 #           setenv MKLPATH /opt/intel/mkl/10.0.3.020/lib/em64t
 #           set mklver=10
 #
-      if (-d /opt/intel/mkl) then
-         if(`uname -p` == x86_64) \
-              setenv MKLPATH `ls -d /opt/intel/mkl/*/lib/em64t`
-         if(`uname -p` == ia64) \
-              setenv MKLPATH `ls -d /opt/intel/mkl/*/lib/64`
+      if (-d /opt/intel/Compiler/11.1/046/mkl) then
+         setenv MKLPATH `ls -d /opt/intel/mkl/lib/em64t`
          set mklver=`ls /opt/intel/mkl`
          set mklver=$mklver:r  # burn off decimal points
          set mklver=$mklver:r  # Intel's paths contain as many as 3 decimals
