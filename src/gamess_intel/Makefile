@@ -83,14 +83,14 @@ build:
 	 (cp patch-files/$(PKG_NAME).$(VERSION)/lked $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION))
 # set local paths for rungms 
 	 (cp patch-files/$(PKG_NAME).$(VERSION)/rungms $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION))
-	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd $(ROOT)/$PKGROOT)/$(PKG_NAME).$(VERSION)/ddi;./compddi;mv ddikick.x ..)
-	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd $(ROOT)/$PKGROOT)/$(PKG_NAME).$(VERSION);./compall)
-	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd $(ROOT)/$PKGROOT)/$(PKG_NAME).$(VERSION);./lked )
+	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION)/ddi;./compddi;mv ddikick.x ..)
+	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION);./compall)
+	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION);./lked )
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
-	(cd $(ROOT)/$PKGROOT)/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
+	(cd $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
                  *.DOC $(ROOT)/$(PKGROOT))
-	(cd $(ROOT)/$PKGROOT)/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
+	(cd $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
                   $(ROOT)/$(PKGROOT))
 
 clean::
