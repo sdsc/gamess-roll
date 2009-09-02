@@ -63,35 +63,34 @@ INTEL_BASE=/opt/intel/Compiler/11.1/046/
 MKL=$(INTEL_BASE)/mkl
 F_INTEL_ENV=$(INTEL_BASE)/bin/intel64/ifortvars_intel64.sh
 C_INTEL_ENV=$(INTEL_BASE)/bin/intel64/iccvars_intel64.sh
-CWD=`pwd`
 
 -include $(ROCKSROOT)/etc/Rules.mk
 build:
-	mkdir -p $(ROOT)/$(PKG_ROOT)
-	(cd $(ROOT)/$(PKG_ROOT);  tar xvf $(CWD)/$(PKG_NAME).$(VERSION).tgz )
+	mkdir -p BUILD_INTEL
+	(cd BUILD_INTEL;  tar xvf ../$(PKG_NAME).$(VERSION).tgz )
 #note: editing commands should be added for a compiler change
 # set ddi target
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/compddi $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION)/ddi)
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/compddi BUILD_INTEL/$(PKG_NAME).$(VERSION)/ddi)
 # compiled actvte.x for unix
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/actvte.f $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION)/tools)
-	 (. $(F_INTEL_ENV); cd $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION)/tools;ifort -o actvte.x actvte.f)
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/actvte.f BUILD_INTEL/$(PKG_NAME).$(VERSION)/tools)
+	 (. $(F_INTEL_ENV); cd BUILD_INTEL/$(PKG_NAME).$(VERSION)/tools;ifort -o actvte.x actvte.f)
 # set comp target
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/comp $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION) )
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/comp BUILD_INTEL/$(PKG_NAME).$(VERSION) )
 # set compall target
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/compall $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION))
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/compall BUILD_INTEL/$(PKG_NAME).$(VERSION))
 # set lked target
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/lked $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION))
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/lked BUILD_INTEL/$(PKG_NAME).$(VERSION))
 # set local paths for rungms 
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/rungms $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION))
-	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION)/ddi;./compddi;mv ddikick.x ..)
-	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION);./compall)
-	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION);./lked )
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/rungms BUILD_INTEL/$(PKG_NAME).$(VERSION))
+	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd BUILD_INTEL/$(PKG_NAME).$(VERSION)/ddi;./compddi;mv ddikick.x ..)
+	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd BUILD_INTEL/$(PKG_NAME).$(VERSION);./compall)
+	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd BUILD_INTEL/$(PKG_NAME).$(VERSION);./lked )
 install::
-	mkdir -p $(PKG_ROOT)
-	(cd $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
+	mkdir -p $(ROOT)/$(PKGROOT)
+	(cd BUILD_INTEL/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
                  *.DOC $(PKGROOT))
-	(cd $(ROOT)/$(PKG_ROOT)/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
+	(cd BUILD_INTEL/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
                   $(PKGROOT))
 
 clean::
-	rm -rf $(ROOT)/$(PKG_ROOT)
+	rm -rf BUILD_INTEL
