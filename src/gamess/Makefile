@@ -61,11 +61,12 @@ PKGROOT = /opt/pgi/$(PKG_NAME)
 REDHAT.ROOT = $(PWD)/../../
 PGI_PATH=/opt/pgi/linux86-64/8.0/bin
 LIB_PATH=/opt/pgi/linux86-64/8.0/libso
+CWD=$(PWD)
 
 -include $(ROCKSROOT)/etc/Rules.mk
 build:
 	mkdir -p $(ROOT)/$(PKGROOT)
-	(cd $(ROOT)/$(PKGROOT);  tar xvf ../$(PKG_NAME).$(VERSION).tgz )
+	(cd $(ROOT)/$(PKGROOT);  tar xvf $(CWD)/$(PKG_NAME).$(VERSION).tgz )
 #note: editing commands should be added for a compiler change
 # set ddi target
 	 (cp patch-files/$(PKG_NAME).$(VERSION)/compddi $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION)/ddi)
