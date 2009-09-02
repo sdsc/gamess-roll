@@ -66,7 +66,7 @@ CWD=$(PWD)
 -include $(ROCKSROOT)/etc/Rules.mk
 build:
 	mkdir -p $(ROOT)/$(PKGROOT)
-	(cd $(ROOT)/$(PKGROOT);  tar xvf $(CWD)/$(PKG_NAME).$(VERSION).tgz )
+	(mkdir -p $(ROOT)/$(PKGROOT);cd $(ROOT)/$(PKGROOT);tar xvf $(CWD)/$(PKG_NAME).$(VERSION).tgz )
 #note: editing commands should be added for a compiler change
 # set ddi target
 	 (cp patch-files/$(PKG_NAME).$(VERSION)/compddi $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION)/ddi)
@@ -87,9 +87,9 @@ build:
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	(cd $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
-                 *.DOC $(ROOT)/$(PKGROOT))
+                 *.DOC $(PKGROOT))
 	(cd $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
-                  $(ROOT)/$(PKGROOT))
+                  $(PKGROOT))
 
 clean::
 	rm -rf $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION)
