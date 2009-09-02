@@ -92,4 +92,4 @@ install::
                   $(ROOT)/$(PKGROOT))
 
 clean::
-	rm -rf $(ROOT)/$(PKGROOT)
+	rm -rf $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION)
