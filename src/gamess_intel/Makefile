@@ -63,7 +63,7 @@ INTEL_BASE=/opt/intel/Compiler/11.1/046/
 MKL=$(INTEL_BASE)/mkl
 F_INTEL_ENV=$(INTEL_BASE)/bin/intel64/ifortvars_intel64.sh
 C_INTEL_ENV=$(INTEL_BASE)/bin/intel64/iccvars_intel64.sh
-CWD=`pwd`
+CWD=$(PWD)
 
 -include $(ROCKSROOT)/etc/Rules.mk
 build:
@@ -94,4 +94,4 @@ install::
                   $(ROOT)/$(PKGROOT))
 
 clean::
-	rm -rf BUILD_INTEL
+	rm -rf $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION)
