@@ -84,11 +84,11 @@ build:
 	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD_PGI/$(PKG_NAME).$(VERSION);./compall)
 	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD_PGI/$(PKG_NAME).$(VERSION);./lked )
 install::
-	mkdir -p $(PKGROOT)
+	mkdir -p $(ROOT)/$(PKGROOT)
 	(cd BUILD_PGI/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
-                 *.DOC $(PKGROOT))
+                 *.DOC $(ROOT)/$(PKGROOT))
 	(cd BUILD_PGI/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
-                  $(PKGROOT))
+                  $(ROOT)/$(PKGROOT))
 
 clean::
 	rm -rf BUILD_PGI
