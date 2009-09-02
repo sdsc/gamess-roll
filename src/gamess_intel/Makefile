@@ -86,6 +86,7 @@ build:
 	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION);./lked )
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
+        mkdir -p $(PKGROOT)
 	(cd $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
                  *.DOC $(PKGROOT))
 	(cd $(ROOT)/$(PKGROOT)/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
