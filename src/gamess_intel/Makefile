@@ -86,11 +86,11 @@ build:
 	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd BUILD_INTEL/$(PKG_NAME).$(VERSION);./compall)
 	 (. $(F_INTEL_ENV);. $(C_INTEL_ENV); cd BUILD_INTEL/$(PKG_NAME).$(VERSION);./lked )
 install::
-	mkdir -p $(PKGROOT)
+	mkdir -p $(ROOT)/$(PKGROOT)
 	(cd BUILD_INTEL/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
-                 *.DOC $(PKGROOT))
+                 *.DOC $(ROOT)/$(PKGROOT))
 	(cd BUILD_INTEL/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
-                  $(PKGROOT))
+                  $(ROOT)/$(PKGROOT))
 
 clean::
 	rm -rf BUILD_INTEL
