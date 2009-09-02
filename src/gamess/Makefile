@@ -59,6 +59,8 @@ PKG_NAME=gamess
 VERSION=1.2009
 PKGROOT = /opt/pgi/$(PKG_NAME)
 REDHAT.ROOT = $(PWD)/../../
+PGI_PATH=/opt/pgi/linux86-64/8.0/bin
+LIB_PATH=/opt/pgi/linux86-64/8.0/libso
 
 -include $(ROCKSROOT)/etc/Rules.mk
 build:
@@ -69,7 +71,7 @@ build:
 	 (cp patch-files/$(PKG_NAME).$(VERSION)/compddi BUILD/$(PKG_NAME).$(VERSION)/ddi)
 # compiled actvte.x for unix
 	 (cp patch-files/$(PKG_NAME).$(VERSION)/actvte.f BUILD/$(PKG_NAME).$(VERSION)/tools)
-	 (cd BUILD/$(PKG_NAME).$(VERSION)/tools;pgf90 -o actvte.x actvte.f)
+	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD/$(PKG_NAME).$(VERSION)/tools;pgf90 -o actvte.x actvte.f)
 # set comp target
 	 (cp patch-files/$(PKG_NAME).$(VERSION)/comp BUILD/$(PKG_NAME).$(VERSION) )
 # set compall target
@@ -78,9 +80,9 @@ build:
 	 (cp patch-files/$(PKG_NAME).$(VERSION)/lked BUILD/$(PKG_NAME).$(VERSION))
 # set local paths for rungms 
 	 (cp patch-files/$(PKG_NAME).$(VERSION)/rungms BUILD/$(PKG_NAME).$(VERSION))
-	 (cd BUILD/$(PKG_NAME).$(VERSION)/ddi;./compddi;mv ddikick.x ..)
-	 (cd BUILD/$(PKG_NAME).$(VERSION);./compall)
-	 (cd BUILD/$(PKG_NAME).$(VERSION);./lked )
+	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD/$(PKG_NAME).$(VERSION)/ddi;./compddi;mv ddikick.x ..)
+	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD/$(PKG_NAME).$(VERSION);./compall)
+	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD/$(PKG_NAME).$(VERSION);./lked )
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	(cd BUILD/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
