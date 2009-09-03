@@ -65,6 +65,7 @@ LIB_PATH=/opt/pgi/linux86-64/8.0/libso
 -include $(ROCKSROOT)/etc/Rules.mk
 build:
 	mkdir -p BUILD
+        mkdir -p $(ROOT)/$(PKGROOT)
 	(cd BUILD;  tar xvf ../$(PKG_NAME).$(VERSION).tgz )
 #note: editing commands should be added for a compiler change
 # set ddi target
