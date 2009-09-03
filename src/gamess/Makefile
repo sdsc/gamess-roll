@@ -88,9 +88,9 @@ install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	mkdir -p $(PKGROOT)
 	(cd BUILD/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
-                 *.DOC $(ROOT)/$(PKGROOT))
+                 *.DOC $(PKGROOT))
 	(cd BUILD/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
-                  $(ROOT)/$(PKGROOT))
+                  $(PKGROOT))
 
 clean::
 	rm -rf BUILD
