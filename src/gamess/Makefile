@@ -64,33 +64,33 @@ LIB_PATH=/opt/pgi/linux86-64/8.0/libso
 
 -include $(ROCKSROOT)/etc/Rules.mk
 build:
-	mkdir -p BUILD
+	mkdir -p BUILD_PGI
 	mkdir -p $(ROOT)/$(PKGROOT)
-	(cd BUILD;  tar xvf ../$(PKG_NAME).$(VERSION).tgz )
+	(cd BUILD_PGI;  tar xvf ../$(PKG_NAME).$(VERSION).tgz )
 #note: editing commands should be added for a compiler change
 # set ddi target
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/compddi BUILD/$(PKG_NAME).$(VERSION)/ddi)
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/compddi BUILD_PGI/$(PKG_NAME).$(VERSION)/ddi)
 # compiled actvte.x for unix
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/actvte.f BUILD/$(PKG_NAME).$(VERSION)/tools)
-	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD/$(PKG_NAME).$(VERSION)/tools;pgf90 -o actvte.x actvte.f)
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/actvte.f BUILD_PGI/$(PKG_NAME).$(VERSION)/tools)
+	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD_PGI/$(PKG_NAME).$(VERSION)/tools;pgf90 -o actvte.x actvte.f)
 # set comp target
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/comp BUILD/$(PKG_NAME).$(VERSION) )
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/comp BUILD_PGI/$(PKG_NAME).$(VERSION) )
 # set compall target
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/compall BUILD/$(PKG_NAME).$(VERSION))
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/compall BUILD_PGI/$(PKG_NAME).$(VERSION))
 # set lked target
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/lked BUILD/$(PKG_NAME).$(VERSION))
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/lked BUILD_PGI/$(PKG_NAME).$(VERSION))
 # set local paths for rungms 
-	 (cp patch-files/$(PKG_NAME).$(VERSION)/rungms BUILD/$(PKG_NAME).$(VERSION))
-	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD/$(PKG_NAME).$(VERSION)/ddi;./compddi;mv ddikick.x ..)
-	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD/$(PKG_NAME).$(VERSION);./compall)
-	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD/$(PKG_NAME).$(VERSION);./lked )
+	 (cp patch-files/$(PKG_NAME).$(VERSION)/rungms BUILD_PGI/$(PKG_NAME).$(VERSION))
+	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD_PGI/$(PKG_NAME).$(VERSION)/ddi;./compddi;mv ddikick.x ..)
+	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD_PGI/$(PKG_NAME).$(VERSION);./compall)
+	 (export PATH=$(PGI_PATH):$$PATH;export LD_LIBRARY_PATH=$(LIB_PATH):$$LD_LIBRARY_PATH;cd BUILD_PGI/$(PKG_NAME).$(VERSION);./lked )
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	mkdir -p $(PKGROOT)
-	(cd BUILD/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
+	(cd BUILD_PGI/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
                  *.DOC $(PKGROOT))
-	(cd BUILD/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
+	(cd BUILD_PGI/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
                   $(PKGROOT))
 
 clean::
-	rm -rf BUILD
+	rm -rf BUILD_PGI
