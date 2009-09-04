@@ -4,6 +4,7 @@
 
   <description>
   gamess (General Atomic Molecular Electronic Structure System)
+   intel
   </description>
 
   <copyright>
@@ -15,7 +16,7 @@
   </changelog>
 
   <edge from="base">
-    <to>gamess-common</to>
+    <to>gamess_intel-common</to>
   </edge>
 
 </graph>
