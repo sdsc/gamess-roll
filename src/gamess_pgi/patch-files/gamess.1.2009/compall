@@ -1,0 +1,480 @@
+#!/bin/csh -f
+#
+#   6 Jan 09 - script to compile the GAMESS quantum chemistry code.
+#
+#  Invoke this script by 'compall >& compall.log &'.
+#  UNIX compilers are sometimes slow, so start this up, and go for tea.
+#
+#  ----- The next two lines require your attention.
+#  1. Choose your machine, the legal values for TARGET are
+#      axp64,compaq-sc,cray-pvp,cray-t3e,cray-x1,cray-xd1,cray-xt3,
+#      fuji-pp32,fuji-pp64,hpux32,hpux64,ibm32,ibm64,ibm64-sp,ibm-bg,
+#      linux32,linux64,linux-ia64,mac32,mac64,macG5,necsx,
+#      sgi32,sgi64,sun32,sun64
+#  2. Choose your GAMESS directory tree.
+#
+set TARGET=linux64
+chdir .
+#
+#  ----- and now the script begins...
+#
+date
+#
+if (!(-e object)) mkdir object
+#
+#  For some Cray systems, we will compile actvte.x automatically
+#
+chdir tools
+if ($TARGET == cray-x1) then
+   sed -e "s/\*UNX/    /" actvte.code > actvte.tmp
+   sed -e "s/\*CRY/    /" actvte.tmp > actvte.f
+   rm -f actvte.tmp
+   ftn -Ocommand -o actvte.x actvte.f
+   rm -f actvte.f
+endif
+if ($TARGET == cray-xd1) then
+   sed -e "s/\*UNX/    /" actvte.code > actvte.f
+   pgf90 -o actvte.x actvte.f
+   rm -f actvte.f
+endif
+#  For the Cray-XT3, the login nodes run linux, so we
+#  must compile actvte.x for linux, not catamount.
+if ($TARGET == cray-xt3) then
+   sed -e "s/\*UNX/    /" actvte.code > actvte.f
+   /usr/bin/g77 -o actvte.x actvte.f
+   rm -f actvte.f
+endif
+chdir ..
+#
+#  Check to see if the installer has built actvte.x by hand.
+#
+if (!(-x tools/actvte.x)) then
+   echo You did not compile the source code activator actvte.x
+   echo Please read and follow the directions in $cwd/misc/readme.unix
+   exit 8
+endif
+#
+#  Compile a little bit of C to allow for runtime memory allocation.
+#  1. we must select the name of the C compiler, often it is simply cc.
+#  2. we must select the #define in zunix.c, and maybe other options.
+#
+set CCOMP=cc
+if (($TARGET == axp64) && (`uname` == Linux)) set CCOMP='ccc'
+if  ($TARGET == cray-xd1)   set CCOMP='pgcc -fastsse -tp amd64'
+if  ($TARGET == fuji-pp32)  set CCOMP='fcc'
+if  ($TARGET == fuji-pp64)  set CCOMP='fcc'
+if (($TARGET == ibm64) && (`uname` == AIX))   set CCOMP='xlc'
+if (($TARGET == ibm64) && (`uname` == Linux)) set CCOMP='gcc'
+if  ($TARGET == ibm-bg)     set CCOMP='blrts_xlc'
+if  ($TARGET == linux64)    set CCOMP='gcc'
+if  ($TARGET == linux-ia64) set CCOMP='gcc'
+if  ($TARGET == necsx)      set CCOMP='c++'
+#
+unset extraflags
+if ($TARGET == axp64)        set extraflags='-DCOMPAQ'
+if ($TARGET == compaq-sc)    set extraflags='-DCOMPAQ'
+if ($TARGET == cray-pvp)     set extraflags='-DCRAY'
+if ($TARGET == cray-t3e)     set extraflags='-DCRAY'
+if ($TARGET == cray-x1)      set extraflags='-DCRAYX1'
+if ($TARGET == cray-xd1)     set extraflags='-DCRAYXD1'
+if ($TARGET == cray-xt3) \
+       set extraflags='-DCRAYXT3 -fastsse -tp amd64 -Minfo=all'
+#          above line might want amd64e if your Opteron does SSE3 instructions
+if ($TARGET == fuji-pp32)    set extraflags='-DSUN32'
+if ($TARGET == fuji-pp64)    set extraflags='-DSUN64 -KV9'
+if ($TARGET == hpux32)       goto skip-zunix
+if ($TARGET == hpux64)       goto skip-zunix
+if ($TARGET == ibm32)        set extraflags='-DIBM32'
+if ($TARGET == ibm64) then
+   if(`uname` == AIX)        set extraflags='-DIBM64 -q64'
+   if(`uname` == Linux)      set extraflags='-DIBMPPC64 -m64'
+endif
+if ($TARGET == ibm64-sp)     set extraflags='-DIBM64 -q64'
+if ($TARGET == ibm-bg) \
+        set extraflags='-DIBMBG -I/bgl/BlueLight/ppcfloor/bglsys/include'
+if ($TARGET == linux32)      set extraflags='-DLINUX32'
+if ($TARGET == linux64)      set extraflags='-DLINUX64 -m64'
+if ($TARGET == linux-ia64) then
+   set extraflags='-DLINUX64 -m64' # in case uname doesn't give good response
+   if (`uname -p` == x86_64) set extraflags='-DLINUX64 -m64'
+   if (`uname -p` == ia64)   set extraflags='-DLINUX64'  # its always 64 bits
+endif
+if ($TARGET == mac32)        set extraflags='-DLINUX32'
+if ($TARGET == mac64)    set extraflags='-DLINUX64 -m64 -I/usr/include/malloc'
+if ($TARGET == macG5)        set extraflags='-DLINUX32'
+if ($TARGET == necsx)        set extraflags='-DNECSX -size_t64'
+if ($TARGET == sgi32)        set extraflags='-DSGI32 -n32'
+if ($TARGET == sgi64)        set extraflags='-DSGI64 -64'
+if ($TARGET == sun32) then
+   set newf90=false  # change if you have Sun f90 version 8.3 or higher
+   if ($newf90 == true) then
+      set extraflags='-DSUN32 -m32'
+   else
+      if(`uname -p` == sparc)   set extraflags='-DSUN32 -xarch=v8plus'
+      if(`uname -p` == i386)    set extraflags='-DSUN32 -xarch=pentium_pro'
+   endif
+endif
+if ($TARGET == sun64) then
+   set newf90=false  # change if you have Sun f90 version 8.3 or higher
+   if ($newf90 == true) then
+      set extraflags='-DSUN64 -m64'
+   else
+      if(`uname -p` == sparc)   set extraflags='-DSUN64 -xarch=v9'
+      if(`uname -p` == i386)    set extraflags='-DSUN64 -xarch=amd64'
+   endif
+endif
+#
+#     defend against possibly mistyped compilation target
+#
+if ($?extraflags == 0) then
+   echo The compall script does not select a correct TARGET machine type.
+   echo What you typed when editing this script was $TARGET
+   exit 4
+endif
+#
+#     Compile the memory allocation C code
+#
+set echo
+$CCOMP -c $extraflags source/zunix.c
+unset echo
+mv -f zunix.o object/zunix.o
+#
+skip-zunix:
+
+#
+#  If we do not have the BLAS in a system library, then compile a plain
+#  vanilla FORTRAN version of the BLAS routines, supplied with GAMESS.
+#  In some cases, the linking script will use a library if one is found,
+#  in which case some of the blas.o files produced here may never be used.
+#
+if ($TARGET == axp64)      ./comp blas
+if ($TARGET == ibm64)      ./comp blas
+if ($TARGET == ibm-bg)     ./comp blas
+if ($TARGET == linux32)    ./comp blas
+if ($TARGET == linux64)    ./comp blas
+if ($TARGET == linux-ia64) ./comp blas
+if ($TARGET == sun32)      ./comp blas
+if ($TARGET == sun64)      ./comp blas
+#
+#  Sometimes we need a wrapper to pass 64 bit integers in GAMESS to 
+#  system BLAS libraries that expect 32 bit args (see 'comp' hacking)
+#
+if ($TARGET == fuji-pp64)  ./comp blaswrap
+if ($TARGET == ibm64)      ./comp blaswrap
+if ($TARGET == ibm64-sp)   ./comp blaswrap
+if ($TARGET == mac64)      ./comp blaswrap
+if ($TARGET == sgi64)      ./comp blaswrap
+if ($TARGET == sun64)      ./comp blaswrap
+#
+#  If this is a vector machine, we must compile the vectorized routines
+#
+if ($TARGET == cray-pvp) ./comp vector
+if ($TARGET == cray-x1)  ./comp vector
+if ($TARGET == necsx)    ./comp vector
+#
+#  ---------- now, compile all of the individual source files -----------
+#
+./comp aldeci
+./comp algnci
+./comp basccn
+./comp basecp
+./comp basext
+./comp basg3l
+./comp bashuz
+./comp bashz2
+./comp basn21
+./comp basn31
+./comp baspcn
+./comp bassto
+./comp ccaux
+./comp ccddi
+./comp ccqaux
+./comp ccquad
+./comp ccsdt
+./comp ceeis
+./comp chgpen
+./comp cisgrd
+./comp cosmo
+./comp cphf
+./comp cpmchf
+./comp cprohf
+./comp dccc
+./comp dcgues
+./comp dcint2
+./comp dclib
+./comp dcmp2
+./comp dcscf
+./comp dctran
+./comp ddilib
+./comp delocl
+./comp demrpt
+./comp dft
+./comp dftaux
+./comp dftdis
+./comp dftfun
+./comp dftgrd
+./comp dftint
+./comp dftxca
+./comp dftxcb
+./comp dftxcc
+./comp dftxcd
+./comp dftxce
+./comp dgeev
+./comp dgesvd
+./comp dmulti
+./comp drc
+./comp ecp
+./comp ecpder
+./comp ecplib
+./comp ecppot
+./comp efchtr
+./comp efdrvr
+./comp efelec
+./comp efgrd2
+./comp efgrda
+./comp efgrdb
+./comp efgrdc
+./comp efinp
+./comp efinta
+./comp efintb
+./comp efpaul
+./comp efpcm
+./comp efpcov
+./comp efpfmo
+./comp eigen
+./comp elglib
+./comp elgloc
+./comp elgscf
+./comp eomcc
+./comp ewald
+./comp ffield
+./comp fmo
+./comp fmoesd
+./comp fmogrd
+./comp fmoint
+./comp fmoio
+./comp fmolib
+./comp fmopbc
+./comp fmoprp
+./comp frfmt
+./comp fsodci
+./comp g3
+./comp gamess
+./comp globop
+./comp gmcpt
+./comp gradex
+./comp grd1
+./comp grd2a
+./comp grd2b
+./comp grd2c
+./comp guess
+./comp gugdga
+./comp gugdgb
+./comp gugdm
+./comp gugdm2
+./comp gugdrt
+./comp gugem
+./comp gugsrt
+./comp gvb
+./comp hess
+./comp hss1a
+./comp hss1b
+./comp hss2a
+./comp hss2b
+./comp inputa
+./comp inputb
+./comp inputc
+./comp int1
+./comp int2a
+./comp int2b
+./comp int2c
+./comp int2d
+./comp int2f
+./comp int2g
+./comp int2r
+./comp int2s
+./comp int2t
+./comp int2u
+./comp int2v
+./comp int2w
+./comp int2x
+./comp iolib
+./comp ivocas
+./comp lagran
+./comp local
+./comp loccd
+./comp locpol
+./comp mccas
+./comp mcjac
+./comp mcpgrd
+./comp mcpinp
+./comp mcpint
+./comp mcpl10
+./comp mcpl20
+./comp mcpl30
+./comp mcpl40
+./comp mcpl50
+./comp mcpl60
+./comp mcpl70
+./comp mcpl80
+./comp mcqdpt
+./comp mcqdwt
+./comp mcqud
+./comp mcscf
+./comp mctwo
+./comp mdefp
+./comp mexing
+./comp mm23
+./comp morokm
+./comp mp2
+./comp mp2ddi
+./comp mp2grd
+./comp mp2gr2
+./comp mp2ims
+./comp mpcdat
+./comp mpcgrd
+./comp mpcint
+./comp mpcmol
+./comp mpcmsc
+./comp mthlib
+./comp nameio
+./comp neostb
+./comp nmr
+./comp ordint
+./comp ormas1
+./comp parley
+./comp pcm
+./comp pcmcav
+./comp pcmcv2
+./comp pcmder
+./comp pcmdis
+./comp pcmief
+./comp pcmpol
+./comp pcmvch
+./comp prpel
+./comp prplib
+./comp prppop
+./comp qeigen
+./comp qfmm
+./comp qmfm
+./comp qmmm
+./comp qrel
+./comp raman
+./comp rhfuhf
+./comp rohfcc
+./comp rxncrd
+./comp ryspol
+./comp scflib
+./comp scfmi
+./comp scrf
+./comp sobrt
+./comp soffac
+./comp solib
+./comp sozeff
+./comp statpt
+./comp surf
+./comp svpchg
+./comp svpinp
+./comp svpleb
+./comp symorb
+./comp symslc
+./comp tddft
+./comp tddefp
+./comp tddfun
+./comp tddfxc
+./comp tddgrd
+./comp tddint
+./comp tddxca
+./comp tdhf
+./comp tdx
+./comp tdxio
+./comp tdxitr
+./comp tdxni
+./comp tdxprp
+./comp trans
+./comp trfdm2
+./comp trnstn
+./comp trudge
+./comp umpddi
+./comp unport
+./comp utddft
+./comp vbdum
+./comp vibanl
+./comp vscf
+./comp vvos
+./comp zapddi
+./comp zheev
+./comp zmatrx
+#
+#                four plug-in codes are available:
+#      SIMOMM is available from the GAMESS web site  (see INTRO.DOC),
+#      VB2000 is available from an external web site (see INTRO.DOC),
+#      XMVB   is available by electronic mail        (see INTRO.DOC),
+#      NEO    is distributed with GAMESS source code tar file.
+#
+#           Select one or more by setting its flag to "true".
+#           You can select only one of the VB programs at a time.
+#
+#      optional Surface Integrated MO/MM method, using Tinker MM code
+#
+set TINKER=false
+if ($TINKER == true) then
+   ./comp Libtad
+   ./comp Libteac
+   ./comp Libtedl
+   ./comp Libtemo
+   ./comp Libterx
+   ./comp Libtfi
+   ./comp Libtjo
+   ./comp Libtpr
+   ./comp Libtsx
+   ./comp Tdrive
+   ./comp Tinkin
+   ./comp Toys
+endif
+#
+#      optional Valence Bond method, using VB2000 code
+#
+set VB2000=false
+if ($VB2000 == true) then
+   ./comp vb2000
+   ./comp vb2gms
+endif
+#
+#      optional Valence Bond method, using XMVB code
+#
+set XMVB=false
+if ($XMVB == true) then
+   ./comp xmvb
+endif
+#
+#      optional Nuclear-Electronic Orbital method, using NEO code
+#
+set NEO=false
+if ($NEO == true) then
+   ./comp neo
+   ./comp neobas
+   ./comp neocas
+   ./comp neoden
+   ./comp neofci
+   ./comp neog2a
+   ./comp neog2b
+   ./comp neog2c
+   ./comp neogrd
+   ./comp neohf
+   ./comp neohss
+   ./comp neoint
+   ./comp neomp2
+   ./comp neonci
+   ./comp neoopt
+   ./comp neopos
+   ./comp neoprp
+   ./comp neosym
+   ./comp neotrn
+   ./comp neovib
+endif
+#
+unset echo
+echo ------------------- done with all compilations --------------------
+date
+time

@@ -1,0 +1,857 @@
+#!/bin/csh -f
+#
+#   6 Jan 09 - script to link-edit a GAMESS executable
+#
+#  Invoke this job by 'lked EXE VERNO >& lked.log &'
+#    EXE is normally 'gamess',
+#    VERNO is the next version number, e.g. 01, 02, 03, ...
+#    This produces executable "EXE.VERNO.x", e.g. gamess.01.x
+#
+#  ------ The next two lines require your attention.
+#  1. Choose your machine, the legal values for TARGET are
+#       axp64,compaq-sc,cray-pvp,cray-t3e,cray-x1,cray-xd1,cray-xt3,
+#       fuji-pp32,fuji-pp64,hpux32,hpux64,ibm32,ibm64,ibm64-sp,ibm-bg,
+#       linux32,linux64,linux-ia64,mac32,mac64,macG5,necsx,
+#       sgi32,sgi64,sun32,sun64
+#  2. Choose your GAMESS directory tree.
+#
+set TARGET=linux64
+chdir .
+#
+#    ---- and now the script begins...
+#
+set EXE=$1
+set VERNO=$2
+if (null$EXE == null) set EXE=gamess
+if (null$VERNO == null) set VERNO=00
+date
+#
+echo GAMESS will be linked into the binary file $EXE.$VERNO.x.
+#
+if (-e $EXE.$VERNO.x) then
+   echo An old executable $EXE.$VERNO.x already exists!
+   echo Bombing out...
+   exit 4
+endif
+#
+#   optional SIMOMM method, using Tinker MM code
+#   qmmm.o is dummy substitute from the standard GAMESS distribution.
+set TINKER=false
+if ($TINKER == true) then
+   set QMMMOBJ="Libtad.o Libteac.o Libtedl.o Libtemo.o Libterx.o Libtfi.o"
+   set QMMMOBJ="$QMMMOBJ Libtjo.o Libtpr.o Libtsx.o Tdrive.o Tinkin.o Toys.o"
+else
+   set QMMMOBJ='qmmm.o'
+endif
+#
+#   optional Valence Bond method, using VB2000 code --or-- XMVB code.
+#   you can link only one (1) VB program, please do not select both!
+#
+#   (vbdum.o is dummy substitute from the standard GAMESS distribution)
+#
+set VB2000=false
+set   XMVB=false
+                     set VBOBJ='vbdum.o'
+if ($VB2000 == true) set VBOBJ='vb2000.o vb2gms.o'
+if ($XMVB == true)   set VBOBJ='xmvb.o'
+#
+#   optional Nuclear-Electronic Orbital method, using NEO code
+#   neostb.o is dummy substitute from the standard GAMESS distribution.
+set NEO=false
+if ($NEO == true) then
+   set NEOOBJ="neo.o   neobas.o neocas.o neoden.o neofci.o"
+   set NEOOBJ="$NEOOBJ neog2a.o neog2b.o neog2c.o neogrd.o"
+   set NEOOBJ="$NEOOBJ neohf.o  neohss.o neoint.o neomp2.o"
+   set NEOOBJ="$NEOOBJ neonci.o neoopt.o neopos.o neoprp.o"
+   set NEOOBJ="$NEOOBJ neosym.o neotrn.o neovib.o"
+else
+   set NEOOBJ='neostb.o'
+endif
+#
+#   Define the options for the system loader 'ld'.  These are
+#       LDR       - the name of the loader (usually a compiler).
+#       LDOPTS    - options, such as asking for a load map.
+#       LIBRARIES - extra system libraries which must be searched.
+#       BLAS      - set to blas.o if not using system BLAS.
+#                   set to blank if using system BLAS.
+#       VECTOR    - set to vector.o on a vector processor.
+#                   set to blank on a scalar processor.
+#       QUICHE    - set to zunix.o if using true dynamic memory,
+#                   possibly add other system specific objects.
+#                   set to blank otherwise.
+#
+#     --- start of machine specific options ---
+#
+#
+#   Use the Digital/Compaq eXtended Math Library for BLAS if installed.
+#
+if ($TARGET == axp64) then
+   set LDR='f77'
+   if (`uname` == Linux) set LDR='fort'
+   set LDOPTS=''  #  -Wl,-M' shows load map, -non_shared to see libraries
+   set LIBRARIES=' '
+   set BLAS='blas.o'
+   if (-e /usr/lib/libdxml.a) then
+      set LIBRARIES='-ldxml'
+      set BLAS=' '
+   endif
+   if (-e /usr/lib/libcxml.a) then
+      set LIBRARIES='-lcxml'
+      set BLAS=' '
+   endif
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+if ( $TARGET == compaq-sc) then
+   set LDR='f77'
+   set LDOPTS=' '   # add -non_shared to see libraries
+   set LIBRARIES='-lcxml -lmpi -lshmem -lelan'
+   set BLAS=' '
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+if ($TARGET == cray-pvp) then
+   set LDR='f90'
+   set LDOPTS='-m 0 -v -V'
+   set LIBRARIES=' '
+   set BLAS=' '
+   set VECTOR='vector.o'
+   set QUICHE='zunix.o'
+endif
+#
+if ($TARGET == cray-t3e) then
+   set LDR='env TARGET=cray-t3e cld -Dstreams=on'
+   set LDOPTS='-V -Xm'
+   set LIBRARIES='-lc -lm -lu -lf -lsci -lfi -lsma -lmpi -lpmpi'
+   set BLAS=' '
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+if ($TARGET == cray-x1) then
+   set LDR='ftn'
+   set LDOPTS='-V -dp -sdefault64 -Ossp'
+   set LIBRARIES=' '
+   set BLAS=' '    
+   set VECTOR='vector.o'
+   set QUICHE='zunix.o'
+endif
+#
+if (($TARGET == cray-xd1) || ($TARGET == cray-xt3)) then 
+   if ($TARGET == cray-xd1) set LDR='mpif90'
+   if ($TARGET == cray-xt3) set LDR='ftn'
+#    choose 'amd64e' in next line if your Opteron supports SSE3 instructions
+   set LDOPTS='-tp amd64 -i8 -fast -Mnosecond_underscore'
+   set LIBRARIES=' '
+   set BLAS=' '
+#         choose PGI library over ACML library.
+   if (-e $PGI/linux86-64/lib/libblas.a) then
+      set LIBRARIES="$PGI/linux86-64/lib/libblas.a"
+      echo "Found BLAS in $LIBRARIES"
+   else if (-e $ACML_DIR/lib/libacml.a) then
+      set LIBRARIES="$ACML_DIR/lib/libacml.a"
+      echo "Found BLAS in $LIBRARIES"
+   else
+      echo ' '
+      echo '* * * * * * * * * * * * * * * * * * * * * * * * * * * *'
+      echo '          Warning.  No math library was found.'
+      echo '    You should install one for maximum performance.'
+      echo '* * * * * * * * * * * * * * * * * * * * * * * * * * * *'
+      echo ' '
+      set BLAS='blas.o'
+   endif
+   if ($TARGET == cray-xt3) then
+      module load iobuf      # required for good I/O performance to stdout
+      set LIBRARIES="$LIBRARIES -lsma64"
+   endif
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+#  Fujitsu PrimePower, using SSL2 BLAS library
+#
+if (($TARGET == fuji-pp32) || ($TARGET == fuji-pp64)) then
+   set LDR='f90'
+                             set LDOPTS='-KV8PLUS'
+   if ($TARGET == fuji-pp64) set LDOPTS='-KV9'
+   set LIBRARIES='-SSL2'
+                             set BLAS=' '
+   if ($TARGET == fuji-pp64) set BLAS='blaswrap.o'
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+if (($TARGET == hpux32) || ($TARGET == hpux64)) then
+   set LDR='f90'
+   if ($TARGET == hpux32) then
+      set LDOPTS='+O2 +Ofastaccess'       # add -Wl,-m to see map
+      set LIBRARIES='-ldld /opt/fortran90/lib/pa2.0/libblas.a +U77'
+   endif
+   if ($TARGET == hpux64) then
+      set LDOPTS='+DD64 +O2'              # add -Wl,-m to see map
+      set LIBRARIES='-ldld -lveclib8 +U77'
+   endif
+   set BLAS=' '
+   set VECTOR=' '
+   set QUICHE=' '
+endif
+#
+#   Various IBM sections follow.
+#   To see length of common blocks and subroutine sizes,
+#     add "-Wl,-bmap:../lked.sizes" to LDOPTS.
+#   The following will pick out the huge common blocks:
+#          a) grep -i " cm " lked.sizes >& filtered
+#          b) vi filtered
+#             :%s/^/ /
+#             :wq     (pushes subroutine names above column72)
+#          c) strip72   (Mike's program on Si.FI)
+#               input=filtered
+#               output=stripped
+#          d) vi stripped
+#             :%s/^     //
+#             :wq    (no blanks in column 1)
+#          e) sort +1 -d stripped >& sorted
+#          f) keep only the end of 'sorted'
+#
+#   To avoid use of dynamic link libraries, if xlfrte is absent,
+#     add "-Wl,-bnso -Wl,-bI:/lib/syscalls.exp" to LDOPTS.
+#
+#   The fast math library from IBM is called ESSL:
+#   1. BLAS routines in ESSL are faster than the free 32 bit lib in AIX,
+#      note that -lblas works *IF AND ONLY IF* you are running 32 bit.
+#   2. Power2 has a different ESSL name, -lessl2, which we don't
+#      any longer try to detect since few Power2 systems remain.
+#   3. We can use -lessl on 64 bit machines only by using the 32 bit
+#      wrapper hack in blaswrap.src.
+#   4. If you don't have ESSL, a fallback is to remove the 32 bit
+#      wrapper hack in "comp" (search on DASUM), repeat compall,
+#      and set BLAS to "blas.o" and LIBRARIES to blank below.
+#
+if ($TARGET == ibm32) then
+   set LDR='xlf'
+   set LDOPTS='-Wl,-m -Wl,-bmaxdata:0x70000000 -Wl,-bloadmap:../lked.map'
+                          set LIBRARIES='-lblas'  # free 32 bit lib in AIX
+   if (-e /lib/libessl.a) set LIBRARIES='-lessl'  # a bit better if exists
+   set BLAS=' '
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+if ($TARGET == ibm64) then
+   set LDR='xlf'
+   if(`uname` == AIX) then
+      set LDOPTS='-q64 -Wl,-m -Wl,-bloadmap:../lked.map'
+      set LIBRARIES='-lessl'
+   else
+      set LDOPTS='-q64'
+      set LIBRARIES='-lessl -lxlf90_r'
+   endif
+   set BLAS='blaswrap.o'
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+if ($TARGET == ibm64-sp) then
+   set LDR='mpxlf_r'
+   set LDOPTS='-q64'
+   set LIBRARIES='-lessl'
+   set BLAS='blaswrap.o'
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+if ($TARGET == ibm-bg) then
+   set LDR='blrts_xlf'
+   set LDOPTS=' '
+#      math library: try IBM's ESSL first,
+#      then try Goto Blas (from a system directory),
+#      then try Goto Blas (from GAMESS directory itself),
+#      then fall back to slow FORTRAN code.
+   if (-e /opt/ibmmath/lib/libesslbg.a) then
+      set LIBRARIES='-L/opt/ibmmath/lib -lesslbg'
+      set BLAS=' '
+   else if (-e /soft/tools/GotoBLAS/libgoto.a) then
+      set LIBRARIES='-L/soft/tools/GotoBLAS -lgoto'
+      set BLAS=' '
+   else if (-e libgoto.a) then
+      set LIBRARIES='-L.. -lgoto'
+      set BLAS=' '
+   else
+      set LIBRARIES=' '
+      set BLAS='blas.o'
+   endif
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+#        remarks common to linux32, linux64, linux-ia64
+#        ==============================================
+#   There are lots of different choices for the math library to supply
+#   the BLAS, and it is impossible to detect all of them.  You may need
+#   to help this script by changing names below to use your library.
+#   In particular, any * in the directory searches will fail if you have
+#   more than one version installed...simply change * to desired value.
+#
+#   32 bit Linux requires  you to name your compiler, change one line only.
+#   You must specify the same FORTRAN compiler you chose to use in "comp".
+#
+if ($TARGET == linux32) then
+#
+   set FORTRAN=g77       # choose from g77, gfortran, ifort, pgf77, f2c
+#
+   switch ($FORTRAN)
+     case g77:
+        set LDR='g77'
+        set LDOPTS=' '  # add '-Wl,-M' to see load map
+        set LIBRARIES=' '
+        breaksw
+     case gfortran:
+        set LDR='gfortran'
+        set LDOPTS=' '
+        set LIBRARIES=' '
+        breaksw
+     case ifort:
+        set LDR='ifort'
+        set LDOPTS=' '  # add '-Wl,-M' to see load map
+        set LIBRARIES='-Vaxlib'
+        breaksw
+     case pgf77:
+        set LDR='pgf77'
+        set LDOPTS='-g77libs -Mlfs'
+        set LIBRARIES=' '
+        breaksw
+     case f2c:
+        set LDR='gcc'
+        set LDOPTS=' '
+        set LIBRARIES='-lf2c -lm'
+        breaksw
+     default:
+        echo Please spell your ia32 compiler correctly.
+        exit 4
+   endsw
+#
+#  This will attempt to use the precompiled BLAS in Fedora Core, or
+#  any other library you might have (e.g. ORNL's free ASCI download).
+#  We found ASCI to be faster than the Fedora BLAS, both way better
+#  than the FORTRAN included with GAMESS.  For a MP2 calculation:
+#        FORTRAN=2178,  Fedora=1693,  ASCI=1440 CPU seconds
+#  You may wish to select a different BLAS library name, both here
+#  and in the "comp" script.  Be sure to recompile mthlib with the
+#  correct library name in the "comp" script for maximum benefit.
+#  See IRON.DOC for the suitable URL to download the ASCI library.
+#  Additional libraries (not considered here) are 32 bit versions
+#  of Atlas, MKL, or ACML, they are perfectly reasonable choices.
+#
+   set BLASLIBRARY=' '
+   set BLAS='blas.o'  # turn this off if a math library exists...
+#
+   if (-e /usr/lib/libblas.a) then
+      set BLASLIBRARY="-lblas"
+      set BLAS=' '
+   endif
+   if (-e /usr/local/bin/libblas-asci.a) then
+      set BLASLIBRARY="/usr/local/bin/libblas-asci.a"
+      set BLAS=' '
+   endif
+   if (-e /usr/local/lib/libatlas.a) then
+      set BLASLIBRARY="/usr/local/lib/libf77blas.a"
+      set BLASLIBRARY="$BLASLIBRARY /usr/local/lib/libatlas.a"
+      set BLAS=' '
+   endif
+#
+   if ($BLAS == 'blas.o') then
+      echo " "
+      echo "   * * * * * No math library was found on your system * * * * *"
+      echo " "
+      echo "A slow FORTRAN version of the BLAS, blas.src, is being used."
+      echo "It would be a good idea to find a math library and install it,"
+      echo "whether MKL or ACML or ASCI or Atlas or the Linux BLAS package,"
+      echo "and relink GAMESS against that math library."
+      echo "This can make MP2 and CC-type computations run much faster."
+   endif
+#
+   set LIBRARIES="$LIBRARIES $BLASLIBRARY"
+#
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+#   ------ RedHat Linux on 64 bit chips -----
+#   You must specify the same FORTRAN compiler you chose to use in "comp".
+#
+if ($TARGET == linux64) then
+#
+   set FORTRAN=pgf77  # choose from gfortran, pgf77, pathf90
+#
+#   A failure to link will probably be due to a missing BLAS library,
+#   gfortran: We assume that anyone using this compiler will have
+#          downloaded a 64 bit MKL, Atlas, or ACML library.
+#   pgf77: We assume that anyone using the Portland Group's commercial 
+#          compiler also installed ACML (e.g. during the pgf77 install).
+#   pathf90: only choice included below is the ACML
+#   Please read in "comp" about obtaining compilers and math libraries!
+#   
+   switch ($FORTRAN)
+
+   case gfortran:
+      set LDR = 'gfortran'
+      set LDOPTS=' '
+#
+#         Try MKL, Atlas, and ACML in that order.  Change order if you like.
+#
+#           explanation of using MKL:
+#      Intel seems incapable of picking a consistent pathname or library
+#      list for the MKL library.  As of version 8.0, there is a stroke
+#      after the pathname, e.g. /opt/intel/mkl/8.0 but prior to that
+#      it was just /opt/intel/mkl721 (for example).  Every version
+#      reorganizes library names, and their contents.  By default, MKL
+#      attempts to use multithreaded execution, which MUST (repeat MUST!)
+#      be tuned off.  Through version 9.x, this was done by setting an
+#      environment variable MKL_SERIAL to YES (see rungms).  As of 9.1,
+#      this could be accomplished at link time, so the script below will
+#      do that for version 10.0 on up.  The environment variable changed
+#      its name as of version 10 (to MKL_NUM_THREADS equals 1, but this
+#      may not work for all mpirun-invoked compute processes).  It is
+#      more elegant, anyway, to request a serial layer library here.
+#
+#      Note!  If you have more than one version of MKL installed, the 
+#      wild card in the 'ls' command below will fail.
+#      If so, comment out all lines above the 'echo', then explicitly
+#      specify the MKL library path you want, and its integer, such as:
+#           setenv MKLPATH /opt/intel/mkl/10.0.3.020/lib/em64t
+#           set mklver=10
+#
+      if (-d /opt/intel/mkl) then
+         if(`uname -p` == x86_64) \
+              setenv MKLPATH `ls -d /opt/intel/mkl/*/lib/em64t`
+         if(`uname -p` == ia64) \
+              setenv MKLPATH `ls -d /opt/intel/mkl/*/lib/64`
+         set mklver=`ls /opt/intel/mkl`
+         set mklver=$mklver:r  # burn off decimal points
+         set mklver=$mklver:r  # Intel's paths contain as many as 3 decimals
+         set mklver=$mklver:r
+         echo Linking to Intel Math Kernel Library version $mklver
+         switch ($mklver)
+            case 8:
+              set LIBRARIES="-L$MKLPATH -lmkl_lapack64 -lmkl -lguide -lpthread"
+              breaksw
+            case 9:
+              set LIBRARIES="-L$MKLPATH -lmkl_lapack   -lmkl -lguide -lpthread"
+              breaksw
+            case 10:
+      set LIBRARIES="-L$MKLPATH -lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
+              breaksw
+            default:
+              echo "unknown version number for MKL/linux64"
+              exit
+              breaksw
+         endsw
+         set BLAS=' '
+      else if (-d /usr/lib64/atlas) then
+         set ATLASPATH=/usr/lib64/atlas
+         set LIBRARIES="$ATLASPATH/libf77blas.so.3"
+         set BLAS=' '
+      else if(qqq`cd /opt ; ls | grep acml` =~ qqqacml* ) then
+         setenv ACMLPATH `ls -d /opt/acml*`/gfortran64_int64/lib
+         set LIBRARIES="$ACMLPATH/libacml.a"
+         set BLAS=' '
+      else
+         echo Warning.  No math library was found, you should install one.
+         set BLAS='blas.o'
+         set LIBRARIES=' '
+#  You could just delete the next line, if you don't mind running slowly.
+#  Using blas.o will give a successful link, to slow matrix multiply routines.
+#        exit 4 jpg
+      endif
+      breaksw
+
+   case pgf77:
+      set LDR = 'pgf77'
+      set LDOPTS='-i8 -i8storage'
+      set LDOPTS="$LDOPTS -fastsse -Mipa=fast,safe -Mprof=func"
+      set LIBRARIES='-lacml'
+      set BLAS='/opt/pgi/linux86-64/8.0-6/lib/libblas.a'
+      breaksw
+
+   case pathf90:
+      set LDR='pathf90'
+      set LDOPTS=' '
+      set BLAS=' '
+      set LIBRARIES=''
+      setenv ACMLPATH `ls -d /opt/acml*`/pathscale64/lib
+      set LIBRARIES="$ACMLPATH/libacml.a"
+      breaksw
+
+   default:
+      echo "Please spell your Linux 64 bit FORTRAN compiler name correctly."
+      exit 4
+      breaksw
+   endsw
+
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+
+endif
+#
+if ($TARGET == linux-ia64) then
+   set LDR='ifort'
+   set LDOPTS='-i8'  # -Wl,-M generates a load map
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+#      start by assuming there is no BLAS library on the system
+   set LIBRARIES=' '
+   set BLAS='blas.o'
+#              Use a BLAS library, if one seems to exist.
+#        Standard choice = Intel's Math Kernel Library
+#        Much more MKL explanation is found under target=linux64, quo vadis.
+   if (-d /opt/intel/mkl) then
+      if(`uname -p` == x86_64) \
+           setenv MKLPATH `ls -d /opt/intel/mkl/*/lib/em64t`
+      if(`uname -p` == ia64) \
+           setenv MKLPATH `ls -d /opt/intel/mkl/*/lib/64`
+      set mklver=`ls /opt/intel/mkl`
+      set mklver=$mklver:r  # burn off decimal points
+      set mklver=$mklver:r  # Intel's paths contain as many as 3 decimals
+      set mklver=$mklver:r
+      echo Linking to Intel Math Kernel Library version $mklver
+      switch ($mklver)
+         case 8:
+           set LIBRARIES="-L$MKLPATH -lmkl_lapack64 -lmkl -lguide -lpthread"
+           breaksw
+         case 9:
+           set LIBRARIES="-L$MKLPATH -lmkl_lapack   -lmkl -lguide -lpthread"
+           breaksw
+         case 10:
+      set LIBRARIES="-L$MKLPATH -lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
+           breaksw
+         default:
+           echo "unknown version number for MKL/linux64"
+           exit
+           breaksw
+      endsw
+      set BLAS=' '
+#                 note that Atlas can also be used...
+   else if (-d /usr/lib64/atlas) then
+      set ATLASPATH=/usr/lib64/atlas
+      set LIBRARIES="$ATLASPATH/libf77blas.so.3"
+      set BLAS=' '
+   endif
+#
+#      next part is for the NEC platform:
+   if (-e /opt/MathKeisan/lib/libblas.a) then
+      set LIBRARIES='/opt/MathKeisan/lib/libblas.a -lguide'
+      set BLAS=' '
+   endif
+#      next part is for the SGI SCSL library, path name contains ver.nos.
+   if (-e /opt/sgi) then
+      if(qqq`cd /opt/sgi ; ls | grep scsl` =~ qqqscsl* ) then
+         set LIBRARIES='-llibscs_i8 -lguide'
+         set BLAS=' '
+      endif
+   endif
+#          this auxiliary library seems to have disappeared in ifort 10
+   set ifcver=`ls /opt/intel/fce`
+   set ifcver=$ifcver:r  # burn off 2nd decimal point
+   set ifcver=$ifcver:r  # burn off 1st decimal point
+   if ($ifcver < 10) set LIBRARIES="$LIBRARIES -Vaxlib"
+endif
+#
+#      MacIntosh, clauses for using g77 or xlf or gfortran.
+#
+#      The only math library option provided is Apple's veclib framework.
+#      The SystemStubs library wasn't needed under Xcode 2.0
+#      Older systems (e.g. 10.3) may need this changed to -lcc_dynamic
+#
+#      Since xlf's license is expensive, it and its associated run-time
+#      libraries are probably only installed on one (1) machine.  So we
+#      do a static link to produce a binary for any other G5 system.
+#      The static link consists of naming .a libraries, instead of .dylib
+#
+if (($TARGET == mac32) || ($TARGET == mac64) || ($TARGET == macG5)) then
+
+   set FORTRAN=gfortran       # for mac32, choose from g77 or gfortran
+
+   if ($TARGET == mac64) set FORTRAN=gfortran   # force the only choice
+   if ($TARGET == macG5) set FORTRAN=xlf        # force the only choice
+
+   set LDR=$FORTRAN
+   if($TARGET == macG5) set LDR='gcc'
+
+# add '-Wl,-M' to see a load map
+   if($TARGET == mac32) set LDOPTS='-Wl,-multiply_defined -Wl,suppress'
+   if($TARGET == macG5) set LDOPTS='-Wl,-multiply_defined -Wl,suppress'
+   if($TARGET == mac64) set LDOPTS='-m64'
+
+   switch ($TARGET)
+      case mac32:
+      case mac64:
+         set LIBRARIES='-Wl,-framework -Wl,vecLib'   # Apple's BLAS library
+         set LIBRARIES="$LIBRARIES -lSystemStubs"
+         breaksw
+      case macG5:
+         set LIBRARIES='-framework vecLib'           # Apple's BLAS library
+         set LIBRARIES="$LIBRARIES -L/opt/ibmcmp/xlf/8.1/lib"
+         set LIBRARIES="$LIBRARIES -lxlf90 -lxlfmath -lxl"
+         breaksw
+      default:
+         echo "Macintosh FORTRAN not correctly defined in link script"
+         exit
+         breaksw
+   endsw
+                         set BLAS=' '
+   if ($TARGET == mac64) set BLAS='blaswrap.o'
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+if ($TARGET == necsx) then
+   set LDR='f90'
+   set LDOPTS='-ebw -size_t64 -Wf"-v -pvctl noassume vwork=stack"'
+#  If MathKeisan is installed do not use the old memory layout.
+   if ({(/bin/nm /usr/lib/libblas.a | grep -c mkversion)}) then
+      echo 'MathKeisan is in use'
+      set LDOPTS="$LDOPTS -Pmulti"
+   else
+      echo 'MathKeisan is NOT in use'
+      set LDOPTS="$LDOPTS -Pmulti -Wl,-h32G_memlayout"
+   endif
+   set LIBRARIES='/usr/lib/lib64/libblas_64.a'
+   set BLAS=' '
+   set VECTOR='vector.o'
+   set QUICHE='zunix.o'
+endif
+#
+# add '-Wl,-M' to LDOPTS in order to see load map
+# error 136 about padding common blocks is to be suppressed.
+if (($TARGET == sgi32) || ($TARGET == sgi64)) then
+   if ($TARGET == sgi32) set LDR='f77'
+   if ($TARGET == sgi32) set LDOPTS='-n32 -woff 136'
+   if ($TARGET == sgi64) set LDR='f90'
+   if ($TARGET == sgi64) set LDOPTS=' -64 -woff 136'
+   set LIBRARIES='-lblas'
+                         set BLAS=' '
+   if ($TARGET == sgi64) set BLAS='blaswrap.o'
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+if (($TARGET == sun32) || ($TARGET == sun64)) then
+   set LDR='f90'
+   set newf90=false  # change if you have Sun f90 version 8.3 or higher
+   if ($TARGET == sun32) then
+      if ($newf90 == true) then
+         set LDOPTS=-m32
+      else
+         if(`uname -p` == sparc)  set LDOPTS='-fast -xarch=v8plus'
+         if(`uname -p` == i386)   set LDOPTS='-fast -xarch=pentium_pro'
+      endif
+   endif
+   if ($TARGET == sun64) then
+      if ($newf90 == true) then
+         set LDOPTS=-m64
+      else
+         if(`uname -p` == sparc)  set LDOPTS='-fast -xarch=v9'
+         if(`uname -p` == i386)   set LDOPTS='-fast -xarch=amd64'
+      endif
+   endif
+#                                   add -m to LDOPTS to see a load map
+   if (-e /opt/SUNWspro/lib/libsunperf.so) then
+      set LIBRARIES='-xlic_lib=sunperf'
+      set BLAS=' '
+      if ($TARGET == sun64) set BLAS='blaswrap.o'
+   else
+      set LIBRARIES=' '
+      set BLAS='blas.o'
+      if ($TARGET == sun64) set BLAS='blaswrap.o blas.o'
+   endif
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+#   Choose the message passing libraries, MSG_LIBRARIES.
+#
+#      In all cases, the Distributed Data Interface has been
+#      compiled to a library archive, with the name ../ddi/libddi.a,
+#      where we must look first.  Depending on the machine DDI has
+#      several implementations and may be looking for
+#         TCP/IP sockets, SHMEM, MPI, or LAPI/MPI
+#      so here we choose the specific low level system libraries.
+#
+switch ($TARGET)
+#             TCP/IP sockets interface (most systems)
+   case axp64:
+   case cray-pvp:
+   case cray-xd1:
+   case fuji-pp32:
+   case fuji-pp64:
+   case hpux32:
+   case hpux64:
+   case ibm32:
+   case ibm64:
+   case linux32:
+   case linux64:
+   case linux-ia64:
+   case mac32:
+   case mac64:
+   case macG5:
+   case sgi32:
+   case sun32:
+   case sun64:
+      set MSG_LIBRARIES='../ddi/libddi.a -lpthread'
+#                    Solaris 2.6 needs -lposix4 instead of -lrt
+      if (($TARGET == sun32)     || ($TARGET == sun64) || \
+          ($TARGET == fuji-pp32) || ($TARGET == fuji-pp64)) then
+        set MSG_LIBRARIES="$MSG_LIBRARIES -lsocket -lnsl -lrt"
+      endif
+      breaksw
+#               SHMEM interface
+   case compaq-sc:
+   case cray-t3e:
+   case cray-x1:
+   case cray-xt3:
+      set MSG_LIBRARIES='../ddi/libddi.a'
+      breaksw
+   case sgi64:
+      set MSG_LIBRARIES='../ddi/libddi.a -lsma -lmpi'  
+      breaksw
+#               LAPI/MPI interface, for the SP product line
+   case ibm64-sp:
+      set MSG_LIBRARIES='../ddi/libddi.a -llapi_r -lpthread'
+      breaksw
+#               ARMCI/MPI interface, for the Blue Gene
+   case ibm-bg:
+      set MSG_LIBRARIES="../ddi/libddi.a"
+#               some BG's may have ARMCI in a non-standard location:
+#---  set MSG_LIBRARIES="$MSG_LIBRARIES -L/soft/tools/ga/lib"
+      set MSG_LIBRARIES="$MSG_LIBRARIES -larmci"
+#               this is the MPI library underneath ARMCI:
+      set MSG_LIBRARIES="$MSG_LIBRARIES -L/bgl/BlueLight/ppcfloor/bglsys/lib"
+      set MSG_LIBRARIES="$MSG_LIBRARIES -lmpich.rts -lmsglayer.rts"
+      set MSG_LIBRARIES="$MSG_LIBRARIES -lrts.rts -ldevices.rts"
+      breaksw
+#               unknown...
+   case necsx:
+      set MSG_LIBRARIES='undefined'
+      echo Please fix lked for this machine $TARGET
+      exit 5
+      breaksw
+#               to get here must be a target typo.
+   default:
+      echo The lked script does not select a correct TARGET machine type.
+      echo What you typed when editing this script was $TARGET
+      exit 4
+      breaksw
+endsw
+#
+#     --- end of machine specific options ---
+#
+unset echo
+set STANDARD_GAMESS_OBJ1=(aldeci.o algnci.o \
+      basccn.o basecp.o basext.o basg3l.o bashuz.o bashz2.o  \
+      basn21.o basn31.o baspcn.o bassto.o  \
+      ccaux.o  ccddi.o  ccqaux.o ccquad.o ccsdt.o   \
+      ceeis.o  chgpen.o cisgrd.o cosmo.o            \
+      cphf.o   cpmchf.o cprohf.o  \
+      dccc.o   dcgues.o dcint2.o dclib.o  dcmp2.o  dcscf.o  dctran.o  \
+      ddilib.o delocl.o demrpt.o  \
+      dft.o    dftaux.o dftdis.o dftfun.o dftgrd.o dftint.o  \
+      dftxca.o dftxcb.o dftxcc.o dftxcd.o dftxce.o  \
+      dgeev.o  dgesvd.o dmulti.o drc.o     \
+      ecp.o    ecpder.o ecplib.o ecppot.o  \
+      efchtr.o efdrvr.o efelec.o efgrd2.o efgrda.o efgrdb.o efgrdc.o  \
+      efinp.o  efinta.o efintb.o efpaul.o efpcm.o  efpcov.o efpfmo.o  \
+      eigen.o  elglib.o elgloc.o elgscf.o eomcc.o  ewald.o  ffield.o  \
+      fmo.o    fmoesd.o fmogrd.o fmoint.o fmoio.o  fmolib.o  \
+      fmopbc.o fmoprp.o frfmt.o  fsodci.o  \
+      g3.o     globop.o gmcpt.o  gradex.o guess.o   \
+      grd1.o   grd2a.o  grd2b.o  grd2c.o   \
+      gugdga.o gugdgb.o gugdm.o  gugdm2.o gugdrt.o gugem.o  gugsrt.o  \
+      gvb.o    hess.o   hss1a.o  hss1b.o  hss2a.o  hss2b.o   \
+      inputa.o inputb.o inputc.o  \
+      int1.o   int2a.o  int2b.o  int2c.o  int2d.o  int2f.o  int2g.o   \
+      int2r.o  int2s.o  int2t.o  int2u.o  int2v.o  int2w.o  int2x.o   \
+      iolib.o  ivocas.o lagran.o local.o  loccd.o  locpol.o)
+set STANDARD_GAMESS_OBJ2=(mcpgrd.o mcpinp.o mcpint.o \
+      mcpl10.o mcpl20.o mcpl30.o mcpl40.o  \
+      mcpl50.o mcpl60.o mcpl70.o mcpl80.o  \
+      mccas.o  mcjac.o  mcqdpt.o mcqdwt.o mcqud.o  mcscf.o  mctwo.o   \
+      mdefp.o  mexing.o mm23.o   morokm.o  \
+      mp2.o    mp2ddi.o mp2grd.o mp2gr2.o mp2ims.o  \
+      mpcdat.o mpcgrd.o mpcint.o mpcmol.o mpcmsc.o  \
+      mthlib.o nameio.o nmr.o     \
+      ordint.o ormas1.o parley.o pcm.o    pcmcav.o pcmcv2.o pcmder.o  \
+      pcmdis.o pcmief.o pcmpol.o pcmvch.o prpel.o  prplib.o prppop.o  \
+      qeigen.o qfmm.o   qmfm.o   qrel.o    \
+      raman.o  rhfuhf.o rohfcc.o rxncrd.o ryspol.o  \
+      scflib.o scfmi.o  scrf.o   sobrt.o  soffac.o solib.o  sozeff.o  \
+      statpt.o surf.o   svpchg.o svpinp.o svpleb.o symorb.o symslc.o  \
+      tddft.o  tddefp.o tddfun.o tddfxc.o tddgrd.o tddint.o tddxca.o  \
+      tdhf.o   tdx.o    tdxio.o  tdxitr.o tdxni.o  tdxprp.o  \
+      trans.o  trfdm2.o trnstn.o trudge.o umpddi.o utddft.o  \
+      vibanl.o vscf.o   vvos.o   zapddi.o zheev.o  zmatrx.o)
+#
+#     unfortunately, the link command has become too long to show it
+#     explicitly (full command line exceeds 2048 bytes).   Show it
+#     piecemeal, taking great care that the order matches the LDR command.
+#
+echo " "
+echo The name of the linker on this machine is $LDR,
+echo and the linker options are \"$LDOPTS\".
+echo " "
+echo Object code list begins with gamess.o unport.o, followed by
+echo BLAS code=\"$BLAS\", VECTOR code=\"$VECTOR\", quiche=\"$QUICHE\",
+echo followed by the standard GAMESS object code list,
+echo " "
+echo $STANDARD_GAMESS_OBJ1
+echo $STANDARD_GAMESS_OBJ2
+#
+echo " "
+echo Choices for some optional plug-ins are
+if ($TINKER == true) then
+   echo "   Tinker/SIMOMM files are $QMMMOBJ"
+else
+   echo "   Using $QMMMOBJ, Tinker/SIMOMM code is not linked."
+endif
+if (($VB2000 == true) || ($XMVB == true)) then
+   echo "   valence bond files are $VBOBJ"
+else
+   echo "   Using $VBOBJ, neither VB program is linked."
+endif
+if ($NEO == true) then
+   echo "   Nuclear Electron Orbital code files are $NEOOBJ"
+else
+   echo "   Using $NEOOBJ, Nuclear Electron Orbital code is not linked."
+endif
+#
+echo " "
+echo Message passing libraries are $MSG_LIBRARIES
+echo Other libraries to be searched are $LIBRARIES
+echo " "
+echo "Linker messages (if any) follow..."
+#
+#   --- link GAMESS, using objects/library information as collected above ---
+#   insert a "set echo" line to see the full link command in the log file.
+#
+chdir object
+$LDR  -o ../$EXE.$VERNO.x $LDOPTS \
+      gamess.o unport.o $BLAS $VECTOR $QUICHE \
+      $STANDARD_GAMESS_OBJ1 \
+      $STANDARD_GAMESS_OBJ2 \
+      $QMMMOBJ $VBOBJ $NEOOBJ \
+      $MSG_LIBRARIES $LIBRARIES
+#
+#   give the installer a simple thumbs up or down on success
+#
+unset echo
+chdir ..
+if (-x $EXE.$VERNO.x) then
+   echo " "
+   echo The linking of GAMESS to binary $EXE.$VERNO.x was successful.
+else
+   echo " "
+   echo Unfortunately, there was an error while linking GAMESS.
+endif
+time
+exit
