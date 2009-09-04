@@ -88,6 +88,10 @@ install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	mkdir -p $(PKGROOT)
 	(cd BUILD_PGI/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
+                 *.DOC $(ROOT)/$(PKGROOT))
+	(cd BUILD_PGI/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
+                  $(ROOT)/$(PKGROOT))
+	(cd BUILD_PGI/$(PKG_NAME).$(VERSION);cp -r gamess.00.x rungms ericfmt.dat ddikick.x\
                  *.DOC $(PKGROOT))
 	(cd BUILD_PGI/$(PKG_NAME).$(VERSION);cp -r mcpdata runall rungms tests \
                   $(PKGROOT))
