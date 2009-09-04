@@ -16,6 +16,9 @@
   </changelog>
 
   <edge from="base">
+    <to>gamess_pgi-common</to>
+  </edge>
+  <edge from="base">
     <to>gamess_intel-common</to>
   </edge>
 
