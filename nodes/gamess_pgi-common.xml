@@ -16,17 +16,9 @@
   </changelog>
 
   <!-- Set of RPMs to install, surrounded by individual package tags. -->
-  <package>gamess</package>
+  <package>gamess_pgi</package>
 
   <post>
-mkdir /opt/modulefiles/applications/gamess
-chmod 0755 /opt/modulefiles/applications/gamess
-ln -s /opt/modulefiles/applications/application /opt/modulefiles/applications/gamess/1.2009
-<file name="/opt/modulefiles/applications/gamess/.version.1.2009">
-#%Module1.0
-set ModulesVersion "1.2009"
-</file>
-ln -s /opt/modulefiles/applications/gamess/.version.1.2009 /opt/modulefiles/applications/gamess/.version
 </post>
 
 </kickstart>

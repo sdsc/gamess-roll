@@ -16,7 +16,7 @@
   </changelog>
 
   <!-- Set of RPMs to install, surrounded by individual package tags. -->
-  <package>gamess</package>
+  <package>gamess_intel</package>
 
   <post>
 </post>
