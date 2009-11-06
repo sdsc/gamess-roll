@@ -54,25 +54,8 @@
 # @Copyright@
 #
 # $Log$
-# Revision 1.1  2009/05/17 19:56:22  jpg
-#
-#
-# Changed the build target in the Makefile so that one can pick a build target,and "actvte"
-# target(99.99% of the time it's *UNX). Next, I will add FORTRAN targets where the GAMESS build scripts allows for a choice
-#
-# Jerry
-#
-# Revision 1.2  2009/05/07 19:13:09  jhayes
-# Clean up.
-#
-# Revision 1.1  2009/05/01 16:32:15  jhayes
-# Add DDT roll.
-#
-# Revision 1.2  2009/04/01 19:15:34  phil
-# Adjustments to build on Solaris
-#
-# Revision 1.1  2009/02/05 18:36:05  bruno
-# added
+# Revision 1.2  2009/11/06 00:26:58  jhayes
+# Make a single version using the gnu compilers.  Restructure for release.
 #
 #
 

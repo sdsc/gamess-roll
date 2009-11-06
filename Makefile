@@ -55,27 +55,14 @@
 # @Copyright@
 #
 # $Log$
-# Revision 1.1  2009/05/11 23:12:16  jpg
-#
-#
-#
-# initial gamess roll, compiled with gfortran and sockets and no optimized
-# math libraries
-#
-# Jerry
-#
-# Revision 1.1  2009/05/01 16:32:15  jhayes
-# Add DDT roll.
-#
-# Revision 1.1  2009/02/05 19:40:30  bruno
-# first
+# Revision 1.2  2009/11/06 00:26:57  jhayes
+# Make a single version using the gnu compilers.  Restructure for release.
 #
 #
 
 -include $(ROLLSROOT)/etc/Rolls.mk
 
-default:	roll
+default: roll
 
 clean::
-	rm -f _arch
-
+	rm -f _arch bootstrap.py

@@ -1,0 +1,42 @@
+<?xml version="1.0" standalone="no"?>
+
+<kickstart>
+
+<description>
+GAMESS (General Atomic and Molecular Electronic Structure System)
+http://www.msg.ameslab.gov/GAMESS
+</description>
+
+<copyright>
+Copyright (c) 2000 - 2008 The Regents of the University of California.
+All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
+</copyright>
+
+<changelog>
+</changelog>
+
+<post>
+
+/bin/mkdir -m 0755 -p /opt/modulefiles/applications/gamess
+
+<file name="/opt/modulefiles/applications/gamess/1.2009" perms="0644">
+#%Module1.0
+set fftwHome /opt/gamess
+module-whatis "gamess"
+module-whatis "Version: 1.2009"
+module-whatis "Description: games"
+module-whatis "Compiler: gnu Parallel library: sockets Math Library: gnu"
+prepend-path PATH $fftwHome
+</file>
+
+<file name="/opt/modulefiles/applications/fftw/.version.1.2009">
+#%Module1.0
+set ModulesVersion "1.2009"
+</file>
+
+/bin/ln -s /opt/modulefiles/applications/fftw/.version.1.2009 \
+           /opt/modulefiles/applications/fftw/.version
+
+</post>
+
+</kickstart>

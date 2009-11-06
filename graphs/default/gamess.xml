@@ -3,8 +3,8 @@
 <graph>
 
   <description>
-  gamess (General Atomic Molecular Electronic Structure System)
-   intel
+  GAMESS (General Atomic and Molecular Electronic Structure System)
+  http://www.msg.ameslab.gov/GAMESS
   </description>
 
   <copyright>
@@ -16,10 +16,19 @@
   </changelog>
 
   <edge from="base">
+    <to>gamess_gnu-common</to>
+  </edge>
+
+  <edge from="intel-compilers-common">
+    <to>gamess_intel-common</to>
+  </edge>
+
+  <edge from="pgi-common">
     <to>gamess_pgi-common</to>
   </edge>
-  <edge from="base">
-    <to>gamess_intel-common</to>
+
+  <edge from="envmodules-common">
+    <to>gamess-modules-common</to>
   </edge>
 
 </graph>
