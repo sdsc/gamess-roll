@@ -2,25 +2,21 @@
 
 <graph>
 
-  <description>
-  GAMESS (General Atomic and Molecular Electronic Structure System)
-  http://www.msg.ameslab.gov/GAMESS
-  </description>
+<description>
+GAMESS (General Atomic and Molecular Electronic Structure System)
+http://www.msg.ameslab.gov/GAMESS
+</description>
 
-  <copyright>
-  Copyright (c) 2000 - 2008 The Regents of the University of California.
-  All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
-  </copyright>
+<copyright>
+Copyright (c) 2000 - 2009 The Regents of the University of California.
+All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
+</copyright>
 
-  <changelog>
-  </changelog>
+<changelog>
+</changelog>
 
-  <edge from="base">
-    <to>gamess-common</to>
-  </edge>
-
-  <edge from="envmodules-common">
-    <to>gamess-modules-common</to>
-  </edge>
+<edge from="base">
+  <to>gamess-common</to>
+</edge>
 
 </graph>

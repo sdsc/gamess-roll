@@ -53,11 +53,6 @@
 # 
 # @Copyright@
 #
-# $Log$
-# Revision 1.2  2009/11/06 00:26:58  jhayes
-# Make a single version using the gnu compilers.  Restructure for release.
-#
-#
 
 -include $(shell ${ROCKSROOT}/bin/arch).mk
 -include $(shell ${ROCKSROOT}/bin/os).mk
