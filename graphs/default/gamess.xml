@@ -16,15 +16,7 @@
   </changelog>
 
   <edge from="base">
-    <to>gamess_gnu-common</to>
-  </edge>
-
-  <edge from="intel-compilers-common">
-    <to>gamess_intel-common</to>
-  </edge>
-
-  <edge from="pgi-common">
-    <to>gamess_pgi-common</to>
+    <to>gamess-common</to>
   </edge>
 
   <edge from="envmodules-common">
