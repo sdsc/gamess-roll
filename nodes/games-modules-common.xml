@@ -1,0 +1,53 @@
+<?xml version="1.0" standalone="no"?>
+
+<kickstart>
+
+<description>
+GAMESS (General Atomic and Molecular Electronic Structure System) module files
+http://www.msg.ameslab.gov/GAMESS
+</description>
+
+<copyright>
+Copyright (c) 2000 - 2009 The Regents of the University of California.
+All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
+</copyright>
+
+<changelog>
+</changelog>
+
+<post>
+
+# Remove /etc/profile.d files in favor of loadable modules when available
+if test -f /etc/profile.d/gamess.sh; then
+
+  /bin/rm -f /etc/profile.d/gamess.*
+
+  if test `grep -c /opt/modulefiles/applications /etc/profile.d/modules.csh` = 0; then
+    echo 'setenv MODULEPATH /opt/modulefiles/applications:$MODULEPATH' >> \
+         /etc/profile.d/modules.csh
+  fi
+  if test `grep -c /opt/modulefiles/applications /etc/profile.d/modules.sh` = 0; then
+    echo 'export MODULEPATH=/opt/modulefiles/applications:$MODULEPATH' >> \
+         /etc/profile.d/modules.sh
+  fi
+
+  /bin/mkdir -m 0755 -p /opt/modulefiles/applications/gamess
+
+<file name="/opt/modulefiles/applications/gamess/1.2009" perms="0644">
+#%Module1.0
+prepend-path PATH /opt/gamess
+</file>
+
+<file name="/opt/modulefiles/applications/gamess/.version.1.2009">
+#%Module1.0
+set ModulesVersion "1.2009"
+</file>
+
+  /bin/ln -s /opt/modulefiles/applications/gamess/.version.1.2009 \
+             /opt/modulefiles/applications/gamess/.version
+
+fi
+
+</post>
+
+</kickstart>
