@@ -19,4 +19,12 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
   <to>gamess-common</to>
 </edge>
 
+<edge from="envmodules-common">
+  <to>gamess-modules-common</to>
+</edge>
+
+<order head="gamess-common">
+  <tail>gamess-modules-common</tail>
+</order>
+
 </graph>
