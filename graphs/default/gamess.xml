@@ -27,4 +27,8 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
   <tail>gamess-modules-common</tail>
 </order>
 
+<order head="envmodules-common">
+  <tail>gamess-modules-common</tail>
+</order>
+
 </graph>
