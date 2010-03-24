@@ -18,16 +18,18 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 <edge from="base">
   <to>gamess-common</to>
 </edge>
+<order head="base">
+  <tail>gamess-common</tail>
+</order>
 
 <edge from="envmodules-common">
   <to>gamess-modules-common</to>
 </edge>
-
-<order head="gamess-common">
+<order head="envmodules-common">
   <tail>gamess-modules-common</tail>
 </order>
 
-<order head="envmodules-common">
+<order head="gamess-common">
   <tail>gamess-modules-common</tail>
 </order>
 
