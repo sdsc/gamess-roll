@@ -625,9 +625,15 @@ if ($TARGET == sockets) then
 #
    if ($DDI_VER == new) then
       set echo
+      cp -r ~/.ssh/environment oldenv.$$
+      cat<<EOF >>~/.ssh/environment
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+EOF
+      cat $LD_LIBRARY_PATH
       $GMSPATH/ddikick.x $GMSPATH/gamess.$VERNO.x $JOB \
           -ddi $NNODES $NCPUS $HOSTLIST \
           -scr $SCR < /dev/null
+      mv -r oldenv.$$  ~/.ssh/environment
       unset echo
    else
       set path=($GMSPATH $path)
