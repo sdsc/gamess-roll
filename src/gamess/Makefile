@@ -55,33 +55,44 @@
 # @Copyright@
 #
 
-PKGROOT = /opt/$(NAME)
+PKGROOT = /opt/gamess
+SOURCE = gamess.$(VERSION)
 REDHAT.ROOT = $(PWD)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
 
+
 build:
-	tar zxvf $(NAME)-$(VERSION).tgz
-	cd patch-files && find . -type f | grep -v CVS | cpio -pduv ../
-	( \
-	  cd $(NAME)-$(VERSION)/tools; \
-	  gfortran -o actvte.x actvte.f; \
-	  cd ../ddi; \
-	  ./compddi; \
-	  mv ddikick.x ..; \
-	  cd ..; \
-	  ./compall; \
-	  ./lked\
-	)
+	tar zxvf $(SOURCE).tgz
+	cp patch-files/$(SOURCE)/install.info $(SOURCE)
+	cp patch-files/$(SOURCE)/rungms $(SOURCE)
+	cp patch-files/$(SOURCE)/actvte.f $(SOURCE)/tools
+	cp patch-files/$(SOURCE)/compddi $(SOURCE)/ddi
+	cp patch-files/$(SOURCE)/comp $(SOURCE)
+	cp patch-files/$(SOURCE)/compall $(SOURCE)
+	cp patch-files/$(SOURCE)/lked $(SOURCE)
+	( cd $(SOURCE); \
+          export cwd=`pwd`;export cwd=`echo $$cwd | sed 's/\//\\\\\//g'`; \
+          cat install.info|sed -e s/GAMESSROOT/$$cwd/ > tmp.$$$$; \
+          mv tmp.$$$$ install.info; \
+          cd tools;\
+          gfortran  -o actvte.x actvte.f; \
+          cd ..; \
+           cd ddi; \
+          ./compddi; \
+ 	  mv ddikick.x ..; \
+ 	  cd ..; \
+ 	  ./compall; \
+ 	  ./lked )
 
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	( \
-	  cd $(NAME)-$(VERSION); \
-	  cp gamess.00.x runall rungms ericfmt.dat ddikick.x *.DOC \
-	     $(ROOT)/$(PKGROOT); \
-	  cp -r mcpdata tests $(ROOT)/$(PKGROOT) \
-	)
+	  cd $(SOURCE); \
+          cp gamess.00.x runall rungms ericfmt.dat ddikick.x *.DOC \
+             $(ROOT)/$(PKGROOT); \
+          cp -r mcpdata tests $(ROOT)/$(PKGROOT) \
+        )
 
 clean::
-	rm -rf $(NAME)-$(VERSION)
+	rm -rf $(SOURCE)
