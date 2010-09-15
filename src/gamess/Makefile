@@ -56,22 +56,21 @@
 #
 
 PKGROOT = /opt/gamess
-SOURCE = gamess.$(VERSION)
 REDHAT.ROOT = $(PWD)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
 
 
 build:
-	tar zxvf $(SOURCE).tgz
-	cp patch-files/$(SOURCE)/install.info $(SOURCE)
-	cp patch-files/$(SOURCE)/rungms $(SOURCE)
-	cp patch-files/$(SOURCE)/actvte.f $(SOURCE)/tools
-	cp patch-files/$(SOURCE)/compddi $(SOURCE)/ddi
-	cp patch-files/$(SOURCE)/comp $(SOURCE)
-	cp patch-files/$(SOURCE)/compall $(SOURCE)
-	cp patch-files/$(SOURCE)/lked $(SOURCE)
-	( cd $(SOURCE); \
+	tar zxvf $(NAME).tgz
+	cp patch-files/$(NAME)-$(VERSION)/install.info $(NAME)-$(VERSION)
+	cp patch-files/$(NAME)-$(VERSION)/rungms $(NAME)-$(VERSION)
+	cp patch-files/$(NAME)-$(VERSION)/actvte.f $(NAME)-$(VERSION)/tools
+	cp patch-files/$(NAME)-$(VERSION)/compddi $(NAME)-$(VERSION)/ddi
+	cp patch-files/$(NAME)-$(VERSION)/comp $(NAME)-$(VERSION)
+	cp patch-files/$(NAME)-$(VERSION)/compall $(NAME)-$(VERSION)
+	cp patch-files/$(NAME)-$(VERSION)/lked $(NAME)-$(VERSION)
+	( cd $(NAME).$(VERSION); \
           export cwd=`pwd`;export cwd=`echo $$cwd | sed 's/\//\\\\\//g'`; \
           cat install.info|sed -e s/GAMESSROOT/$$cwd/ > tmp.$$$$; \
           mv tmp.$$$$ install.info; \
@@ -88,11 +87,11 @@ build:
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	( \
-	  cd $(SOURCE); \
+	  cd $(NAME).$(VERSION); \
           cp gamess.00.x runall rungms ericfmt.dat ddikick.x *.DOC \
              $(ROOT)/$(PKGROOT); \
           cp -r mcpdata tests $(ROOT)/$(PKGROOT) \
         )
 
 clean::
-	rm -rf $(SOURCE)
+	rm -rf $(NAME)
