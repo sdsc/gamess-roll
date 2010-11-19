@@ -485,77 +485,10 @@ if ($TARGET == sockets) then
       set NNODES=1
       set HOSTLIST=(`hostname`)
    endif
-#
-#       2. This is an example of how to run on a 4-way SMP enclosure,
-#          where all CPUs (aka COREs) are inside a -single- NODE.
-#          The example is repeated for some nodes we use as 2-way's.
-   if ($NCPUS > 1) then
-      switch (`hostname`)
-         case ti.msg.chem.iastate.edu:
-         case cd.msg.chem.iastate.edu:
-         case zn.msg.chem.iastate.edu:
-         case ni.msg.chem.iastate.edu:
-         case co.msg.chem.iastate.edu:
-         case pb.msg.chem.iastate.edu:
-         case bi.msg.chem.iastate.edu:
-         case po.msg.chem.iastate.edu:
-         case at.msg.chem.iastate.edu:
-         case sc.msg.chem.iastate.edu:
-            if ($NCPUS > 4) set NCPUS=4
-            set NNODES=1
-            set HOSTLIST=(`hostname`:cpus=$NCPUS)
-            breaksw
-         case se.msg.chem.iastate.edu:
-         case sb.msg.chem.iastate.edu:
-         case br.msg.chem.iastate.edu:
-            if ($NCPUS > 2) set NCPUS=2
-            set NNODES=1
-            set HOSTLIST=(`hostname`:cpus=$NCPUS)
-            breaksw
-         default:
-            echo I do not know how to run this node in parallel.
-            exit 20
-      endsw
-   endif
-#
-#       3. A phony example, of six uniprocessors (arbitrary names)
-#          Because they are uniprocessors, we just set NNODES = NCPUS.
-#          Since their names never change, we just can just specify them.
-#          Note that we can use a short name like 'bb' if and only if 
-#          system name resolution can map them onto the true host names.
-   if (`hostname` == aa.msg.chem.iastate.edu) then
-      set NNODES=$NCPUS
-      set HOSTLIST=(aa bb cc dd ee ff)
-   endif
-#
-#       4. An example of 16 uniprocessor boxes in a Beowulf-type cluster.
-#          Because they are uniprocessors, we just set NNODES = NCPUS.
-#          Their host names fall into the pattern fly1 to fly16,
-#          which we can turn into a HOSTLIST with a small loop.
-   if (`hostname` == fly1.fi.ameslab.gov) then
-      set NNODES=$NCPUS
-      set HOSTLIST=()
-      set nmax=$NCPUS
-      if ($nmax > 16) set nmax=16
-      @ CPU=1
-      while ($CPU <= $nmax)
-         set HOSTLIST=($HOSTLIST fly$CPU)
-         @ CPU++
-      end
-      unset $CPU
-   endif
-#
-#       5. Scalable Computing Lab's clusters running PBS batch queues.
-#          Here the task is to manipulate the dynamically assigned host
-#          names into the HOSTLIST string for the kickoff program,
-#          and to request the host name of the fast network adapters.
-#
     if ($?PBS_JOBID) then
 #
 #         The IBM cluster has two Gigabit adapters in each 4-way SMP,
 #         while the AXP cluster is based on a Myrinet network.
-      if (`uname` == AIX)   set NETEXT=".gig,.gig2"
-      if (`uname` == Linux) set NETEXT=".myri"
 #
 #         repeated host names in the PBS host file indicate being assigned
 #         CPUs in the same SMP enclosure, which we must count up correctly.
@@ -1171,8 +1104,8 @@ if ($TARGET == ibm64-sp) then
       set host=`sed -n -e "$n p" $HOSTFILE`
       if ($host != $lasthost) then
          echo Files used on node $host were:
-         rsh $host "ls -l $SCR/$JOB.*"
-         rsh $host "rm -f $SCR/$JOB.F*"
+         ssh $host "ls -l $SCR/$JOB.*"
+         ssh $host "rm -f $SCR/$JOB.F*"
          set lasthost=$host
       endif
       @ n++
