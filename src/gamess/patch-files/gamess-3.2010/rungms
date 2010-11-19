@@ -481,6 +481,7 @@ if ($TARGET == sockets) then
 #                       NODE= physical enclosure (box/blade)
 #
 #       1. Sequential execution is sure to be on this very same host
+   set NETEXT=""
    if ($NCPUS == 1) then
       set NNODES=1
       set HOSTLIST=(`hostname`)
