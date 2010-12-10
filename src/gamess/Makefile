@@ -62,14 +62,14 @@ REDHAT.ROOT = $(PWD)/../../
 
 
 build:
-	tar zxvf $(NAME).tgz
-	cp patch-files/$(NAME)-$(VERSION)/install.info $(NAME)-$(VERSION)
-	cp patch-files/$(NAME)-$(VERSION)/rungms $(NAME)-$(VERSION)
-	cp patch-files/$(NAME)-$(VERSION)/actvte.f $(NAME)-$(VERSION)/tools
-	cp patch-files/$(NAME)-$(VERSION)/compddi $(NAME)-$(VERSION)/ddi
-	cp patch-files/$(NAME)-$(VERSION)/comp $(NAME)-$(VERSION)
-	cp patch-files/$(NAME)-$(VERSION)/compall $(NAME)-$(VERSION)
-	cp patch-files/$(NAME)-$(VERSION)/lked $(NAME)-$(VERSION)
+	tar zxvf $(NAME).$(VERSION).tgz
+	cp patch-files/$(NAME)-$(VERSION)/install.info $(NAME).$(VERSION)
+	cp patch-files/$(NAME)-$(VERSION)/rungms $(NAME).$(VERSION)
+	cp patch-files/$(NAME)-$(VERSION)/actvte.f $(NAME).$(VERSION)/tools
+	cp patch-files/$(NAME)-$(VERSION)/compddi $(NAME).$(VERSION)/ddi
+	cp patch-files/$(NAME)-$(VERSION)/comp $(NAME).$(VERSION)
+	cp patch-files/$(NAME)-$(VERSION)/compall $(NAME).$(VERSION)
+	cp patch-files/$(NAME)-$(VERSION)/lked $(NAME).$(VERSION)
 	( cd $(NAME).$(VERSION); \
           export cwd=`pwd`;export cwd=`echo $$cwd | sed 's/\//\\\\\//g'`; \
           cat install.info|sed -e s/GAMESSROOT/$$cwd/ > tmp.$$$$; \
