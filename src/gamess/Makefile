@@ -56,42 +56,64 @@
 #
 
 PKGROOT = /opt/gamess
+SOURCE = gamess.$(VERSION)
 REDHAT.ROOT = $(PWD)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
 
+ifeq ("$(ROLLCOMPILER)", "intel")
+  FCC = ifort
+  MATHLIB = mkl
+  # TODO figure this out programatically
+  INTEL_VERSION = 11
+  PATHSETUP = export ICCPATH=`which icc 2>/dev/null || true`; \
+              if test -z "$${ICCPATH}" -a \
+              	      -e /etc/profile.d/modules.sh; then \
+              . /etc/profile.d/modules.sh; \
+              module load intel; \
+              fi; \
+              perl -pi -e "s!ROLL_MATHPATH!$${MKL_ROOT}/lib/em64t!" $(SOURCE)/install.info; \
+              perl -pi -e "s!ROLL_INTELVERSION!$(INTEL_VERSION)!" $(SOURCE)/install.info; \
+              perl -pi -e "s!ROLL_MKLVERSION!$(INTEL_VERSION)!" $(SOURCE)/install.info
+else
+  FCC = gfortran
+  MATHLIB = none
+  PATHSETUP = echo noop > /dev/null
+endif
 
 build:
-	tar zxvf $(NAME).$(VERSION).tgz
-	cp patch-files/$(NAME)-$(VERSION)/install.info $(NAME).$(VERSION)
-	cp patch-files/$(NAME)-$(VERSION)/rungms $(NAME).$(VERSION)
-	cp patch-files/$(NAME)-$(VERSION)/actvte.f $(NAME).$(VERSION)/tools
-	cp patch-files/$(NAME)-$(VERSION)/compddi $(NAME).$(VERSION)/ddi
-	cp patch-files/$(NAME)-$(VERSION)/comp $(NAME).$(VERSION)
-	cp patch-files/$(NAME)-$(VERSION)/compall $(NAME).$(VERSION)
-	cp patch-files/$(NAME)-$(VERSION)/lked $(NAME).$(VERSION)
-	( cd $(NAME).$(VERSION); \
-          export cwd=`pwd`;export cwd=`echo $$cwd | sed 's/\//\\\\\//g'`; \
-          cat install.info|sed -e s/GAMESSROOT/$$cwd/ > tmp.$$$$; \
-          mv tmp.$$$$ install.info; \
-          cd tools;\
-          gfortran  -o actvte.x actvte.f; \
-          cd ..; \
-           cd ddi; \
-          ./compddi; \
- 	  mv ddikick.x ..; \
- 	  cd ..; \
- 	  ./compall; \
- 	  ./lked )
+	tar zxvf $(SOURCE).tgz
+	cp patch-files/$(SOURCE)/install.info $(SOURCE)
+	cp patch-files/$(SOURCE)/rungms $(SOURCE)
+	cp patch-files/$(SOURCE)/actvte.f $(SOURCE)/tools
+	cp patch-files/$(SOURCE)/compddi $(SOURCE)/ddi
+	cp patch-files/$(SOURCE)/comp $(SOURCE)
+	cp patch-files/$(SOURCE)/compall $(SOURCE)
+	cp patch-files/$(SOURCE)/lked $(SOURCE)
+	( \
+	  $(PATHSETUP); \
+	  perl -pi -e 's!ROLL_FCC!$(FCC)!' $(SOURCE)/install.info; \
+	  perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE)/install.info; \
+	  perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE)!' $(SOURCE)/install.info; \
+	  perl -pi -e 's!^(.*ROLL)!# $$1!m' $(SOURCE)/install.info; \
+	  cd $(SOURCE)/tools; \
+	  $(FCC) -o actvte.x actvte.f; \
+	  cd ../ddi; \
+	  ./compddi; \
+	  mv ddikick.x ..; \
+	  cd ..; \
+	  ./compall; \
+	  ./lked \
+	)
 
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	( \
-	  cd $(NAME).$(VERSION); \
-          cp gamess.00.x runall rungms ericfmt.dat ddikick.x *.DOC \
-             $(ROOT)/$(PKGROOT); \
-          cp -r mcpdata tests $(ROOT)/$(PKGROOT) \
-        )
+	  cd $(SOURCE); \
+	  cp gamess.00.x runall rungms ericfmt.dat ddikick.x *.DOC \
+	     $(ROOT)/$(PKGROOT); \
+	  cp -r mcpdata tests $(ROOT)/$(PKGROOT) \
+	)
 
 clean::
-	rm -rf $(NAME)
+	rm -rf $(SOURCE)

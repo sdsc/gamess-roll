@@ -57,7 +57,16 @@
 
 -include $(ROLLSROOT)/etc/Rolls.mk
 
-default: roll
+# If ROLLCOMPILER is defined, change the package name to indicate the compiler
+default:
+ifdef ROLLCOMPILER
+	perl -pi -e 's!(NAME\s*=\s*\S+)!$$1-$(ROLLCOMPILER)!' src/*/version.mk
+	perl -pi -e 's!(\s*</package>)!-$(ROLLCOMPILER)$$1!' nodes/*.xml
+endif
+	$(MAKE) roll
+ifdef ROLLCOMPILER
+	perl -pi -e 's!-$(ROLLCOMPILER)!!' src/*/version.mk nodes/*.xml
+endif
 
 clean::
 	rm -f _arch bootstrap.py
