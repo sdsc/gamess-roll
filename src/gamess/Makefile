@@ -64,17 +64,16 @@ REDHAT.ROOT = $(PWD)/../../
 ifeq ("$(ROLLCOMPILER)", "intel")
   FCC = ifort
   MATHLIB = mkl
-  # TODO figure this out programatically
-  INTEL_VERSION = 11
-  COMPILERSETUP = export ICCPATH=`which icc 2>/dev/null || true`; \
-                  if test -z "$${ICCPATH}" -a \
-                  	      -e /etc/profile.d/modules.sh; then \
-                  . /etc/profile.d/modules.sh; \
-                  module load intel; \
-                  fi; \
-                  perl -pi -e "s!ROLL_MATHPATH!$${MKL_ROOT}/lib/em64t!" $(SOURCE)/install.info; \
-                  perl -pi -e "s!ROLL_INTELVERSION!$(INTEL_VERSION)!" $(SOURCE)/install.info; \
-                  perl -pi -e "s!ROLL_MKLVERSION!$(INTEL_VERSION)!" $(SOURCE)/install.info
+  COMPILERSETUP = \
+    export ICCPATH=`which icc 2>/dev/null || true`; \
+    if test -z "$${ICCPATH}" -a -e /etc/profile.d/modules.sh; then \
+      . /etc/profile.d/modules.sh; \
+      module load intel; \
+    fi; \
+    export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
+    perl -pi -e "s!ROLL_MATHPATH!$${MKL_ROOT}/lib/em64t!" $(SOURCE)/install.info; \
+    perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
+    perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info
 else
   FCC = gfortran
   MATHLIB = none
