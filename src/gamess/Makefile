@@ -61,22 +61,24 @@ REDHAT.ROOT = $(PWD)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
 
-ifeq ("$(ROLLCOMPILER)", "intel")
-  FCC = ifort
-  MATHLIB = mkl
+FCC = gfortran
+MATHLIB = none
+ifdef ROLLCOMPILER
   COMPILERSETUP = \
-    export ICCPATH=`which icc 2>/dev/null || true`; \
-    if test -z "$${ICCPATH}" -a -e /etc/profile.d/modules.sh; then \
+    if test -e /etc/profile.d/modules.sh; then \
       . /etc/profile.d/modules.sh; \
-      module load intel; \
-    fi; \
-    export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
-    perl -pi -e "s!ROLL_MATHPATH!$${MKL_ROOT}/lib/em64t!" $(SOURCE)/install.info; \
-    perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
-    perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info
+      module load $(ROLLCOMPILER); \
+    fi
+  ifeq ("$(ROLLCOMPILER)", "intel")
+    COMPILERSETUP += ; \
+      export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
+      perl -pi -e "s!ROLL_MATHPATH!$${MKL_ROOT}/lib/em64t!" $(SOURCE)/install.info; \
+      perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
+      perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info
+    FCC = ifort
+    MATHLIB = mkl
+  endif
 else
-  FCC = gfortran
-  MATHLIB = none
   COMPILERSETUP = echo noop > /dev/null
 endif
 
