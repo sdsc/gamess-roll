@@ -1,3 +1,3 @@
-NAME    = gamess
+NAME    = gamess$(ROLLSUFFIX)
 VERSION = 3.2010
 RELEASE = 1
