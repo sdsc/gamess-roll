@@ -1,0 +1,16 @@
+This roll source supports building with different compilers.  By default, it
+builds using the gnu compilers.  To build for a different configuration, use
+the ROLLCOMPILER make variable, e.g.,
+
+make ROLLCOMPILER=intel
+
+The build process currently supports the values "intel" and "gnu" for the
+ROLLCOMPILER variable, defaulting to "gnu".
+
+If the ROLLCOMPILER variable is specified, its value is incorporated into the
+names of the produced roll and rpms, e.g.,
+
+make ROLLCOMPILER=intel
+
+produces a roll with a name that begins "gamess-intel"; it contains and
+installs a similarly-named rpm.

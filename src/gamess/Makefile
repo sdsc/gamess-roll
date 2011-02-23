@@ -7,7 +7,7 @@
 # 		         www.rocksclusters.org
 # 		        version 4.3 (Mars Hill)
 #
-# Copyright (c) 2000 - 2007 The Regents of the University of California.
+# Copyright (c) 2000 - 2011 The Regents of the University of California.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,10 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # @Copyright@
-#
+
+ifndef ROLLCOMPILER
+  ROLLCOMPILER = gnu
+endif
 
 PKGROOT = /opt/gamess
 SOURCE = gamess.$(VERSION)
@@ -61,25 +64,22 @@ REDHAT.ROOT = $(PWD)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
 
-FCC = gfortran
+COMPILERSETUP = \
+  if test -e /etc/profile.d/modules.sh; then \
+    . /etc/profile.d/modules.sh; \
+    module load $(ROLLCOMPILER); \
+  fi
+
+F90COMP = gfortran
 MATHLIB = none
-ifdef ROLLCOMPILER
-  COMPILERSETUP = \
-    if test -e /etc/profile.d/modules.sh; then \
-      . /etc/profile.d/modules.sh; \
-      module load $(ROLLCOMPILER); \
-    fi
-  ifeq ("$(ROLLCOMPILER)", "intel")
-    COMPILERSETUP += ; \
-      export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
-      perl -pi -e "s!ROLL_MATHPATH!$${MKL_ROOT}/lib/em64t!" $(SOURCE)/install.info; \
-      perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
-      perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info
-    FCC = ifort
-    MATHLIB = mkl
-  endif
-else
-  COMPILERSETUP = echo noop > /dev/null
+ifeq ("$(ROLLCOMPILER)", "intel")
+  COMPILERSETUP += ; \
+    export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
+    perl -pi -e "s!ROLL_MATHPATH!$${MKL_ROOT}/lib/em64t!" $(SOURCE)/install.info; \
+    perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
+    perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info
+  F90COMP = ifort
+  MATHLIB = mkl
 endif
 
 build:
@@ -91,14 +91,14 @@ build:
 	cp patch-files/$(SOURCE)/comp $(SOURCE)
 	cp patch-files/$(SOURCE)/compall $(SOURCE)
 	cp patch-files/$(SOURCE)/lked $(SOURCE)
+	perl -pi -e 's!ROLL_FCC!$(F90COMP)!' $(SOURCE)/install.info
+	perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE)/install.info
+	perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE)!' $(SOURCE)/install.info
 	( \
 	  $(COMPILERSETUP); \
-	  perl -pi -e 's!ROLL_FCC!$(FCC)!' $(SOURCE)/install.info; \
-	  perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE)/install.info; \
-	  perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE)!' $(SOURCE)/install.info; \
 	  perl -pi -e 's!^(.*ROLL)!# $$1!m' $(SOURCE)/install.info; \
 	  cd $(SOURCE)/tools; \
-	  $(FCC) -o actvte.x actvte.f; \
+	  $(F90COMP) -o actvte.x actvte.f; \
 	  cd ../ddi; \
 	  ./compddi; \
 	  mv ddikick.x ..; \

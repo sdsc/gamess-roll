@@ -1,3 +1,3 @@
-NAME    = gamess$(ROLLSUFFIX)
+NAME    = gamess_$(ROLLCOMPILER)
 VERSION = 3.2010
 RELEASE = 1

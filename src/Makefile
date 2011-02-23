@@ -6,7 +6,7 @@
 # 		         www.rocksclusters.org
 # 		        version 4.3 (Mars Hill)
 # 
-# Copyright (c) 2000 - 2007 The Regents of the University of California.
+# Copyright (c) 2000 - 2011 The Regents of the University of California.
 # All rights reserved.	
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,8 @@
 # 
 # @Copyright@
 #
+#
+#
 
 -include $(shell ${ROCKSROOT}/bin/arch).mk
 -include $(shell ${ROCKSROOT}/bin/os).mk
@@ -62,5 +64,13 @@ default:
 
 copyright rpm pkg clean::
 	for i in $(SRCDIRS) ; do \
-		(cd $$i; $(MAKE) $@) ; \
+	  grep -q ROLLCOMPILER $$i/version.mk; \
+	  if test $$? == 0; then \
+	    for c in $(ROLLCOMPILER); do \
+	      echo make $@ in $$i with ROLLCOMPILER=$$c; \
+	      (cd $$i; $(MAKE) ROLLCOMPILER=$$c $@); \
+	    done; \
+	  else \
+	    (cd $$i; $(MAKE) $@) ; \
+	  fi; \
 	done
