@@ -80,7 +80,7 @@ if  ($TARGET == sgi64)                           set COMM=shmem
 #     It is OK if these values are a little larger than your system,
 #     but a serious error if they are smaller!
 #
-set MAXCPUS  = 8
+set MAXCPUS  = 32
 set MAXNODES = 128
 #
 if ($TARGET == cray-xt) set MAXNODES=1024 # bump to match your XT
