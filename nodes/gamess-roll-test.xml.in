@@ -1,0 +1,70 @@
+<?xml version="1.0" standalone="no"?>
+
+<kickstart>
+
+<description>
+The gamess roll installation test.
+</description>
+
+<copyright>
+Copyright (c) 2000 - 2011 The Regents of the University of California.
+All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
+</copyright>
+
+<changelog>
+</changelog>
+
+<post>
+
+/bin/mkdir -m 0755 /root/rolltests
+
+<file name="/root/rolltests/gamess.t" perms="0755">
+<![CDATA[#!/usr/bin/perl -w
+
+use Test::More qw(no_plan);
+
+my $appliance = $#ARGV >= 0 ? $ARGV[0] :
+                -d '/export/rocks/install' ? 'Frontend' : 'Compute';
+my $isCompute = $appliance eq 'Compute';
+my $isFe = $appliance eq 'Frontend';
+my $isLogin = $appliance eq 'Login';
+my $output;
+
+my $TESTFILE = 'tmpgamess';
+
+open(OUT, ">$TESTFILE");
+print OUT <<END;
+#!/bin/bash
+if test -f /etc/profile.d/modules.sh; then
+  . /etc/profile.d/modules.sh
+  module load ROLLCOMPILER gamess
+fi
+cd /opt/gamess/tests
+for input in *.inp; do
+  testname=`echo $input | sed 's/\..*//'`
+  /opt/gamess/rungms $testname 00 1
+done
+END
+close(OUT);
+
+ok(-d '/opt/gamess', 'gamess installed');
+SKIP: {
+
+  skip 'gamess roll not installed', 1 if ! -d '/opt/gamess';
+  print "Running gamess verification tests (takes ~2 minutes)\n";
+  $output = `/bin/bash $TESTFILE >$TESTFILE.out 2>&1`;
+  my $passed = `grep -c 'TERMINATED NORMALLY' $TESTFILE.out`;
+  chomp($passed);
+  my $total = `ls /opt/gamess/tests/*.inp | wc -w`;
+  chomp($total);
+  ok($passed == $total, "test 100% pass rate $passed/$total");
+
+}
+
+`rm -f $TESTFILE*`;
+]]>
+</file>
+
+</post>
+
+</kickstart> 
