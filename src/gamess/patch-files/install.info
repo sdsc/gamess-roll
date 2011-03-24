@@ -1,0 +1,16 @@
+#!/bin/csh
+#   compilation configuration for GAMESS
+#   generated on triton-47.sdsc.edu
+#   generated at Tue Sep  7 12:05:59 PDT 2010
+setenv GMS_PATH            ROLL_GAMESSROOT
+#         machine type
+setenv GMS_TARGET          linux64
+#         FORTRAN compiler setup
+setenv GMS_FORTRAN         ROLL_FCC
+setenv GMS_IFORT_VERNO     ROLL_INTELVERSION
+#         mathematical library setup
+setenv GMS_MATHLIB         ROLL_MATHLIB
+setenv GMS_MATHLIB_PATH    ROLL_MATHPATH
+setenv GMS_MKL_VERNO       ROLL_MKLVERSION
+#         parallel message passing model setup
+setenv GMS_DDI_COMM        sockets
