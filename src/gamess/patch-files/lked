@@ -1,6 +1,6 @@
 #!/bin/csh -f
 #
-#   6 May 10 - script to "link-edit" a GAMESS executable
+#   1 Oct 10 - script to "link-edit" a GAMESS executable
 #
 #  Invoke this job by 'lked EXE VERNO >& lked.log &'
 #    EXE is normally 'gamess',
@@ -38,41 +38,31 @@ if (-e $EXE.$VERNO.x) then
    exit 4
 endif
 #
-#   optional SIMOMM method, using Tinker MM code
-#   qmmm.o is dummy substitute from the standard GAMESS distribution.
+#   By hand editing, the user can select some "plug-in" optional codes
+#   ==================================================================
+#
+#   1. optional SIMOMM method, using Tinker MM code
+#
 set TINKER=false
-if ($TINKER == true) then
-   set QMMMOBJ="Libtad.o Libteac.o Libtedl.o Libtemo.o Libterx.o Libtfi.o"
-   set QMMMOBJ="$QMMMOBJ Libtjo.o Libtpr.o Libtsx.o Tdrive.o Tinkin.o Toys.o"
-else
-   set QMMMOBJ='qmmm.o'
-endif
 #
-#   optional Valence Bond method, using VB2000 code --or-- XMVB code.
-#   you can link only one (1) VB program, please do not select both!
-#
-#   (vbdum.o is dummy substitute from the standard GAMESS distribution)
+#   2. optional Valence Bond method, using VB2000 code --or-- XMVB code.
+#      you can link only one (1) VB program, please do not select both!
 #
 set VB2000=false
-set   XMVB=false
-                     set VBOBJ='vbdum.o'
-if ($VB2000 == true) set VBOBJ='vb2000.o vb2gms.o'
-if ($XMVB == true)   set VBOBJ='xmvb.o'
+set XMVB=false
 #
-#   optional Nuclear-Electronic Orbital method, using NEO code
-#   neostb.o is dummy substitute from the standard GAMESS distribution.
+#   3. optional Nuclear-Electronic Orbital method, using NEO code
+#
 set NEO=false
-if ($NEO == true) then
-   set NEOOBJ="neo.o   neobas.o neocas.o neoden.o neofci.o"
-   set NEOOBJ="$NEOOBJ neog2a.o neog2b.o neog2c.o neogrd.o"
-   set NEOOBJ="$NEOOBJ neohf.o  neohss.o neoint.o neomp2.o"
-   set NEOOBJ="$NEOOBJ neonci.o neoopt.o neopos.o neoprp.o"
-   set NEOOBJ="$NEOOBJ neosym.o neotrn.o neovib.o"
-else
-   set NEOOBJ='neostb.o'
-endif
 #
-#   Define the options for the system loader 'ld'.  These are
+#   4. optional Nvidia/CUDA code, for closed shell SCF Fock construction 
+#         see ~/gamess/libqc/aaa.readme.1st for more information
+#
+set GPUCODE=false
+#
+#   choose compiler and math library options for each system
+#   ========================================================
+#   these consist of
 #       LDR       - the name of the loader (usually a compiler).
 #       LDOPTS    - options, such as asking for a load map.
 #       LIBRARIES - extra system libraries which must be searched.
@@ -83,10 +73,11 @@ endif
 #       QUICHE    - set to zunix.o if using true dynamic memory,
 #                   possibly add other system specific objects.
 #                   set to blank otherwise.
-#
-#     --- start of machine specific options ---
-#
-#
+#   In principle, the 'config' step has captured enough information
+#   about library locations that no user need change anything below.
+
+
+#   Digital/Compaq/HP 64 bit "alpha workstation"
 #   Use the Digital/Compaq eXtended Math Library for BLAS if installed.
 #
 if ($TARGET == axp64) then
@@ -129,18 +120,18 @@ if ($TARGET == cray-x1) then
    set LDR='ftn'
    set LDOPTS='-V -dp -sdefault64 -Ossp'
    set LIBRARIES=' '
-   set BLAS=' '    
+   set BLAS=' '
    set VECTOR='vector.o'
    set QUICHE='zunix.o'
 endif
 #
-if ($TARGET == cray-xd1) then 
+if ($TARGET == cray-xd1) then
    set LDR='mpif90'
-#    choose 'amd64e' in next line if your Opteron supports SSE3 instructions
+#    select 'amd64e' in next line if your Opteron supports SSE3 instructions
    set LDOPTS='-tp amd64 -i8 -fast -Mnosecond_underscore'
    set LIBRARIES=' '
    set BLAS=' '
-#         choose PGI library over ACML library.
+#         select PGI library over ACML library.
    if (-e $PGI/linux86-64/lib/libblas.a) then
       set LIBRARIES="$PGI/linux86-64/lib/libblas.a"
       echo "Found BLAS in $LIBRARIES"
@@ -166,45 +157,42 @@ if ($TARGET == cray-xt) then
 #         this will be set to 'ftn' by the configuration step
    set LDR=$GMS_FORTRAN
 
-#         two things not included in the configuration stage
-#         here we presume the default in 'comp' was not changed.
-   set COMPILER = 'pgi'
-#         here we set the number of cores we have
-   set XT_NCORE = 4
+#         two choices not included in the configuration step
+#         These must match 'comp' and 'compddi', and loaded software modules.
+#            valid choices: pathscale, intel, cray, pgi
+   set GMS_XT_COMP = 'pgi'
+#            valid choices: i7, barcelona, shanghai, or blank
+   set GMS_XT_ARCH = ' '
 
-   set LDOPTS = ' -default64 '
-   if($XT_NCORE == 1) then
-      echo ******************************************************
-      echo ERROR: XT_NCORE=$XT_NCORE is not implemented
-      echo EMAIL: ryan@cray.com for more info
-      echo ******************************************************
-      exit 4
-   else if($XT_NCORE == 2) then
-      if($COMPILER == pgi) then
-         set LDOPTS = "$LDOPTS -tp k8-64e "
-      else if($COMPILER == pathscale) then
-         set LDOPTS = "$LDOPTS -L$MPT_DIR/mpich2-pgi/lib"
-      else
-         echo COMPILER not set correctly
-         exit 4
-      endif
-   else if($XT_NCORE == 4) then
-      if($COMPILER == pgi) then
-         set LDOPTS = "$LDOPTS -Mfpmisalign"  # AMD Barcelona optimizations
-         set LDOPTS = "$LDOPTS -mcmodel=medium" 
-#        set LDOPTS = "$LDOPTS -Mipa=fast -Minline -Minfo=all -Mneginfo=loop"
-      else if($COMPILER == pathscale) then
-         set LDOPTS = "$LDOPTS -L$MPT_DIR/mpich2-pgi/lib"
-      else
-         echo COMPILER not set correctly
-         exit 4
-      endif
-   else
-      echo ******************************************************
-      echo ERROR: XT_NCORE (ENV variable) is not defined.
-      echo ******************************************************
-   endif
+   set LDOPTS='-default64'
 
+   switch ($GMS_XT_COMP)
+      case pgi:
+         set LDOPTS="$LDOPTS -i8 -mcmodel=medium"
+         breaksw
+      case pathscale:
+         set LDOPTS="$LDOPTS -L$MPT_DIR/mpich2-pgi/lib"
+         breaksw
+      case intel:
+      case cray:
+      default:
+         breaksw
+   endsw
+
+   switch ($GMS_XT_ARCH)
+      case barcelona:
+         set LDOPTS = "$LDOPTS -tp barcelona-64 -Mfpmisalign"
+         breaksw
+      case shanghai:
+         set LDOPTS = "$LDOPTS -tp shanghai-64 -Mfpmisalign"
+         breaksw
+      case i7:
+         set LDOPTS = "$LDOPTS -tp x64"
+         breaksw
+      default:
+         set LDOPTS = "$LDOPTS"
+         breaksw
+   endsw
    set LIBRARIES="-L/cray/iss/park_bench/lib -lfpmpi64-cnl"
    set LIBRARIES=" "
    set LIBRARIES="$LIBRARIES -lhugetlbfs"
@@ -212,13 +200,13 @@ if ($TARGET == cray-xt) then
 # ------------------------ -lfast_mv ------------------------------
 # use -lfast_mv for faster evaluation of the exponential function.
 # -lfast_mv must come after the objects, yet before -lm or -lacml
-# performance improvement will vary.  
+# performance improvement will vary.
 # not used by default, since it is so far a non-standard module.
 # ------------------------ -lfast_mv ------------------------------
 #
    set BLAS=' '
-   set VECTOR=" "
-   set QUICHE="zunix.o"
+   set VECTOR=' '
+   set QUICHE='zunix.o'
 endif
 #
 #  Fujitsu PrimePower, using SSL2 BLAS library
@@ -293,7 +281,7 @@ endif
 if ($TARGET == ibm64) then
    set LDR='xlf'
    if(`uname` == AIX) then
-      set LDOPTS='-q64 -Wl,-m -Wl,-bloadmap:../lked.map'
+      set LDOPTS='-bbigtoc -q64 -Wl,-m -Wl,-bloadmap:../lked.map'
       set LIBRARIES='-lessl'
    else
       set LDOPTS='-q64'
@@ -350,16 +338,12 @@ if ($TARGET == ibm-bg) then
 endif
 #
 #        remarks common to linux32 and linux64
-#        =====================================
 #   Linux has become the standard Unix flavor, and thus blossomed into
 #   the usual Unix confusion: multiple FORTRAN compilers, multiple
 #   math libraries, and since there is no vendor, or even one main
 #   distribution, the software is installed at random locations.
 #   Hence, the 'config' script will have asked many questions to get the
 #   compiler, math library, version numbers, and appropriate path names.
-#
-#   The 64 bit stuff is used much more often than the 32 bit stuff,
-#   so you might find a glitch or two just below.
 #
 #   ------ Linux on 32 bit chips -----
 #
@@ -438,9 +422,11 @@ if ($TARGET == linux32) then
       breaksw
 
    case atlas:
-      #     If the ATLAS comes with static libraries, link to them
+      #     If the ATLAS comes with static libraries, link to them,
       #     so that only the compile node has to have the libraries.
       #     Otherwise, attempt a link against shared object libs.
+      #     See the 64 bit Atlas below for a way to fix the linker's
+      #     not being able to locate -lf77blas, if that happens.
       if (-e $GMS_MATHLIB_PATH/libf77blas.a) then
          set MATHLIBS="$GMS_MATHLIB_PATH/libf77blas.a"
          set MATHLIBS="$MATHLIBS $GMS_MATHLIB_PATH/libatlas.a"
@@ -524,7 +510,7 @@ if ($TARGET == linux64) then
         case 10:
         case 11:
           # next are a static link, in single-threaded mode (serial BLAS).
-          # This option precludes any need to 
+          # This option precludes any need to
           #     a) install .so shared object libraries on every node,
           #     b) define LD_LIBRARY_PATH to find the .so libraries, or
           #     c) define MKL_NUM_THREADS=1
@@ -548,9 +534,21 @@ if ($TARGET == linux64) then
       breaksw
 
    case atlas:
-      #     If the ATLAS comes with static libraries, link to them
+      #     If the ATLAS comes with static libraries, link to them,
       #     so that only the compile node has to have the libraries.
       #     Otherwise, attempt a link against shared object libs.
+      #
+      #     Some versions of Atlas come without proper setup to use them.
+      #     For example, you may need to give some specific version such
+      #     as 3.0 some generic names, by doing the right soft links:
+      #          chdir /usr/lib64/atlas   (just 'lib' for linux32)
+      #          ln -s libatlas.so.3.0        libatlas.so
+      #          ln -s libblas.so.3.0         libblas.so
+      #          ln -s libcblas.so.3.0        libcblas.so
+      #          ln -s libf77blas.so.3.0      libf77blas.so
+      #          ln -s liblapack_atlas.so.3.0 liblapack.so
+      #          ln -s liblapack.so.3.0       liblapack.so
+      #     It is strange the RPM's don't do these soft links for us.
       if (-e $GMS_MATHLIB_PATH/libf77blas.a) then
          set MATHLIBS="$GMS_MATHLIB_PATH/libf77blas.a"
          set MATHLIBS="$MATHLIBS $GMS_MATHLIB_PATH/libatlas.a"
@@ -563,6 +561,8 @@ if ($TARGET == linux64) then
    case acml:
       #     do a static link so that only compile node needs to install ACML
       set MATHLIBS="$GMS_MATHLIB_PATH/libacml.a"
+      #     if you want to try a dynamic link, use this:
+      #---set MATHLIBS="-L$GMS_MATHLIB_PATH -lacml -lacml_mv"
       set BLAS=' '
       breaksw
 
@@ -687,14 +687,164 @@ if (($TARGET == sun32) || ($TARGET == sun64)) then
    endif
 endif
 #
+#   ------ Windows on 32 bit chips -----
+#
+if ($TARGET == win32) then
+#
+#  settings which depend on the FORTRAN: pgf77
+#
+#  WS2_32.Lib is needed for WinSock
+#
+   set LIBRARIES="WS2_32.Lib"
+#
+   switch ($GMS_FORTRAN)
+     case pgf77:
+        set LDR='pgf77'
+        set LDOPTS='-Bstatic'
+        if ($GMS_WIN_OPT == baseline)        set LDOPTS="$LDOPTS $GMS_WIN_TP -O0"
+        if ($GMS_WIN_OPT == linux)           set LDOPTS="$LDOPTS $GMS_WIN_TP"
+        if ($GMS_WIN_OPT == fast)            set LDOPTS="$LDOPTS $GMS_WIN_TP -fast -Mipa=fast,safe"
+        if ($GMS_WIN_OPT == testing)         set LDOPTS="$LDOPTS $GMS_WIN_TP -fast -Mipa=fast,safe $GMS_WIN_FLAGS"
+#
+#       For more detailed information as to which flags are being used
+#       by the compiler during the build - uncomment the line below.
+#
+#       set LDOPTS="$LDOPTS -v"
+#
+        set LIBRARIES="$LIBRARIES"
+        breaksw
+     default:
+        echo "Please spell your win32 compiler correctly."
+        exit 4
+   endsw
+#
+#  settings which depend on the math library: acml, blas, none
+#
+   switch ($GMS_MATHLIB)
+#
+   case acml:
+#     do a static link so that only compile node needs to install ACML
+      set LIBRARIES="$LIBRARIES -Bdynamic -lacml"
+      set BLAS=' '
+      breaksw
+   case blas:
+      if (-e $PGI\\win32\\10.4\\lib\\libblas.lib) then
+         echo "Using PGI's 32-bit blas version 10.4"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win32\\10.3\\lib\\libblas.lib) then
+         echo "Using PGI's 32-bit blas version 10.3"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win32\\10.2\\lib\\libblas.lib) then
+         echo "Using PGI's 32-bit blas version 10.2"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+   case none:
+   default:
+      echo "Warning.  No math library was found, you should install one."
+      echo "    MP2 calculations speed up about 2x with a math library."
+      echo "CCSD(T) calculations speed up about 5x with a math library."
+      set BLAS='blas.o'
+      breaksw
+   endsw
+#
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
+#   ------ Windows on 64 bit chips -----
+#
+if ($TARGET == win64) then
+#
+#  settings which depend on the FORTRAN: pgf77
+#
+#  WS2_32.Lib is needed for WinSock
+#
+   set LIBRARIES="WS2_32.Lib"
+#
+   switch ($GMS_FORTRAN)
+
+   case pgf77:
+      set LDR = 'pgf77'
+#
+#     -i8storage is a depreciated flag so we remove it.
+#
+#     set LDOPTS='-i8 -i8storage -Bstatic'
+      set LDOPTS='-i8 -Bstatic'
+      if ($GMS_WIN_OPT == baseline)        set LDOPTS="$LDOPTS $GMS_WIN_TP -O0"
+      if ($GMS_WIN_OPT == linux)           set LDOPTS="$LDOPTS $GMS_WIN_TP -fastsse -Mipa=fast,safe -Mprof=func"
+      if ($GMS_WIN_OPT == fast)            set LDOPTS="$LDOPTS $GMS_WIN_TP -fast    -Mipa=fast,safe"
+      if ($GMS_WIN_OPT == testing)         set LDOPTS="$LDOPTS $GMS_WIN_TP -fast    -Mipa=fast,safe $GMS_WIN_FLAGS"
+#
+#     For more detailed information as to which flags are being used
+#     by the compiler during the build - uncomment the line below.
+#
+#     set LDOPTS="$LDOPTS -v"
+#
+      breaksw
+   default:
+      echo "Please spell your win64 compiler correctly."
+      exit 4
+      breaksw
+   endsw
+#
+#  settings which depend on the math library: acml, blas, none
+#
+   switch ($GMS_MATHLIB)
+
+   case acml:
+#     do a static link so that only compile node needs to install ACML
+      set LIBRARIES="$LIBRARIES -Bdynamic -lacml"
+      set BLAS=' '
+      breaksw
+   case blas:
+      if (-e $PGI\\win64\\10.4\\lib\\libblas.lib) then
+         echo "Using PGI's 64-bit blas version 10.4"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win64\\10.3\\lib\\libblas.lib) then
+         echo "Using PGI's 64-bit blas version 10.3"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win64\\10.2\\lib\\libblas.lib) then
+         echo "Using PGI's 64-bit blas version 10.2"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+   case none:
+   default:
+      echo "Warning.  No math library was found, you should install one."
+      echo "    MP2 calculations speed up about 2x with a math library."
+      echo "CCSD(T) calculations speed up about 5x with a math library."
+      set BLAS='blas.o'
+      breaksw
+   endsw
+#
+   set VECTOR=' '
+   set QUICHE='zunix.o'
+endif
+#
 #   Choose the message passing libraries, MSG_LIBRARIES.
+#   ====================================================
 #
 #      In all cases, the Distributed Data Interface has been
 #      compiled to a library archive, with the name ../ddi/libddi.a,
 #      where we must look first.  Depending on the machine DDI has
 #      several implementations and may be looking for
 #         TCP/IP sockets, SHMEM, MPI, or LAPI/MPI
-#      so here we choose the specific low level system libraries.
+#      so here we select the specific low level system libraries.
 #
 switch ($TARGET)
 #             TCP/IP sockets interface (most systems)
@@ -776,7 +926,7 @@ switch ($TARGET)
       set MSG_LIBRARIES='../ddi/libddi.a'
       breaksw
    case sgi64:
-      set MSG_LIBRARIES='../ddi/libddi.a -lsma -lmpi'  
+      set MSG_LIBRARIES='../ddi/libddi.a -lsma -lmpi'
       breaksw
 #
 #               MPI interface, for entire XT product line
@@ -791,24 +941,54 @@ switch ($TARGET)
 #
 #               BG/L and BG/P
    case ibm-bg:
-      set MSG_LIBRARIES="../ddi/libddi.a"
-#               Blue Gene/L uses both ARMCI and MPI, in that order
-      if ($GMS_BG_MODEL == L) then
-        set MSG_LIBRARIES=$GMS_ARMCI_PATH
-        set MSG_LIBRARIES="$MSG_LIBRARIES -larmci"
-#               this is the MPI library underneath ARMCI:
+      switch ($GMS_BG_MODEL)
+#               Blue Gene/L uses DDI, ARMCI, and MPI, in that order
+       case L:
+        set MSG_LIBRARIES="../ddi/libddi.a"
+        set MSG_LIBRARIES="$MSG_LIBRARIES $GMS_ARMCI_PATH/lib/BGL/libarmci.a"
         set MSG_LIBRARIES="$MSG_LIBRARIES -L/bgl/BlueLight/ppcfloor/bglsys/lib"
         set MSG_LIBRARIES="$MSG_LIBRARIES -lmpich.rts -lmsglayer.rts"
         set MSG_LIBRARIES="$MSG_LIBRARIES -lrts.rts -ldevices.rts"
-      endif
-#               Blue Gene/P uses only MPI-1.
-#               the verb 'mpixlf77_r" means compiler knows its MPI libs
-      breaksw
-#               unknown...
+        breaksw
+#               Blue Gene/P uses 'mpixlf77_r" so it knows its MPI libs
+       case P:
+        set MSG_LIBRARIES="../ddi/libddi.a"
+        breaksw
+       default:
+        echo Illegal BG model value $GMS_BG_MODEL
+        exit 8
+        breaksw
+      endsw
+#
+#               correct stuff for NEC-SX is unknown...
    case necsx:
       set MSG_LIBRARIES='undefined'
       echo Please fix lked for this machine $TARGET
       exit 5
+      breaksw
+#
+#               Microsoft Windows systems uses MPI (MS-MPI or MPICH2)
+   case win32:
+   case win64:
+#
+#     Use Microsoft MPI implementation (MS-MPI)
+#
+#     This flag only works with PGI compilers. Any other compiler will
+#     have to specify the actual location of the MS-MPI libraries.
+#
+      if ($GMS_MPI_LIB == msmpi)  set MPILIBS="-Mmpi=msmpi"
+#
+#     Use Argonne National Laboratory's MPI implementation (MPICH2)
+#
+#     Assumes the mpich2 library is stored at the same directory level as the
+#     GAMESS.
+#
+      if ($GMS_MPI_LIB == mpich2) then
+        if ($TARGET == win32) set MPILIBS="C:\Progra~1\MPICH2\lib\libmpi.a"
+        if ($TARGET == win64) set MPILIBS="C:\Progra~1\MPICH2\lib\mpi.lib"
+      endif
+#
+      set MSG_LIBRARIES="../ddi/libddi.a $MPILIBS"
       breaksw
 #               to get here must be a target typo.
    default:
@@ -818,14 +998,22 @@ switch ($TARGET)
       breaksw
 endsw
 #
-#     --- end of machine specific options ---
+#         It might at some times be convenient to run in serial, such
+#         as porting to a new machine, when you might want to divide
+#         the process of understanding new compiler/math libraries,
+#         from understanding a new MPI.  "./comp serial" to compile
+#         a file which is purely serial, then uncomment the next line.
+#---set MSG_LIBRARIES=serial.o
+#
+#     Final setup for linking
+#     =======================
 #
 unset echo
 set STANDARD_GAMESS_OBJ1=(aldeci.o algnci.o \
-      basccn.o basecp.o basext.o basg3l.o bashuz.o bashz2.o  \
+      basccn.o basecp.o basext.o basg3l.o bashuz.o bashz2.o baskar.o  \
       basn21.o basn31.o baspcn.o bassto.o  \
       ccaux.o  ccddi.o  ccqaux.o ccquad.o ccsdt.o   \
-      ceeis.o  chgpen.o cisgrd.o cosmo.o            \
+      ceeis.o  chgpen.o cisgrd.o cosmo.o  cosprt.o  \
       cphf.o   cpmchf.o cprohf.o  \
       dccc.o   dcgues.o dcint2.o dclib.o  dcmp2.o  dcscf.o  dctran.o  \
       ddilib.o delocl.o demrpt.o  \
@@ -834,11 +1022,12 @@ set STANDARD_GAMESS_OBJ1=(aldeci.o algnci.o \
       dgeev.o  dgesvd.o dmulti.o drc.o     \
       eaipcc.o ecp.o    ecpder.o ecplib.o ecppot.o  \
       efchtr.o efdrvr.o efelec.o efgrd2.o efgrda.o efgrdb.o efgrdc.o  \
-      efinp.o  efinta.o efintb.o efpaul.o efpcm.o  efpcov.o efpfmo.o  \
-      eftei.o   \
+      efinp.o  efinta.o efintb.o efmo.o   efpaul.o efpcm.o  efpcov.o  \
+      efpfmo.o eftei.o   \
       eigen.o  elglib.o elgloc.o elgscf.o eomcc.o  ewald.o  ffield.o  \
-      fmo.o    fmoesd.o fmogrd.o fmoint.o fmoio.o  fmolib.o  \
-      fmopbc.o fmoprp.o frfmt.o  fsodci.o  \
+      fmo.o    fmocp.o  fmoesd.o fmogrd.o fmohss.o fmoint.o fmoio.o   \
+      fmolib.o fmopbc.o fmoprp.o  \
+      frfmt.o  fsodci.o  \
       g3.o     globop.o gmcpt.o  gradex.o guess.o   \
       grd1.o   grd2a.o  grd2b.o  grd2c.o   \
       gugdga.o gugdgb.o gugdm.o  gugdm2.o gugdrt.o gugem.o  gugsrt.o  \
@@ -859,11 +1048,13 @@ set STANDARD_GAMESS_OBJ2=(mcpgrd.o mcpinp.o mcpint.o \
       pcmdis.o pcmief.o pcmpol.o pcmvch.o  \
       prpamm.o prpel.o  prplib.o prppop.o  \
       qeigen.o qfmm.o   qmfm.o   qrel.o    \
-      raman.o  rhfuhf.o rohfcc.o rxncrd.o ryspol.o  \
+      raman.o  rhfuhf.o ricab.o  riint.o  rimp2.o  \
+      rohfcc.o rxncrd.o ryspol.o  \
       scflib.o scfmi.o  scrf.o   sobrt.o  soffac.o solib.o  sozeff.o  \
       statpt.o surf.o   svpchg.o svpinp.o svpleb.o symorb.o symslc.o  \
       tddft.o  tddefp.o tddfun.o tddfxc.o tddgrd.o tddint.o tddxca.o  \
-      tddxcc.o tdhf.o   tdx.o    tdxio.o  tdxitr.o tdxni.o  tdxprp.o  \
+      tddxcc.o tddxcd.o tdhf.o     \
+      tdx.o    tdxio.o  tdxitr.o tdxni.o  tdxprp.o  \
       trans.o  trfdm2.o trnstn.o trudge.o umpddi.o utddft.o  \
       vibanl.o vscf.o   vvos.o   zapddi.o zheev.o  zmatrx.o)
 #
@@ -883,38 +1074,73 @@ echo $STANDARD_GAMESS_OBJ1
 echo $STANDARD_GAMESS_OBJ2
 #
 echo " "
-echo Choices for some optional plug-ins are
+echo "Choices for some optional plug-in codes are"
+#
+#   Tinker is turned off with qmmm.o dummy substitute in GAMESS distribution.
 if ($TINKER == true) then
+   set QMMMOBJ="Libtad.o Libteac.o Libtedl.o Libtemo.o Libterx.o Libtfi.o"
+   set QMMMOBJ="$QMMMOBJ Libtjo.o Libtpr.o Libtsx.o Tdrive.o Tinkin.o Toys.o"
    echo "   Tinker/SIMOMM files are $QMMMOBJ"
 else
+   set QMMMOBJ='qmmm.o'
    echo "   Using $QMMMOBJ, Tinker/SIMOMM code is not linked."
 endif
+#
+#   VB is turned off with vbdum.o dummy substitute in GAMESS distribution.
 if (($VB2000 == true) || ($XMVB == true)) then
+   if ($VB2000 == true) set VBOBJ='vb2000.o vb2gms.o'
+   if ($XMVB == true)   set VBOBJ='xmvb.o'
    echo "   valence bond files are $VBOBJ"
 else
+   set VBOBJ='vbdum.o'
    echo "   Using $VBOBJ, neither VB program is linked."
 endif
+#
+#   NEO is turned off with neostb.o dummy substitute in GAMESS distribution.
 if ($NEO == true) then
+   set NEOOBJ="neo.o   neobas.o neocas.o neoden.o neofci.o"
+   set NEOOBJ="$NEOOBJ neog2a.o neog2b.o neog2c.o neogrd.o"
+   set NEOOBJ="$NEOOBJ neohf.o  neohss.o neoint.o neomp2.o"
+   set NEOOBJ="$NEOOBJ neonci.o neoopt.o neopos.o neoprp.o"
+   set NEOOBJ="$NEOOBJ neosym.o neotrn.o neovib.o"
    echo "   Nuclear Electron Orbital code files are $NEOOBJ"
 else
+   set NEOOBJ='neostb.o'
    echo "   Using $NEOOBJ, Nuclear Electron Orbital code is not linked."
+endif
+#
+if ($GPUCODE == true) then
+   echo "   Using Nvidia/CUDA GPU code, for Fock matrix consruction."
+   set GPU_LIBS="-L/home/mike/gamess/libqc/lib -lqc_gamess -lqc -lrysq"
+   set GPU_LIBS="$GPU_LIBS -L/usr/local/cuda/lib64 -lcudart"
+   set GPU_LIBS="$GPU_LIBS /opt/boost/lib/libboost_thread.a"
+   set GPU_LIBS="$GPU_LIBS -lstdc++"
+   set GPU_LIBS="$GPU_LIBS -lpthread"
+   echo "   Library list for the GPU code is:"
+   echo "$GPU_LIBS"
+else
+   set GPU_LIBS=""
 endif
 #
 echo " "
 echo Message passing libraries are $MSG_LIBRARIES
+echo " "
 echo Other libraries to be searched are $LIBRARIES
 echo " "
 echo "Linker messages (if any) follow..."
 #
-#   --- link GAMESS, using objects/library information as collected above ---
-#   insert a "set echo" line to see the full link command in the log file.
+#   link GAMESS, using objects/library information as collected above
+#   =================================================================
+#   Insert a "set echo" line to see the full link command in the log file,
+#   which may result in too long a line to display for some c-shells.
+#   Hence it has been printed out piecemeal, but in order, just above.
 #
 chdir object
 $LDR  -o ../$EXE.$VERNO.x $LDOPTS \
       gamess.o unport.o $BLAS $VECTOR $QUICHE \
       $STANDARD_GAMESS_OBJ1 \
       $STANDARD_GAMESS_OBJ2 \
-      $QMMMOBJ $VBOBJ $NEOOBJ \
+      $QMMMOBJ $VBOBJ $NEOOBJ $GPU_LIBS \
       $MSG_LIBRARIES $LIBRARIES
 #
 #   give the installer a simple thumbs up or down on success
