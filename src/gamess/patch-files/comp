@@ -1595,6 +1595,7 @@ if ($TARGET == linux64) then
       if ($MODULE == tdxitr) set OPT='-O1' # 10.0, exam39
       if ($MODULE == vscf)   set OPT='-O0' # intensities for combinations
       if ($MODULE == zheev)  set OPT='-O0' # defensive compiling
+      if ($MODULE == eigen)  set OPT='-O1' # defensive compiling
       set EXTRAOPT = ' '
       if ($GMS_IFORT_VERNO >=  8) set EXTRAOPT="$EXTRAOPT -assume byterecl"
       if ($GMS_IFORT_VERNO >= 10) set EXTRAOPT="$EXTRAOPT -vec-report0"
