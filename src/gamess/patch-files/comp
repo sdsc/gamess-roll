@@ -1595,7 +1595,7 @@ if ($TARGET == linux64) then
       if ($MODULE == tdxitr) set OPT='-O1' # 10.0, exam39
       if ($MODULE == vscf)   set OPT='-O0' # intensities for combinations
       if ($MODULE == zheev)  set OPT='-O0' # defensive compiling
-      if ($MODULE == eigen)  set OPT='-O1' # defensive compiling
+      if ($MODULE == eigen)  set OPT='-O0' # defensive compiling
       set EXTRAOPT = ' '
       if ($GMS_IFORT_VERNO >=  8) set EXTRAOPT="$EXTRAOPT -assume byterecl"
       if ($GMS_IFORT_VERNO >= 10) set EXTRAOPT="$EXTRAOPT -vec-report0"
@@ -1917,7 +1917,6 @@ if (($TARGET == sun32) || ($TARGET == sun64)) then
       if ($MODULE == grd2b)  set OPT='-fast -O2 -nodepend'
       if ($MODULE == grd2c)  set OPT='-fast -O2 -nodepend'
       if ($MODULE == gugdrt) set OPT='-fast -O2 -nodepend'
-      if ($MODULE == eigen)  set OPT='      -O2          '
       if ($MODULE == mcpgrd) set OPT='-fast -O4 -nodepend'
       if ($MODULE == mp2ddi) set OPT='-fast -O4 -nodepend'
       if ($MODULE == scfmi)  set OPT='-fast -O4 -nodepend'
