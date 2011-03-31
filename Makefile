@@ -60,7 +60,7 @@ ifndef ROLLCOMPILER
 endif
 empty:=
 space:=$(empty) $(empty)
-ROLLSUFFIX = _$(subst $(space),,$(ROLLCOMPILER))
+ROLLSUFFIX = _$(subst $(space),+,$(ROLLCOMPILER))
 
 -include $(ROLLSROOT)/etc/Rolls.mk
 
