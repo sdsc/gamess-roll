@@ -84,13 +84,13 @@ endif
 
 build:
 	tar zxvf $(SOURCE).tgz
-	cp patch-files/$(SOURCE)/install.info $(SOURCE)
-	cp patch-files/$(SOURCE)/rungms $(SOURCE)
-	cp patch-files/$(SOURCE)/actvte.f $(SOURCE)/tools
-	cp patch-files/$(SOURCE)/compddi $(SOURCE)/ddi
-	cp patch-files/$(SOURCE)/comp $(SOURCE)
-	cp patch-files/$(SOURCE)/compall $(SOURCE)
-	cp patch-files/$(SOURCE)/lked $(SOURCE)
+	cp patch-files/install.info $(SOURCE)
+	cp patch-files/rungms $(SOURCE)
+	cp patch-files/actvte.f $(SOURCE)/tools
+	cp patch-files/compddi $(SOURCE)/ddi
+	cp patch-files/comp $(SOURCE)
+	cp patch-files/compall $(SOURCE)
+	cp patch-files/lked $(SOURCE)
 	perl -pi -e 's!ROLL_FCC!$(F90COMP)!' $(SOURCE)/install.info
 	perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE)/install.info
 	perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE)!' $(SOURCE)/install.info
