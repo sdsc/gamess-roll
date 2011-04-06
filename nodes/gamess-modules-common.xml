@@ -33,17 +33,17 @@ if test -f /etc/profile.d/gamess.sh; then
 
   /bin/mkdir -m 0755 -p /opt/modulefiles/applications/gamess
 
-<file name="/opt/modulefiles/applications/gamess/3.2010" perms="0644">
+<file name="/opt/modulefiles/applications/gamess/10.2010" perms="0644">
 #%Module1.0
 prepend-path PATH /opt/gamess
 </file>
 
-<file name="/opt/modulefiles/applications/gamess/.version.3.2010">
+<file name="/opt/modulefiles/applications/gamess/.version.10.2010">
 #%Module1.0
-set ModulesVersion "3.2010"
+set ModulesVersion "10.2010"
 </file>
 
-  /bin/ln -s /opt/modulefiles/applications/gamess/.version.3.2010 \
+  /bin/ln -s /opt/modulefiles/applications/gamess/.version.10.2010 \
              /opt/modulefiles/applications/gamess/.version
 
 fi
