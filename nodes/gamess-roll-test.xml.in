@@ -41,8 +41,8 @@ if test -f /etc/profile.d/modules.sh; then
 fi
 cd /opt/gamess/tests
 for input in *.inp; do
-  testname=`echo $input | sed 's/\..*//'`
-  /opt/gamess/rungms $testname 00 1
+  testname=`echo \$input | sed 's/\\..*//'`
+  /opt/gamess/rungms \$testname 00 1
 done
 END
 close(OUT);
