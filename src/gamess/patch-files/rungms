@@ -55,7 +55,7 @@
 #       one for LoadLeveler "ll-gms" on the IBM SP line.
 #
 set TARGET=sockets
-set SCR=`pwd`
+set SCR=$PWD
 #
 set JOB=$1      # name of the input file xxx.inp, give only the xxx part
 set VERNO=$2    # revision number of the executable created by 'lked' step
@@ -520,92 +520,13 @@ if ($TARGET == sockets) then
       set NNODES=1
       set HOSTLIST=(`hostname`)
    endif
-#
-#       2. This is an example of how to run on a 4-way SMP enclosure,
-#          where all CPUs (aka COREs) are inside a -single- NODE.
-#          The example is repeated for some nodes we use as 2-way's.
-#     At other locations, you may wish to consider some of the examples
-#     that follow below, after commenting out this ISU-specific part.
-   if ($NCPUS > 1) then
-      switch (`hostname`)
-         case ti.msg.chem.iastate.edu:
-         case cd.msg.chem.iastate.edu:
-         case zn.msg.chem.iastate.edu:
-         case ni.msg.chem.iastate.edu:
-         case co.msg.chem.iastate.edu:
-         case pb.msg.chem.iastate.edu:
-         case bi.msg.chem.iastate.edu:
-         case po.msg.chem.iastate.edu:
-         case at.msg.chem.iastate.edu:
-         case sc.msg.chem.iastate.edu:
-            if ($NCPUS > 4) set NCPUS=4
-            set NNODES=1
-            set HOSTLIST=(`hostname`:cpus=$NCPUS)
-            breaksw
-         case se.msg.chem.iastate.edu:
-         case sb.msg.chem.iastate.edu:
-         case br.msg.chem.iastate.edu:
-            if ($NCPUS > 2) set NCPUS=2
-            set NNODES=1
-            set HOSTLIST=(`hostname`:cpus=$NCPUS)
-            breaksw
-         default:
-            echo I do not know how to run this node in parallel.
-            exit 20
-      endsw
-   endif
-#
-#       3. How to run in a single computer, namely the local host.
-#          This example also presumes SysV was deliberatly *not* chosen
-#          when DDI was compiled, so that host names have to be repeated,
-#          instead of using the simpler localhost:cpus=$NCPU form.
-#
-#--   set HOSTLIST=()
-#--   @ n=1
-#--   while ($n <= $NCPUS)
-#--      set HOSTLIST=($HOSTLIST localhost)
-#--      @ n++
-#--   end
-#--   set NNODES=$NCPUS
-#
-#       4. A phony example, of four dual processors (arbitrary names)
-#          Since their names never change, we just can just specify them.
-#          Note that we can use a short name like 'bb' if and only if 
-#          system name resolution can map them onto the true host names.
-   if (`hostname` == aa.msg.chem.iastate.edu) then
-      set NCPUS=8
-      set NNODES=4
-      set HOSTLIST=(aa:cpus=2 bb:cpus=2 cc:cpus=2 dd:cpus=2)
-   endif
-#
-#       5. An example of 16 uniprocessor boxes in a Beowulf-type cluster.
-#          Because they are uniprocessors, we just set NNODES = NCPUS.
-#          Their host names fall into the pattern fly1 to fly16,
-#          which we can turn into a HOSTLIST with a small loop.
-   if (`hostname` == fly1.fi.ameslab.gov) then
-      set NNODES=$NCPUS
-      set HOSTLIST=()
-      set nmax=$NCPUS
-      if ($nmax > 16) set nmax=16
-      @ CPU=1
-      while ($CPU <= $nmax)
-         set HOSTLIST=($HOSTLIST fly$CPU)
-         @ CPU++
-      end
-      unset $CPU
-   endif
-#
-#       6. Scalable Computing Lab's clusters running PBS batch queues.
-#          Here the task is to manipulate the dynamically assigned host
-#          names into the HOSTLIST string for the kickoff program,
-#          and to request the host name of the fast network adapters.
-#
     if ($?PBS_JOBID) then
 #
 #         The IBM cluster has two Gigabit adapters in each 4-way SMP,
 #         while the AXP cluster is based on a Myrinet network.
       if (`uname` == AIX)   set NETEXT=".gig,.gig2"
-      if (`uname` == Linux) set NETEXT=".myri"
+#     if (`uname` == Linux) set NETEXT=".myri"
+      if (`uname` == Linux) set NETEXT=" "
 #
 #         repeated host names in the PBS host file indicate being assigned
 #         CPUs in the same SMP enclosure, which we must count up correctly.
@@ -641,7 +562,8 @@ if ($TARGET == sockets) then
          set MYPROC=`sed -n -e "$IPROC p" $PBS_NODEFILE`
          set MYPROC=`echo $MYPROC | awk '{split($0,a,"."); print a[1]}'`
          if($MYPROC != $MYNODE) then
-            set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU$spacer2$NETEXT)
+#           set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU$spacer2$NETEXT)
+            set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU)
             set MYNODE=$MYPROC
             @ NSMPCPU = 0
             @ NNODES++
@@ -649,7 +571,7 @@ if ($TARGET == sockets) then
          @ IPROC++
          @ NSMPCPU++
       end
-      set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU$spacer2$NETEXT)
+      set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU)
    endif
 #
 #        we have now finished setting up a correct HOSTLIST.
