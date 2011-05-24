@@ -51,7 +51,7 @@ ok(-d '/opt/gamess', 'gamess installed');
 SKIP: {
 
   skip 'gamess roll not installed', 1 if ! -d '/opt/gamess';
-  print "Running gamess verification tests (takes ~2 minutes)\n";
+  print "Running gamess verification tests (takes ~6 minutes)\n";
   $output = `/bin/bash $TESTFILE >$TESTFILE.out 2>&1`;
   my $passed = `grep -c 'TERMINATED NORMALLY' $TESTFILE.out`;
   chomp($passed);
