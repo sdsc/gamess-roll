@@ -20,14 +20,17 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 
 <file name="/root/rolltests/gamess.t" perms="0755">
 <![CDATA[#!/usr/bin/perl -w
+# gamess roll installation test.  Usage:
+# gamess.t [nodetype]
+#   where nodetype is one of "Compute", "Dbnode", "Frontend" or "Login"
+#   if not specified, the test assumes either Compute or Frontend
 
 use Test::More qw(no_plan);
 
 my $appliance = $#ARGV >= 0 ? $ARGV[0] :
                 -d '/export/rocks/install' ? 'Frontend' : 'Compute';
-my $isCompute = $appliance eq 'Compute';
-my $isFe = $appliance eq 'Frontend';
-my $isLogin = $appliance eq 'Login';
+my $installedOnAppliancesPattern = '.';
+my $isInstalled = -d '/opt/gamess';
 my $output;
 
 my $TESTFILE = 'tmpgamess';
@@ -47,10 +50,15 @@ done
 END
 close(OUT);
 
-ok(-d '/opt/gamess', 'gamess installed');
+# gamess-common.xml
+if($appliance =~ /$installedOnAppliancesPattern/) {
+  ok($isInstalled, 'gamess installed');
+} else {
+  ok(! $isInstalled, 'gamess not installed');
+}
 SKIP: {
 
-  skip 'gamess roll not installed', 1 if ! -d '/opt/gamess';
+  skip 'gamess roll not installed', 1 if ! $isInstalled;
   print "Running gamess verification tests (takes ~6 minutes)\n";
   $output = `/bin/bash $TESTFILE >$TESTFILE.out 2>&1`;
   my $passed = `grep -c 'TERMINATED NORMALLY' $TESTFILE.out`;
@@ -58,6 +66,29 @@ SKIP: {
   my $total = `ls /opt/gamess/tests/*.inp | wc -w`;
   chomp($total);
   ok($passed == $total, "test 100% pass rate $passed/$total");
+
+}
+
+# gamess-modules-common.xml
+SKIP: {
+
+  skip 'gamess not installed', 1 if ! $isInstalled;
+  my $modulesInstalled = -f '/etc/profile.d/modules.sh';
+  if($modulesInstalled) {
+    ok(! -f '/etc/profile.d/gamess.csh' &&
+       ! -f '/etc/profile.d/gamess.sh', 'gamess profile.d removed');
+    like($ENV{MODULEPATH}, qr#/opt/modulefiles/applications#,
+         'MODULEPATH set for applications');
+    `/bin/ls /opt/modulefiles/applications/gamess/[0-9]* 2>&1`;
+    ok($? == 0, 'gamess module installed');
+    `/bin/ls /opt/modulefiles/applications/gamess/.version.[0-9]* 2>&1`;
+    ok($? == 0, 'gamess version module installed');
+    ok(-l '/opt/modulefiles/applications/gamess/.version',
+       'gamess version module link created');
+  } else {
+    ok(-f '/etc/profile.d/gamess.csh' && -f '/etc/profile.d/gamess.sh',
+       'gamess profile.d installed');
+  }
 
 }
 
