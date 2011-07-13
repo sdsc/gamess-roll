@@ -65,7 +65,7 @@ default:
 copyright rpm pkg clean::
 	for i in $(SRCDIRS) ; do \
 	  grep -q ROLLCOMPILER $$i/version.mk; \
-	  if test $$? == 0; then \
+	  if test $$? -eq 0; then \
 	    for c in $(ROLLCOMPILER); do \
 	      echo make $@ in $$i with ROLLCOMPILER=$$c; \
 	      (cd $$i; $(MAKE) ROLLCOMPILER=$$c $@); \
