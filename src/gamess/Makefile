@@ -78,7 +78,7 @@ MATHLIB = none
 ifeq ("$(ROLLCOMPILER)", "intel")
   COMPILERSETUP += ; \
     export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
-    perl -pi -e "s!ROLL_MATHPATH!$${MKL_ROOT}/lib/em64t!" $(SOURCE)/install.info; \
+    perl -pi -e "s!ROLL_MATHPATH!$${MKL_ROOT}/lib/intel64!" $(SOURCE)/install.info; \
     perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
     perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info
   F90COMP = ifort
