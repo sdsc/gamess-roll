@@ -509,6 +509,7 @@ if ($TARGET == linux64) then
           breaksw
         case 10:
         case 11:
+        case 12:
           # next are a static link, in single-threaded mode (serial BLAS).
           # This option precludes any need to
           #     a) install .so shared object libraries on every node,
