@@ -57,6 +57,9 @@
 ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
 endif
+ifeq ("${MKL_ROOT}", "")
+   export MKL_ROOT=/opt/intel/composer_xe_2011_sp1.7.256/mkl
+endif
 
 PKGROOT = /opt/gamess
 SOURCE = gamess.$(VERSION)
