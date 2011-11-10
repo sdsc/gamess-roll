@@ -1101,7 +1101,7 @@ if ($TARGET == cray-xt) then
       if ($MODULE == tdxitr) set OPT='-O1' # 10.0, exam39
       if ($MODULE == zheev)  set OPT='-O0' # defensive compiling
       if ($MODULE == prppop) set OPT='-O0' # defensive compiling
-      set BASE   = "-i8 -auto -ftz -assume byterecl -w95 -cm"
+      set BASE   = "-i8 -auto -ftz -assume byterecl"
       set INFO   = "-opt-report -vec-report3"
       set INFO   = " "
       set XT_OPT = "-xSSE4.2"
@@ -1451,7 +1451,7 @@ if ($TARGET == linux32) then
    if ($MODULE == zheev)  set OPT='-O0'
    set echo
    ifort -c -i4 $OPT -ftz -auto -assume byterecl \
-         -vec-report0 -w95 -cm $MODULE.f
+         -vec-report0 $MODULE.f
    unset echo
    breaksw
 #
@@ -1600,7 +1600,7 @@ if ($TARGET == linux64) then
       if ($GMS_IFORT_VERNO >=  8) set EXTRAOPT="$EXTRAOPT -assume byterecl"
       if ($GMS_IFORT_VERNO >= 10) set EXTRAOPT="$EXTRAOPT -vec-report0"
       set echo
-      ifort -c -i8 $OPT -ftz -auto $EXTRAOPT -w95 -cm $MODULE.f
+      ifort -c -i8 $OPT -ftz -auto $EXTRAOPT $MODULE.f
       unset echo
       breaksw
 
