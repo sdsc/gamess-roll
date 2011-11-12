@@ -85,9 +85,22 @@ if ($SCHED == SGE) then
    uniq $TMPDIR/machines
 endif
 if ($SCHED == PBS) then
-   set SCR=/scratch/$PBS_JOBID
    echo "PBS has assigned the following compute nodes to this run:"
    uniq $PBS_NODEFILE
+   if (`/sbin/ifconfig|grep -c ib0` != 0) then
+      cat /dev/null > .nodes
+      hostnames=(`cat $PBS_NODEFILE`)
+      foreach host ($hostnames)
+      set address = (`ssh host /sbin/ifconfig | awk 'BEGIN{foundib=0} { if ( $1 ~ /ib0/ ) { foundib=1; next } } { if (foundib == 1 ) { split($2,array,":");foundib = 0 } } END {print array[2]}'`)
+
+         cat address >> .nodes
+      end
+      set PBS_NODEFILE=./.nodes
+      echo "The host names have been reassigned for IP over IB:"
+      uniq $PBS_NODEFILE
+    endif
+    echo "Inifiniband detected, reassigning host names for IP over IB:"
+    uniq $PBS_NODEFILE
 endif
 #
 echo "Available scratch disk space (Kbyte units) at beginning of the job is"
@@ -547,40 +560,6 @@ if ($TARGET == sockets) then
       set HOSTLIST=(`hostname`)
    endif
 #
-#       2. This is an example of how to run on a 4-way SMP enclosure,
-#          where all CPUs (aka COREs) are inside a -single- NODE.
-#          The example is repeated for some nodes we use as 2-way's.
-#     At other locations, you may wish to consider some of the examples
-#     that follow below, after commenting out this ISU specific part.
-   if ($NCPUS > 1) then
-      switch (`hostname`)
-         case ti.msg.chem.iastate.edu:
-         case cd.msg.chem.iastate.edu:
-         case zn.msg.chem.iastate.edu:
-         case ni.msg.chem.iastate.edu:
-         case co.msg.chem.iastate.edu:
-         case pb.msg.chem.iastate.edu:
-         case bi.msg.chem.iastate.edu:
-         case po.msg.chem.iastate.edu:
-         case at.msg.chem.iastate.edu:
-         case sc.msg.chem.iastate.edu:
-            if ($NCPUS > 4) set NCPUS=4
-            set NNODES=1
-            set HOSTLIST=(`hostname`:cpus=$NCPUS)
-            breaksw
-         case se.msg.chem.iastate.edu:
-         case sb.msg.chem.iastate.edu:
-         case br.msg.chem.iastate.edu:
-            if ($NCPUS > 2) set NCPUS=2
-            set NNODES=1
-            set HOSTLIST=(`hostname`:cpus=$NCPUS)
-            breaksw
-         default:
-            echo I do not know how to run this node in parallel.
-            exit 20
-      endsw
-   endif
-#
 #       3. How to run in a single computer, namely the "localhost", so
 #          this computer needn't have a proper Internet name.
 #          This example also presumes SysV was deliberately *not* chosen
@@ -636,7 +615,7 @@ if ($TARGET == sockets) then
 #         The IBM cluster has two Gigabit adapters in each 4-way SMP,
 #         while the AXP cluster is based on a Myrinet network.
       if (`uname` == AIX)   set NETEXT=".gig,.gig2"
-      if (`uname` == Linux) set NETEXT=".myri"
+#     if (`uname` == Linux) set NETEXT=".myri"
 #
 #         repeated host names in the PBS host file indicate being assigned
 #         CPUs in the same SMP enclosure, which we must count up correctly.
@@ -685,8 +664,8 @@ if ($TARGET == sockets) then
 #
 #        we have now finished setting up a correct HOSTLIST.
 #        uncomment the next two if you are doing script debugging.
-#--echo "The generated host list is"
-#--echo $HOSTLIST
+  echo "The generated host list is"
+  echo $HOSTLIST
 #
 #
 #        choose remote shell execution program.
