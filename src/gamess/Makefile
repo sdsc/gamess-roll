@@ -116,7 +116,7 @@ install::
 	  cd $(SOURCE); \
 	  cp gamess.00.x runall rungms ericfmt.dat ddikick.x *.DOC \
 	     $(ROOT)/$(PKGROOT); \
-	  cp -r mcpdata tests $(ROOT)/$(PKGROOT) \
+	  cp -r auxdata tests $(ROOT)/$(PKGROOT) \
 	)
 
 clean::
