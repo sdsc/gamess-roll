@@ -1,6 +1,6 @@
 #!/bin/csh -f
 #
-#   5 Aug 10 - script to compile one GAMESS source file
+#  11 August 11 - script to compile one GAMESS source file
 #  Invoke this script by './comp MODULE >& MODULE.log &'.
 #
 #  This script no longer requires customization, as it starts off by
@@ -20,6 +20,21 @@ endif
 #
 set TARGET=$GMS_TARGET
 chdir $GMS_PATH
+#
+#        allow for "dry run" that doesn't actually do anything
+#
+if ($?GMS_COMP_DRYRUN) then
+   echo $0 $argv
+   exit 0
+endif
+#
+#        allow for extra debugging flags
+#
+if ($?GMS_DEBUG_FLAGS) then
+   if (! -d tmp) mkdir tmp
+else
+   set GMS_DEBUG_FLAGS=''
+endif
 #
 #        make sure any exotic variable touched below is not an error
 #
@@ -120,11 +135,23 @@ if  ($TARGET == sgi64)        set BLAS3=true
 if (($TARGET == sun32) && (-e /opt/SUNWspro/lib/libsunperf.so)) set BLAS3=true
 if (($TARGET == sun64) && (-e /opt/SUNWspro/lib/libsunperf.so)) set BLAS3=true
 if  ($TARGET == win32) then
+   if (-e $PGI\\win32\\11.7\\lib\\libblas.lib) set BLAS3=true
+   if (-e $PGI\\win32\\11.6\\lib\\libblas.lib) set BLAS3=true
+   if (-e $PGI\\win32\\11.1\\lib\\libblas.lib) set BLAS3=true
+   if (-e $PGI\\win32\\11.0\\lib\\libblas.lib) set BLAS3=true
+   if (-e $PGI\\win32\\10.8\\lib\\libblas.lib) set BLAS3=true
+   if (-e $PGI\\win32\\10.6\\lib\\libblas.lib) set BLAS3=true
    if (-e $PGI\\win32\\10.4\\lib\\libblas.lib) set BLAS3=true
    if (-e $PGI\\win32\\10.3\\lib\\libblas.lib) set BLAS3=true
    if (-e $PGI\\win32\\10.2\\lib\\libblas.lib) set BLAS3=true
 endif
 if  ($TARGET == win64) then
+   if (-e $PGI\\win64\\11.7\\lib\\libblas.lib) set BLAS3=true
+   if (-e $PGI\\win64\\11.6\\lib\\libblas.lib) set BLAS3=true
+   if (-e $PGI\\win64\\11.1\\lib\\libblas.lib) set BLAS3=true
+   if (-e $PGI\\win64\\11.0\\lib\\libblas.lib) set BLAS3=true
+   if (-e $PGI\\win64\\10.8\\lib\\libblas.lib) set BLAS3=true
+   if (-e $PGI\\win64\\10.6\\lib\\libblas.lib) set BLAS3=true
    if (-e $PGI\\win64\\10.4\\lib\\libblas.lib) set BLAS3=true
    if (-e $PGI\\win64\\10.3\\lib\\libblas.lib) set BLAS3=true
    if (-e $PGI\\win64\\10.2\\lib\\libblas.lib) set BLAS3=true
@@ -156,6 +183,7 @@ set SRCDIR=source
 set OBJDIR=object
 #
 #        a few source files are kept in non-standard places, defined here
+#        there is a secret option to store code other than in 'source'.
 #
 if ($MODULE == blaswrap) set SRCDIR=misc
 if ($MODULE == serial)   set SRCDIR=misc
@@ -164,6 +192,9 @@ if ($MODULE == ddishm)   set SRCDIR=ddi/oldddi/shmem
 if ($MODULE == ddit3e)   set SRCDIR=ddi/oldddi/shmem
 if ($MODULE == ddio3k)   set SRCDIR=ddi/oldddi/shmem
 if ($MODULE == ddixt3)   set SRCDIR=ddi/oldddi/shmem
+if ($?GMS_OTHER_SRCDIR) then
+    set SRCDIR=$GMS_OTHER_SRCDIR
+endif
 #
 #   ----- delete scalar code before compiling on vector systems -----
 #   UNIX's 'ld' loader is incapable of loading two copies of the
@@ -283,13 +314,13 @@ endif
 #
 #        optional Valence Band method using VB2000
 #        Do Not Edit the "VB2000" value,
-#        but you may needto edit the variable VBPATH just below.
+#        but you may need to edit the variable VBPATH just below.
 set VB2000=false
 if ($MODULE == vb2000) set VB2000=true
 if ($MODULE == vb2gms) set VB2000=true
 #        compiling in the top level directory means code is erased later
 if ($VB2000 == true ) then
-   set VBPATH=~/VB/SRC
+   set VBPATH=~/VB2000/SRC
    echo Copying $MODULE.src from VB2000 directory named $VBPATH
    set SRCDIR=.
    if ($MODULE == vb2000) then
@@ -385,6 +416,7 @@ if ($MODULE == ordint) goto act
 if ($MODULE == qmmm)   goto act
 if ($MODULE == rhfuhf) goto act
 if ($MODULE == rohfcc) goto act
+if ($MODULE == sfdft)  goto act
 if ($MODULE == tddint) goto act
 if ($MODULE == tdhf)   goto act
 if ($MODULE == trans)  goto act
@@ -571,12 +603,27 @@ if (!(-x tools/actvte.x)) then
 endif
 #
 #   ----- Activate the source code to produce FORTRAN -----
+#   Some big machines will probably refuse to allow you to run a compiled
+#   program on a head node.  The three mentioned below do not need the
+#   extra support included in the activation program (e.g. DDOT to SDOT
+#   conversion, or exponent D to E changing), so 'sed' suffices.
 #
-set echo
+echo "Activating $SRCDIR/$MODULE.src to create $MODULE.f for target $TARGET..."
+#
 setenv   SRCIN $SRCDIR/$MODULE.src
 setenv CODEOUT $MODULE.f
-tools/actvte.x
-unset echo
+switch ($TARGET)
+   case ibm64-sp:
+   case ibm-bg:
+   case cray-xt:
+      sed -e "s/^$MACHIN/    /" $SRCIN > $CODEOUT
+      breaksw
+   default:
+      tools/actvte.x
+      breaksw
+endsw
+unsetenv SRCIN
+unsetenv CODEOUT
 #
 #   --------------- special machine "sed hacks" --------------------
 #   Not everything can be done with ACTVTE, so we use "sed" (ugh!).
@@ -785,15 +832,21 @@ endif
 skip_fge:
 #
 #          The "NVidia GPU" hack.
-#          see ~/gamess/libqc/aaa.readme.1st for more information
+#          see ~/gamess/libcchem/aaa.readme.1st for more information
 set GPUCODE=false
 if ($GPUCODE == true) then
-   if ($MODULE == rhfuhf) then
-      mv -f rhfuhf.f rhfuhf.junk
-      sed -e "s/\*GPU/    /" \
-          rhfuhf.junk > rhfuhf.f
-      rm -f rhfuhf.junk
-   endif
+   switch ($MODULE)
+      case rhfuhf:
+      case mp2:
+         echo "Also, selecting '*CXX' lines to use GPUs in $MODULE.src..."
+         mv -f $MODULE.f $MODULE.junk
+         sed -e "s/\*CXX/    /" \
+             $MODULE.junk > $MODULE.f
+         rm -f $MODULE.junk
+         breaksw
+      default:
+         breaksw
+   endsw
 endif
 #
 #   The following hack makes an Apple version print a different banner.
@@ -1313,6 +1366,7 @@ if (($TARGET == ibm32) || ($TARGET == ibm64) || ($TARGET == ibm64-sp)) then
       if ($MODULE == gugdga) set OPT="-O2"  # 10.1 (OK on older xlf)
       if ($MODULE == gugdgb) set OPT="-O2"  # 10.1 (OK on older xlf)
       if ($MODULE == mpcmol) set OPT="-O2"  # 10.1 (OK on older xlf)
+      if ($MODULE == pcmcv2) set OPT="-O2"  # exam31, as of 2011 changes
    endif
 #
    set echo
@@ -1448,10 +1502,15 @@ if ($TARGET == linux32) then
    case ifort:
    set OPT = '-O3'
    if ($MODULE == delocl) set OPT='-O0'  # from Cheol
+   if ($MODULE == prpamm) set OPT='-O0'  # for exam13
    if ($MODULE == zheev)  set OPT='-O0'
+   set EXTRAOPT=" "
+   if ($GMS_IFORT_VERNO >=  8) set EXTRAOPT="$EXTRAOPT -assume byterecl"
+   if ($GMS_IFORT_VERNO >= 10) set EXTRAOPT="$EXTRAOPT -vec-report0"
+   if ($GMS_IFORT_VERNO  < 12) set EXTRAOPT="$EXTRAOPT"
+   if ($GMS_IFORT_VERNO >= 12) set EXTRAOPT="$EXTRAOPT -warn nousage"
    set echo
-   ifort -c -i4 $OPT -ftz -auto -assume byterecl \
-         -vec-report0 $MODULE.f
+   ifort -c -i4 $OPT -ftz -auto $EXTRAOPT $MODULE.f
    unset echo
    breaksw
 #
@@ -1541,7 +1600,7 @@ endif
 #
 #     Atlas is packaged as a RPM for Linux, e.g. rpmfind.net will help
 #         you find atlas-3.6.0-11.fc6.x86_64.rpm  (or other processor)
-#         Take .i386.   for 'uname -p'=i386   means              32 bit chips
+#         Take .i386.   for 'uname -p'=i386 or i686   meaning    32 bit chips
 #         Take .ia64.   for 'uname -p'=ia64   means Itanium2     64 bit chips
 #         Take .x86_64. for 'uname -p'=x86_64 means Intel or AMD 64 bit chips
 #
@@ -1559,6 +1618,7 @@ if ($TARGET == linux64) then
 #           -finit-real=<zero|inf|-inf|nan>  could be interesting debug opt
 #           -fno-automatic forces static storage of all local variables
       set OPT='-O2'
+      if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
       if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
       if (($MODULE == qeigen) || ($MODULE == int2c)) then
          mv -f $MODULE.f $MODULE.junk
@@ -1583,22 +1643,33 @@ if ($TARGET == linux64) then
 #        bytes rather than the new default in v8.0, namely 4-byte units.
 #     -vec-report0 suppresses loop vectorization messages (new in 10.0)
 #     -w95 suppresses Hollerith initialization and other f90-like warnings
-#     -cm means suppress comments about programming practices
+#     -cm  means suppress comments about programming practices,
+#          these two options spelled '-warn nousage' at version 12.
 #     -WB means warn but don't fail on out-of-bounds array references
 #     -ftz flushes underflow results to zero
 #
       set OPT = '-O2'
+      if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
+#       alas, I'm so tired of hearing about so many versions failing to
+#       diagonalize, that this time critical code is run w/o optimization.
+#       Very many (all?) ifort versions have problems with eigen.src.
+      if ($MODULE == eigen)  set OPT='-O0' # read note just above.
+      if ($MODULE == fmo)    set OPT='-O1' # 12.0.4, exam37
       if ($MODULE == guess)  set OPT='-O0' # 10.0, exam39
       if ($MODULE == locpol) set OPT='-O1' # 10.0, makefp/gmres
       if ($MODULE == morokm) set OPT='-O0' # Jan Fredin
       if ($MODULE == prpel)  set OPT='-O1' # 10.0, exam13
+      if (($MODULE == rohfcc) && ($GMS_IFORT_VERNO == 12)) \
+                             set OPT='-O1' # 12.0.1, exam42 (op.shell CC)
       if ($MODULE == tdxitr) set OPT='-O1' # 10.0, exam39
       if ($MODULE == vscf)   set OPT='-O0' # intensities for combinations
       if ($MODULE == zheev)  set OPT='-O0' # defensive compiling
-      if ($MODULE == eigen)  set OPT='-O0' # defensive compiling
-      set EXTRAOPT = ' '
+
+      set EXTRAOPT=" "
       if ($GMS_IFORT_VERNO >=  8) set EXTRAOPT="$EXTRAOPT -assume byterecl"
       if ($GMS_IFORT_VERNO >= 10) set EXTRAOPT="$EXTRAOPT -vec-report0"
+      if ($GMS_IFORT_VERNO  < 12) set EXTRAOPT="$EXTRAOPT"
+      if ($GMS_IFORT_VERNO >= 12) set EXTRAOPT="$EXTRAOPT -warn nousage"
       set echo
       ifort -c -i8 $OPT -ftz -auto $EXTRAOPT $MODULE.f
       unset echo
@@ -1917,6 +1988,7 @@ if (($TARGET == sun32) || ($TARGET == sun64)) then
       if ($MODULE == grd2b)  set OPT='-fast -O2 -nodepend'
       if ($MODULE == grd2c)  set OPT='-fast -O2 -nodepend'
       if ($MODULE == gugdrt) set OPT='-fast -O2 -nodepend'
+      if ($MODULE == eigen)  set OPT='      -O2          '
       if ($MODULE == mcpgrd) set OPT='-fast -O4 -nodepend'
       if ($MODULE == mp2ddi) set OPT='-fast -O4 -nodepend'
       if ($MODULE == scfmi)  set OPT='-fast -O4 -nodepend'
@@ -2073,8 +2145,24 @@ endif
 #
 mv -f $MODULE.o $OBJDIR/$MODULE.o
 if ($TINKCODE == yes) exit
-rm -f $MODULE.f
+#
+#  option to possibly save the preprocessed code, out of the way
+#
+if ( ".$GMS_DEBUG_FLAGS" == '.' ) then
+   rm -f $MODULE.f
+else
+   mv -f $MODULE.f tmp/
+endif
 if ($SRCDIR == .) rm -f $MODULE.src    # delete copy with no scalar code
+#
+#  Exit gracelessly if we fail to generate the object file
+#
 unset echo
 date
 time
+if (-e object/$MODULE.o ) then
+   exit
+else
+   echo Compilation failure for $MODULE, please fix the problem.
+   exit 1
+endif

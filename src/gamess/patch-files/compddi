@@ -1,6 +1,6 @@
 #!/bin/csh -f
 #
-#  23 Jun 10 - script to compile the Distributed Data Interface (DDI)
+#  15 Feb 11 - script to compile the Distributed Data Interface (DDI)
 #
 #     This produces a library 'libddi.a' which GAMESS links against,
 #     and perhaps, a process kickoff program called 'ddikick.x' and
@@ -21,10 +21,10 @@ endif
 set TARGET=$GMS_TARGET
 chdir $GMS_PATH/ddi
 #
-#  The following "numbers" make decisions based on 'config' values,
+#  The following "numbers" make choices based primarily on 'config' values,
 #  such as the machine target, and communication layer.
-#  A human might want to review some of these selections, but if you
-#  don't understand something, leave it alone.
+#  A human might want to review some of these selections, particularly #2,
+#  but if you don't understand something, leave it alone.
 #
 #  1. Choose DDI communication layer, the only legal values are
 #              sockets,mixed,mpi,shmem,lapi,armci
@@ -52,12 +52,12 @@ chdir $GMS_PATH/ddi
 #     Use   'shmem' for the SGI Origin.
 #
 #     Clusters should use TCP/IP sockets on networks up to and including GE,
-#     but probably should use 'mpi' or 'mixed' on networks like Infiniband.
+#     but probably should use 'mpi' on networks like Infiniband.
 #
-#  As of April 2010, 'config' usually sets GMS_DDI_COMM to 'sockets'.
-#        However, target 'linux64' may set GMS_DDI_COMM to 'mpi',
-#  along with collecting information about which flavor of mpi, where
-#  it is located, and so forth.  
+#  As of Feb. 2011, 'config' usually sets GMS_DDI_COMM to 'sockets'.
+#       However, target 'linux64' may set GMS_DDI_COMM to 'mpi',
+#  along with collecting information about which flavor of mpi,
+#  where the MPI library is located, and so forth.  
 #  Thus IB clusters, presuming they do not select openMPI, should work.
 #                                
 set COMM = $GMS_DDI_COMM
@@ -77,14 +77,14 @@ if  ($TARGET == sgi64)                           set COMM=shmem
 #  2. DDI node sizes
 #     a. Maximum number of processors (cores) in your SMP enclosures
 #     b. Maximum number of nodes (number of physical SMP enclosures)
-#     It is OK if these values are a little larger than your system,
+#     It is OK if these values are larger than your system,
 #     but a serious error if they are smaller!
 #
 set MAXCPUS  = 32
-set MAXNODES = 128
+set MAXNODES = 256
 #
 if ($TARGET == cray-xt) then
-   set MAXCPUS=8
+   set MAXCPUS=12
    set MAXNODES=1024 # bump one or both of these to match your XT
 endif
 
@@ -138,9 +138,10 @@ set DDI_SOURCE=new
 #
 set MPI_INCLUDE_PATH = ''
 #
-#           big iron knows where its MPI is going to be found, below.
-if ($TARGET == ibm-bg)  goto skip_mpi_setup
-if ($TARGET == cray-xt) goto skip_mpi_setup
+#           big iron knows where its MPI is going to be found
+#           initialize this variable so we can take default setups below.
+if ($TARGET == ibm-bg)  set GMS_MPI_LIB=IBM-BlueGene-MPI
+if ($TARGET == cray-xt) set GMS_MPI_LIB=Cray-XT-MPI
 #
 #   This is the end of the user selectable "numbered" options!
 #
@@ -227,6 +228,11 @@ if (($GMS_DDI_COMM == mpi) || ($GMS_DDI_COMM == mixed)) then
 #            MicroSoft MPI uses a compiler flag, set below, not a pathname
      case msmpi:
         if($GMS_FORTRAN == pgf77) set MPI_INCLUDE_PATH = " "
+        goto skip_mpi_setup
+        breaksw
+#            big machines will find their mpi.f, don't check it.
+     case IBM-BlueGene-MPI:
+     case Cray-XT-MPI:
         goto skip_mpi_setup
         breaksw
      default:
@@ -1024,7 +1030,8 @@ endif
         case msmpi:
            set CFLAGS = "$CFLAGS -Mmpi=msmpi"
            breaksw
-        case CrayXT:
+        case Cray-XT-MPI:
+        case IBM-BlueGene-MPI:
            breaksw
         default:
            set CFLAGS = "$CFLAGS -I$MPI_INCLUDE_PATH"

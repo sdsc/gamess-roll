@@ -1,6 +1,6 @@
 #!/bin/csh -f
 #
-#   1 Oct 10 - script to "link-edit" a GAMESS executable
+#  11 Aug 11 - script to "link-edit" a GAMESS executable
 #
 #  Invoke this job by 'lked EXE VERNO >& lked.log &'
 #    EXE is normally 'gamess',
@@ -56,7 +56,7 @@ set XMVB=false
 set NEO=false
 #
 #   4. optional Nvidia/CUDA code, for closed shell SCF Fock construction 
-#         see ~/gamess/libqc/aaa.readme.1st for more information
+#         see ~/gamess/libcchem/aaa.readme.1st for more information
 #
 set GPUCODE=false
 #
@@ -294,7 +294,7 @@ endif
 #
 if ($TARGET == ibm64-sp) then
    set LDR='mpxlf_r'
-   set LDOPTS='-q64'
+   set LDOPTS='-bbigtoc -q64'
    set LIBRARIES='-lessl'
    set BLAS='blaswrap.o'
    set VECTOR=' '
@@ -389,32 +389,32 @@ if ($TARGET == linux32) then
    switch ($GMS_MATHLIB)
 
 #       for MKL, we lack experience.  The following is the 64-bit
-#       stuff, with all 64's removed.  It might be right!  Try your
-#       major version number by deleting the "help", in your case below.
-#       It will then go into your choice of 8, 9, ... and miss the
-#       bombing out in the 'default' clause.
+#       stuff, with all 64's removed.  It might be right!
+#       For the case of "11", this has actually been verified.
    case mkl:
       set mpath=$GMS_MATHLIB_PATH
       switch ($GMS_MKL_VERNO)
-        case 8help:
+        case 8:
           set MATHLIBS="-L$mpath -lmkl_lapack   -lmkl -lguide -lpthread"
           breaksw
-        case 9help:
+        case 9:
           set MATHLIBS="-L$mpath -lmkl_lapack   -lmkl -lguide -lpthread"
           breaksw
-        case 10help:
+        case 10:
           #  next one forces single-threaded usage only...exactly what we want.
-          set MATHLIBS="-L$mpath -lmkl_intel_lp -lmkl_sequential -lmkl_core"
+          set MATHLIBS="-L$mpath -lmkl_intel -lmkl_sequential -lmkl_core"
           breaksw
-        case 11help:
-          # next attempts a static link, from reading online documentation.
+        case 11:
+        case 12:
+          # next attempts a static link, whereas 10 above is a dynamic link.
           # if this fails to work, try the version 10 lines shown just above.
-          set MATHLIBS="$mpath/libmkl_intel_lp.a"
+          set MATHLIBS="$mpath/libmkl_intel.a"
           set MATHLIBS="$MATHLIBS $mpath/libmkl_sequential.a"
           set MATHLIBS="$MATHLIBS $mpath/libmkl_core.a"
           breaksw
         default:
-          echo "please edit 'lked' to select the right MKL library stuff"
+          echo "unknown version number for MKL/linux32"
+          echo "please edit 'lked' to select the right 32 bit MKL libraries."
           exit
           breaksw
       endsw
@@ -511,23 +511,29 @@ if ($TARGET == linux64) then
         case 11:
         case 12:
           # next are a static link, in single-threaded mode (serial BLAS).
-          # This option precludes any need to
+          # The choices preclude any need to
           #     a) install .so shared object libraries on every node,
           #     b) define LD_LIBRARY_PATH to find the .so libraries, or
           #     c) define MKL_NUM_THREADS=1
           # If desired, there is a single-threaded shared object link below.
-          set MATHLIBS="          $mpath/libmkl_intel_lp64.a"
+          # Note, there's now a gfortran-specific compiler interface library.
+          set iflib=intel
+          if ($GMS_FORTRAN == gfortran) set iflib=gf
+          set MATHLIBS="          $mpath/libmkl_${iflib}_lp64.a"
           set MATHLIBS="$MATHLIBS $mpath/libmkl_sequential.a"
           set MATHLIBS="$MATHLIBS $mpath/libmkl_core.a"
           breaksw
         case 10-so:
         case 11-so:
-          #  next one forces single-threaded usage.
-          #  run-time libs (and LD_LIBRARY_PATH) needed on every compute node.
-          #  hand edit GMS_MKL_VERNO in your 'install.info' to access this.
+        case 12-so:
+          #  next one chooses dynamic linking (so= shared object libs)
+          #  Just hand edit GMS_MKL_VERNO in your 'install.info' to use this.
+          #  run-time libs (and LD_LIBRARY_PATH) needed on every compute node!
+          #  note that it does force single-threaded usage.
           set MATHLIBS="-L$mpath -lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
         default:
           echo "unknown version number for MKL/linux64"
+          echo "please edit 'lked' to select the right 64 bit MKL libraries."
           exit
           breaksw
       endsw
@@ -729,6 +735,42 @@ if ($TARGET == win32) then
       set BLAS=' '
       breaksw
    case blas:
+      if (-e $PGI\\win32\\11.7\\lib\\libblas.lib) then
+         echo "Using PGI's 32-bit blas version 11.7"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win32\\11.6\\lib\\libblas.lib) then
+         echo "Using PGI's 32-bit blas version 11.6"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win32\\11.1\\lib\\libblas.lib) then
+         echo "Using PGI's 32-bit blas version 11.1"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win32\\11.0\\lib\\libblas.lib) then
+         echo "Using PGI's 32-bit blas version 11.0"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win32\\10.8\\lib\\libblas.lib) then
+         echo "Using PGI's 32-bit blas version 10.8"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win32\\10.6\\lib\\libblas.lib) then
+         echo "Using PGI's 32-bit blas version 10.6"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
       if (-e $PGI\\win32\\10.4\\lib\\libblas.lib) then
          echo "Using PGI's 32-bit blas version 10.4"
          set LIBRARIES="$LIBRARIES -lblas"
@@ -806,6 +848,42 @@ if ($TARGET == win64) then
       set BLAS=' '
       breaksw
    case blas:
+      if (-e $PGI\\win64\\11.7\\lib\\libblas.lib) then
+         echo "Using PGI's 64-bit blas version 11.7"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win64\\11.6\\lib\\libblas.lib) then
+         echo "Using PGI's 64-bit blas version 11.6"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win64\\11.1\\lib\\libblas.lib) then
+         echo "Using PGI's 64-bit blas version 11.1"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win64\\11.0\\lib\\libblas.lib) then
+         echo "Using PGI's 64-bit blas version 11.0"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win64\\10.8\\lib\\libblas.lib) then
+         echo "Using PGI's 64-bit blas version 10.8"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
+      if (-e $PGI\\win64\\10.6\\lib\\libblas.lib) then
+         echo "Using PGI's 64-bit blas version 10.6"
+         set LIBRARIES="$LIBRARIES -lblas"
+         set BLAS=' '
+         breaksw
+      endif
       if (-e $PGI\\win64\\10.4\\lib\\libblas.lib) then
          echo "Using PGI's 64-bit blas version 10.4"
          set LIBRARIES="$LIBRARIES -lblas"
@@ -889,7 +967,7 @@ switch ($TARGET)
                set MPILIBS="$MPILIBS /usr/local/gm/lib/libgm.a"
                breaksw
             case openmpi:
-               set MPILIBS="-L$GMS_MPI_PATH/lib"
+               set MPILIBS="-L$GMS_MPI_PATH/lib64"
                set MPILIBS="$MPILIBS -lmpi"
                breaksw
             case mpt:
@@ -960,6 +1038,7 @@ switch ($TARGET)
         exit 8
         breaksw
       endsw
+      breaksw
 #
 #               correct stuff for NEC-SX is unknown...
    case necsx:
@@ -1016,8 +1095,8 @@ set STANDARD_GAMESS_OBJ1=(aldeci.o algnci.o \
       ccaux.o  ccddi.o  ccqaux.o ccquad.o ccsdt.o   \
       ceeis.o  chgpen.o cisgrd.o cosmo.o  cosprt.o  \
       cphf.o   cpmchf.o cprohf.o  \
-      dccc.o   dcgues.o dcint2.o dclib.o  dcmp2.o  dcscf.o  dctran.o  \
-      ddilib.o delocl.o demrpt.o  \
+      dccc.o   dcgrd.o  dcgues.o dcint2.o dclib.o  dcmp2.o   \
+      dcscf.o  dctran.o ddilib.o delocl.o demrpt.o  \
       dft.o    dftaux.o dftdis.o dftfun.o dftgrd.o dftint.o  \
       dftxca.o dftxcb.o dftxcc.o dftxcd.o dftxce.o dftxcf.o dftxcg.o  \
       dgeev.o  dgesvd.o dmulti.o drc.o     \
@@ -1027,8 +1106,8 @@ set STANDARD_GAMESS_OBJ1=(aldeci.o algnci.o \
       efpfmo.o eftei.o   \
       eigen.o  elglib.o elgloc.o elgscf.o eomcc.o  ewald.o  ffield.o  \
       fmo.o    fmocp.o  fmoesd.o fmogrd.o fmohss.o fmoint.o fmoio.o   \
-      fmolib.o fmopbc.o fmoprp.o  \
-      frfmt.o  fsodci.o  \
+      fmolib.o fmopbc.o fmoprp.o )
+set STANDARD_GAMESS_OBJ2=(frfmt.o  fsodci.o  \
       g3.o     globop.o gmcpt.o  gradex.o guess.o   \
       grd1.o   grd2a.o  grd2b.o  grd2c.o   \
       gugdga.o gugdgb.o gugdm.o  gugdm2.o gugdrt.o gugem.o  gugsrt.o  \
@@ -1036,22 +1115,24 @@ set STANDARD_GAMESS_OBJ1=(aldeci.o algnci.o \
       inputa.o inputb.o inputc.o  \
       int1.o   int2a.o  int2b.o  int2c.o  int2d.o  int2f.o  int2g.o   \
       int2r.o  int2s.o  int2t.o  int2u.o  int2v.o  int2w.o  int2x.o   \
-      iolib.o  ivocas.o lagran.o local.o  loccd.o  locpol.o)
-set STANDARD_GAMESS_OBJ2=(mcpgrd.o mcpinp.o mcpint.o \
+      iolib.o  ivocas.o lagran.o local.o  loccd.o  locpol.o lrd.o     \
+      mcpgrd.o mcpinp.o mcpint.o \
       mcpl10.o mcpl20.o mcpl30.o mcpl40.o  \
       mcpl50.o mcpl60.o mcpl70.o mcpl80.o  \
       mccas.o  mcjac.o  mcqdpt.o mcqdwt.o mcqud.o  mcscf.o  mctwo.o   \
-      mdefp.o  mexing.o mm23.o   morokm.o  \
+      mdefp.o  mexing.o mltfmo.o mm23.o   morokm.o mnsol.o   \
       mp2.o    mp2ddi.o mp2grd.o mp2gr2.o mp2ims.o  \
       mpcdat.o mpcgrd.o mpcint.o mpcmol.o mpcmsc.o  \
-      mthlib.o nameio.o nmr.o     \
-      ordint.o ormas1.o parley.o pcm.o    pcmcav.o pcmcv2.o pcmder.o  \
+      mthlib.o nameio.o nmr.o )
+set STANDARD_GAMESS_OBJ3=(optcix.o ordint.o ormas1.o  \
+      parley.o pcm.o    pcmcav.o pcmcv2.o pcmder.o  \
       pcmdis.o pcmief.o pcmpol.o pcmvch.o  \
       prpamm.o prpel.o  prplib.o prppop.o  \
-      qeigen.o qfmm.o   qmfm.o   qrel.o    \
-      raman.o  rhfuhf.o ricab.o  riint.o  rimp2.o  \
+      qeigen.o qfmm.o   qmfm.o   qrel.o   quanpo.o  \
+      raman.o  rhfuhf.o ricab.o  riint.o  rimp2.o   \
       rohfcc.o rxncrd.o ryspol.o  \
-      scflib.o scfmi.o  scrf.o   sobrt.o  soffac.o solib.o  sozeff.o  \
+      scflib.o scfmi.o  scrf.o   sfdft.o  sfgrad.o  \
+      sobrt.o  soffac.o solib.o  sozeff.o  \
       statpt.o surf.o   svpchg.o svpinp.o svpleb.o symorb.o symslc.o  \
       tddft.o  tddefp.o tddfun.o tddfxc.o tddgrd.o tddint.o tddxca.o  \
       tddxcc.o tddxcd.o tdhf.o     \
@@ -1073,6 +1154,7 @@ echo followed by the standard GAMESS object code list,
 echo " "
 echo $STANDARD_GAMESS_OBJ1
 echo $STANDARD_GAMESS_OBJ2
+echo $STANDARD_GAMESS_OBJ3
 #
 echo " "
 echo "Choices for some optional plug-in codes are"
@@ -1110,25 +1192,44 @@ else
    echo "   Using $NEOOBJ, Nuclear Electron Orbital code is not linked."
 endif
 #
+#    CUDA (et cetera) libraries below will require editing to match
+#                               your computer's pathnames!
+#    Our two clusters differ in where the CUDA lives.
+#    Gnu's openMP library is needed if --disable-omp was not used:
 if ($GPUCODE == true) then
-   echo "   Using Nvidia/CUDA GPU code, for Fock matrix consruction."
-   set GPU_LIBS="-L/home/mike/gamess/libqc/lib -lqc_gamess -lqc -lrysq"
-   set GPU_LIBS="$GPU_LIBS -L/usr/local/cuda/lib64 -lcudart"
-   set GPU_LIBS="$GPU_LIBS /opt/boost/lib/libboost_thread.a"
+   echo "   Using 'libcchem' add-in C++ codes for Nvidia/CUDA GPUs."
+   set GPU_LIBS="-L/home/mike/gamess/libcchem/lib -lcchem_gamess -lcchem -lrysq"
+   set GPU_LIBS="$GPU_LIBS -L/share/apps/cuda/lib64 -lcudart -lcublas"
+   ### GPU_LIBS="$GPU_LIBS -L/usr/local/cuda/lib64  -lcudart -lcublas"
+   set GPU_LIBS="$GPU_LIBS /usr/local/lib/libboost_thread.a"
+   set GPU_LIBS="$GPU_LIBS /usr/local/lib/libhdf5_cpp.a"
+   set GPU_LIBS="$GPU_LIBS /usr/local/lib/libhdf5.a"
+   set GPU_LIBS="$GPU_LIBS -lz"
    set GPU_LIBS="$GPU_LIBS -lstdc++"
+   ### GPU_LIBS="$GPU_LIBS -lgomp"
    set GPU_LIBS="$GPU_LIBS -lpthread"
-   echo "   Library list for the GPU code is:"
+   echo "   libcchem GPU code's libraries are"
    echo "$GPU_LIBS"
 else
    set GPU_LIBS=""
 endif
 #
 echo " "
-echo Message passing libraries are $MSG_LIBRARIES
+echo "   message passing libraries are"
+echo $MSG_LIBRARIES
 echo " "
-echo Other libraries to be searched are $LIBRARIES
+echo "   other libraries to be searched are"
+echo $LIBRARIES
 echo " "
-echo "Linker messages (if any) follow..."
+#
+#    Optional user specified additional libraries and/or object files:
+#
+if ($?GMS_EXTRA_OBJS) then
+    echo "   User specified libraries and/or object files:"
+    echo "$GMS_EXTRA_OBJS"
+else
+    set GMS_EXTRA_OBJS=''
+endif
 #
 #   link GAMESS, using objects/library information as collected above
 #   =================================================================
@@ -1136,12 +1237,16 @@ echo "Linker messages (if any) follow..."
 #   which may result in too long a line to display for some c-shells.
 #   Hence it has been printed out piecemeal, but in order, just above.
 #
+echo "Linker messages (if any) follow..."
 chdir object
 $LDR  -o ../$EXE.$VERNO.x $LDOPTS \
       gamess.o unport.o $BLAS $VECTOR $QUICHE \
       $STANDARD_GAMESS_OBJ1 \
       $STANDARD_GAMESS_OBJ2 \
-      $QMMMOBJ $VBOBJ $NEOOBJ $GPU_LIBS \
+      $STANDARD_GAMESS_OBJ3 \
+      $QMMMOBJ $VBOBJ $NEOOBJ \
+      $GMS_EXTRA_OBJS \
+      $GPU_LIBS \
       $MSG_LIBRARIES $LIBRARIES
 #
 #   give the installer a simple thumbs up or down on success
@@ -1151,9 +1256,11 @@ chdir ..
 if (-x $EXE.$VERNO.x) then
    echo " "
    echo The linking of GAMESS to binary $EXE.$VERNO.x was successful.
+   set rc=0
 else
    echo " "
    echo Unfortunately, there was an error while linking GAMESS.
+   set rc=1
 endif
 time
-exit
+exit $rc
