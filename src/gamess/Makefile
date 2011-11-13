@@ -114,7 +114,7 @@ install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	( \
 	  cd $(SOURCE); \
-	  cp gamess.00.x runall rungms ericfmt.dat ddikick.x *.DOC \
+	  cp gamess.00.x runall rungms ddikick.x *.DOC \
 	     $(ROOT)/$(PKGROOT); \
 	  cp -r auxdata tests $(ROOT)/$(PKGROOT) \
 	)
