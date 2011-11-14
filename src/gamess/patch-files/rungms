@@ -84,23 +84,23 @@ if ($SCHED == SGE) then
    echo "SGE has assigned the following compute nodes to this run:"
    uniq $TMPDIR/machines
 endif
+@ ipAddress=0
 if ($SCHED == PBS) then
+   set PBS_HOSTFILE=$PBS_NODEFILE
    echo "PBS has assigned the following compute nodes to this run:"
    uniq $PBS_NODEFILE
    if (`/sbin/ifconfig|grep -c ib0` != 0) then
       cat /dev/null > .nodes
-      hostnames=(`cat $PBS_NODEFILE`)
+      set hostnames=(`cat $PBS_NODEFILE`)
       foreach host ($hostnames)
-      set address = (`ssh host /sbin/ifconfig | awk 'BEGIN{foundib=0} { if ( $1 ~ /ib0/ ) { foundib=1; next } } { if (foundib == 1 ) { split($2,array,":");foundib = 0 } } END {print array[2]}'`)
-
-         cat address >> .nodes
+         set address = (`ssh $host /sbin/ifconfig | awk 'BEGIN{foundib=0} { if ( $1 ~ /ib0/ ) { foundib=1; next } } { if (foundib == 1 ) { split($2,array,":");foundib = 0 } } END {print array[2]}'`)
+         echo $address >> .nodes
       end
-      set PBS_NODEFILE=./.nodes
+      set PBS_HOSTFILE=$PWD/.nodes
       echo "The host names have been reassigned for IP over IB:"
-      uniq $PBS_NODEFILE
+      uniq $PBS_HOSTFILE
+      @ ipAddress=1
     endif
-    echo "Inifiniband detected, reassigning host names for IP over IB:"
-    uniq $PBS_NODEFILE
 endif
 #
 echo "Available scratch disk space (Kbyte units) at beginning of the job is"
@@ -157,7 +157,7 @@ endif
 #     used by the NEO method.  See NEO's documentation for more details.
 #
 set echo
-setenv AUXDATA /opt/gamess/auxdata
+setenv AUXDATA /home/diag/opt/gamess/auxdata
 setenv  EXTBAS /dev/null
 setenv  NUCBAS /dev/null
 setenv  POSBAS /dev/null
@@ -513,7 +513,7 @@ if ($TARGET == sockets) then
    if ($os == AIX)     set GMSPATH=/u1/mike/gamess
    if ($os == Darwin)  set GMSPATH=/Users/mike/desktop/gamess
    if ($os == HP-UX)   set GMSPATH=/zr/mike/gamess
-   if ($os == Linux)   set GMSPATH=/opt/gamess
+   if ($os == Linux)   set GMSPATH=/home/diag/opt/gamess
    if ($os == OSF1)    set GMSPATH=/in/mike/gamess
    if ($os == SunOS)   set GMSPATH=/hf/mike/gamess
 #       special compilation for Sun E450 uSPARC       (uname also= SunOS)
@@ -630,15 +630,17 @@ if ($TARGET == sockets) then
 #         variable substitution followed by colon gracefully by ${HOST}:cpus.)
 #
       set HOSTLIST=()
-      set nmax=`wc -l $PBS_NODEFILE`
+      set nmax=`wc -l $PBS_HOSTFILE`
       set nmax=$nmax[1]
       if ($nmax != $NCPUS) then
          echo There is processor count confusion
          exit
       endif
 #            1st host in the list is sure to be a new SMP enclosure
-      set MYNODE=`sed -n -e "1 p" $PBS_NODEFILE`
-      set MYNODE=`echo $MYNODE | awk '{split($0,a,"."); print a[1]}'`
+      set MYNODE=`sed -n -e "1 p" $PBS_HOSTFILE`
+      if ( $ipAddress == 0) then
+         set MYNODE=`echo $MYNODE | awk '{split($0,a,"."); print a[1]}'`
+      endif
 #            IPROC counts assigned processors (up to NCPUS),
 #            NNODES counts number of SMP enclosures.
 #            NSMPCPU counts processors in the current SMP enclosure
@@ -648,8 +650,10 @@ if ($TARGET == sockets) then
       set spacer1=":cpus="
       set spacer2=":netext="
       while($IPROC <= $nmax)
-         set MYPROC=`sed -n -e "$IPROC p" $PBS_NODEFILE`
-         set MYPROC=`echo $MYPROC | awk '{split($0,a,"."); print a[1]}'`
+         set MYPROC=`sed -n -e "$IPROC p" $PBS_HOSTFILE`
+         if ( $ipAddress == 0) then
+            set MYPROC=`echo $MYPROC | awk '{split($0,a,"."); print a[1]}'`
+         endif
          if($MYPROC != $MYNODE) then
 #           set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU$spacer2$NETEXT)
             set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU)
@@ -816,7 +820,7 @@ if ($TARGET == mpi) then
          set NNODES=$NNODES[1]
       endif
       if ($SCHED == PBS) then
-         uniq $PBS_NODEFILE $HOSTFILE
+         uniq $PBS_HOSTFILE $HOSTFILE
          set NNODES=`wc -l $HOSTFILE`
          set NNODES=$NNODES[1]
       endif
@@ -1078,9 +1082,9 @@ if ($TARGET == altix) then
    setenv MPI_BUFS_PER_HOST 32
 
    setenv GMSPATH /usr/local/u/boatzj/gamess
-   cat ${PBS_NODEFILE} | sort  > $SCR/$JOB.nodes.$$
+   cat ${PBS_HOSTFILE} | sort  > $SCR/$JOB.nodes.$$
    cat $SCR/$JOB.nodes.$$ $SCR/$JOB.nodes.$$ | sort > $SCR/$JOB.2xnodes.$$
-   setenv PBS_NODEFILE $SCR/$JOB.2xnodes.$$
+   setenv PBS_HOSTFILE $SCR/$JOB.2xnodes.$$
 
 #-debug
 #--   echo "Contents of PBS_NODEFILE are ..."
