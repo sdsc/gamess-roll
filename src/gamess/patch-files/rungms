@@ -171,7 +171,7 @@ setenv   GAMMA $PWD/$JOB.gamma
 setenv TRAJECT $PWD/$JOB.trj
 setenv RESTART $PWD/$JOB.rst
 setenv   INPUT $PWD/$JOB.F05
-setenv   PUNCH $PWD/scr/$JOB.dat
+setenv   PUNCH $PWD/$JOB.dat
 setenv  AOINTS $SCR/$JOB.F08
 setenv  MOINTS $SCR/$JOB.F09
 setenv DICTNRY $SCR/$JOB.F10
@@ -195,8 +195,8 @@ setenv PCMINTS $SCR/$JOB.F27
 setenv SVPWRK1 $SCR/$JOB.F26
 setenv SVPWRK2 $SCR/$JOB.F27
 setenv COSCAV  $SCR/$JOB.F26
-setenv COSDATA $PWD/scr/$JOB.cosmo
-setenv COSPOT  $PWD/scr/$JOB.pot
+setenv COSDATA $PWD/$JOB.cosmo
+setenv COSPOT  $PWD/$JOB.pot
 setenv  MLTPL  $SCR/$JOB.F28
 setenv  MLTPLT $SCR/$JOB.F29
 setenv  DAFL30 $SCR/$JOB.F30
@@ -360,7 +360,7 @@ if ($elgtyp > 0) then
     if (null$4 == null) set ELGNAME=ELGFILE
     set echo
     setenv AOINTS   $SCR/$ELGNAME.F08
-    setenv ELGDOS   ~$USER/scr/$JOB.ldos
+    setenv ELGDOS   $SCR/$JOB.ldos
     setenv ELGDAT   $SCR/$ELGNAME.F71
     setenv ELGPAR   $SCR/$ELGNAME.F72
     setenv ELGCUT   $SCR/$ELGNAME.F74
