@@ -651,7 +651,8 @@ if ($TARGET == sockets) then
          set MYPROC=`sed -n -e "$IPROC p" $PBS_NODEFILE`
          set MYPROC=`echo $MYPROC | awk '{split($0,a,"."); print a[1]}'`
          if($MYPROC != $MYNODE) then
-            set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU$spacer2$NETEXT)
+#           set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU$spacer2$NETEXT)
+            set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU)
             set MYNODE=$MYPROC
             @ NSMPCPU = 0
             @ NNODES++
@@ -659,7 +660,8 @@ if ($TARGET == sockets) then
          @ IPROC++
          @ NSMPCPU++
       end
-      set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU$spacer2$NETEXT)
+#     set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU$spacer2$NETEXT)
+      set HOSTLIST = ($HOSTLIST $MYNODE$spacer1$NSMPCPU)
    endif
 #
 #        we have now finished setting up a correct HOSTLIST.
