@@ -57,9 +57,6 @@
 ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
 endif
-ifeq ("${MKL_ROOT}", "")
-   export MKL_ROOT=/opt/intel/composer_xe_2011_sp1.7.256/mkl
-endif
 
 PKGROOT = /opt/gamess
 SOURCE = gamess.$(VERSION)
@@ -77,8 +74,9 @@ F90COMP = gfortran
 MATHLIB = none
 ifeq ("$(ROLLCOMPILER)", "intel")
   COMPILERSETUP += ; \
+    export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`; \
     export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
-    perl -pi -e "s!ROLL_MATHPATH!$${MKL_ROOT}/lib/intel64!" $(SOURCE)/install.info; \
+    perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE)/install.info; \
     perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
     perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info
   F90COMP = ifort
@@ -111,7 +109,7 @@ build:
 	)
 
 install::
-	mkdir -p $(ROOT)/$(PKGROOT)
+	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
 	( \
 	  cd $(SOURCE); \
 	  cp gamess.00.x runall rungms ddikick.x *.DOC \
