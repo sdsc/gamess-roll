@@ -157,7 +157,7 @@ endif
 #     used by the NEO method.  See NEO's documentation for more details.
 #
 set echo
-setenv AUXDATA /home/diag/opt/gamess/auxdata
+setenv AUXDATA /opt/gamess/auxdata
 setenv  EXTBAS /dev/null
 setenv  NUCBAS /dev/null
 setenv  POSBAS /dev/null
@@ -513,7 +513,7 @@ if ($TARGET == sockets) then
    if ($os == AIX)     set GMSPATH=/u1/mike/gamess
    if ($os == Darwin)  set GMSPATH=/Users/mike/desktop/gamess
    if ($os == HP-UX)   set GMSPATH=/zr/mike/gamess
-   if ($os == Linux)   set GMSPATH=/home/diag/opt/gamess
+   if ($os == Linux)   set GMSPATH=/opt/gamess
    if ($os == OSF1)    set GMSPATH=/in/mike/gamess
    if ($os == SunOS)   set GMSPATH=/hf/mike/gamess
 #       special compilation for Sun E450 uSPARC       (uname also= SunOS)
