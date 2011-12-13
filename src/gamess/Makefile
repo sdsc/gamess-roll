@@ -67,20 +67,17 @@ REDHAT.ROOT = $(PWD)/../../
 COMPILERSETUP = \
   if test -e /etc/profile.d/modules.sh; then \
     . /etc/profile.d/modules.sh; \
+    module load intel; \
+    export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`; \
+    export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
+    module unload intel; \
     module load $(ROLLCOMPILER); \
   fi
 
 F90COMP = gfortran
-MATHLIB = none
+MATHLIB = mkl
 ifeq ("$(ROLLCOMPILER)", "intel")
-  COMPILERSETUP += ; \
-    export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`; \
-    export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
-    perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE)/install.info; \
-    perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
-    perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info
   F90COMP = ifort
-  MATHLIB = mkl
 endif
 
 build:
@@ -98,6 +95,12 @@ build:
 	( \
 	  $(COMPILERSETUP); \
 	  perl -pi -e 's!^(.*ROLL)!# $$1!m' $(SOURCE)/install.info; \
+	  perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE)/install.info; \
+	  perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
+	  perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info; \
+	  export GMS_IFORT_VERNO=$$iversion; \
+	  export GMS_MKL_VERNO=$$iversion; \
+	  export GMS_MATHLIB_PATH=$$MKLLIB; \
 	  cd $(SOURCE)/tools; \
 	  $(F90COMP) -o actvte.x actvte.f; \
 	  cd ../ddi; \
