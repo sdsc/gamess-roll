@@ -60,9 +60,11 @@ endif
 
 PKGROOT = /opt/gamess
 SOURCE = gamess.$(VERSION)
+
+
 REDHAT.ROOT = $(PWD)/../../
 
--include version.mk
+-include $(ROCKSROOT)/etc/Rules.mk
 
 
 F90COMP = gfortran
@@ -123,15 +125,15 @@ build:
 	)
 
 install::
-	mkdir -p -m 755 $(PKGROOT)
+	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
 	( \
 	  cd $(SOURCE); \
           if test $(ROLLMPI) = "sockets"; then \
-	      cp ddikick.x $(PKGROOT); \
+	      cp ddikick.x $(ROOT)/$(PKGROOT); \
           fi; \
 	  cp gamess.00.x runall rungms *.DOC install.info \
-	     $(PKGROOT); \
-	  cp -r auxdata tests $(PKGROOT) \
+	     $(ROOT)/$(PKGROOT); \
+	  cp -r auxdata tests $(ROOT)/$(PKGROOT) \
 	)
 
 clean::

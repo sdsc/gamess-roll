@@ -54,7 +54,7 @@
 #       file as the backend: one for Sun Grid Engine (sge-gms), and
 #       one for LoadLeveler "ll-gms" on the IBM SP line.
 #
-if( -e /opt/ScaleMP) then
+if( -e /usr/local/bin/vsmpversion ) then
   set TARGET=mpi
 else
   set TARGET=sockets

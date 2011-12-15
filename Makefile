@@ -59,7 +59,10 @@ ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
 endif
 ifndef ROLLMPI
-  ROLLMPI = sockets
+  ROLLMPI = openmpi
+endif
+ifndef ROLLNETWORK
+  ROLLNETWORK = eth
 endif
 empty:=
 space:=$(empty) $(empty)
@@ -68,8 +71,9 @@ ROLLSUFFIX = _$(subst $(space),+,$(ROLLCOMPILER))_$(subst $(space),+,$(ROLLMPI))
 -include $(ROLLSROOT)/etc/Rolls.mk
 
 default:
-# Copy and substitute lines of nodes/*.in that reference ROLLCOMPILER, making
-# one copy for each ROLLCOMPILER value
+# Copy and substitute lines of nodes/*.in that reference ROLLCOMPILER,
+# and/or ROLLMPI, making one copy for each
+# ROLLCOMPILER/ROLLMPI value
 	for i in `ls nodes/*.in`; do \
 	  export o=`echo $$i | sed 's/\.in//'`; \
 	  cp $$i $$o; \
@@ -79,7 +83,7 @@ default:
 	  for m in $(ROLLMPI); do \
 	    perl -pi -e 'print and s/ROLLMPI/'$${m}'/g if m/ROLLMPI/' $$o; \
 	  done; \
-	  perl -pi -e '$$_ = "" if m/ROLL(COMPILER|MPI)/' $$o; \
+	  perl -pi -e '$$_ = "" if m/ROLL(COMPILER|NETWORK|MPI)/' $$o; \
 	done
 	$(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" ROLLMPI="$(ROLLMPI)" roll
 

@@ -71,7 +71,7 @@ copyright rpm pkg clean::
 	        if test $$? -eq 0; then \
 	          for m in $(ROLLMPI); do \
 	            echo make $@ in $$i with ROLLCOMPILER=$$c ROLLMPI=$$m; \
-	            (cd $$i; $(MAKE) ROLLCOMPILER=$$c OLLMPI=$$m $@); \
+	            (cd $$i; $(MAKE) ROLLCOMPILER=$$c ROLLMPI=$$m $@); \
 	          done; \
 	        else \
 	          echo make $@ in $$i with ROLLCOMPILER=$$c; \
