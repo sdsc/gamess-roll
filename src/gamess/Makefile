@@ -86,7 +86,7 @@ ifeq ("$(ROLLCOMPILER)", "intel")
   F90COMP = ifort
   MATHLIB = mkl
 endif
-ifeq ("$(ROLLMPI)", "smp")
+ifeq ("$(ROLLMPI)", "vsmp")
    ROLL_COMM = mpi
    ROLLCOMMENT = 
 endif
@@ -126,7 +126,7 @@ install::
 	mkdir -p -m 755 $(PKGROOT)
 	( \
 	  cd $(SOURCE); \
-          if test $(ROLLSMP) = "no"; then \
+          if test $(ROLLMPI) = "sockets"; then \
 	      cp ddikick.x $(PKGROOT); \
           fi; \
 	  cp gamess.00.x runall rungms *.DOC install.info \
