@@ -1,3 +1,3 @@
-NAME    = gamess_$(ROLLCOMPILER)
+NAME    = gamess_$(ROLLCOMPILER)_$(ROLLMPI)
 VERSION = 8.2011
 RELEASE = 1

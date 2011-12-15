@@ -1,4 +1,4 @@
-#
+
 # $Id$
 #
 # @Copyright@
@@ -62,45 +62,56 @@ PKGROOT = /opt/gamess
 SOURCE = gamess.$(VERSION)
 REDHAT.ROOT = $(PWD)/../../
 
--include $(ROCKSROOT)/etc/Rules.mk
+-include version.mk
 
-COMPILERSETUP = \
+
+F90COMP = gfortran
+MATHLIB = none
+ROLL_COMM = sockets
+ROLLCOMMENT = \#
+COMPILERSETUP =  \
   if test -e /etc/profile.d/modules.sh; then \
     . /etc/profile.d/modules.sh; \
     module load intel; \
     export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`; \
     export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
     module unload intel; \
-    module load $(ROLLCOMPILER); \
-  fi
+  fi; \
+  module load $(ROLLCOMPILER); \
+  perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE)/install.info; \
+  perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
+  perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info
 
-F90COMP = gfortran
-MATHLIB = mkl
 ifeq ("$(ROLLCOMPILER)", "intel")
   F90COMP = ifort
+  MATHLIB = mkl
+endif
+ifeq ("$(ROLLMPI)", "smp")
+   ROLL_COMM = mpi
+   ROLLCOMMENT = 
 endif
 
 build:
 	tar zxvf $(SOURCE).tgz
-	cp patch-files/install.info $(SOURCE)
-	cp patch-files/rungms $(SOURCE)
 	cp patch-files/actvte.f $(SOURCE)/tools
 	cp patch-files/compddi $(SOURCE)/ddi
 	cp patch-files/comp $(SOURCE)
 	cp patch-files/compall $(SOURCE)
+	cp patch-files/install.info $(SOURCE)
 	cp patch-files/lked $(SOURCE)
+	cp patch-files/rungms $(SOURCE)
 	perl -pi -e 's!ROLL_FCC!$(F90COMP)!' $(SOURCE)/install.info
 	perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE)/install.info
 	perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE)!' $(SOURCE)/install.info
+	perl -pi -e 's!ROLL_COMM!$(ROLL_COMM)!' $(SOURCE)/install.info
+	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE)/install.info
+	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE)/lked
 	( \
-	  $(COMPILERSETUP); \
+          echo "BEFORE"; \
+ 	  $(COMPILERSETUP); \
+          echo "AFTER"; \
 	  perl -pi -e 's!^(.*ROLL)!# $$1!m' $(SOURCE)/install.info; \
-	  perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE)/install.info; \
-	  perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
-	  perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info; \
-	  export GMS_IFORT_VERNO=$$iversion; \
-	  export GMS_MKL_VERNO=$$iversion; \
-	  export GMS_MATHLIB_PATH=$$MKLLIB; \
+	  perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' $(SOURCE)/rungms; \
 	  cd $(SOURCE)/tools; \
 	  $(F90COMP) -o actvte.x actvte.f; \
 	  cd ../ddi; \
@@ -112,12 +123,15 @@ build:
 	)
 
 install::
-	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
+	mkdir -p -m 755 $(PKGROOT)
 	( \
 	  cd $(SOURCE); \
-	  cp gamess.00.x runall rungms ddikick.x *.DOC \
-	     $(ROOT)/$(PKGROOT); \
-	  cp -r auxdata tests $(ROOT)/$(PKGROOT) \
+          if test $(ROLLSMP) = "no"; then \
+	      cp ddikick.x $(PKGROOT); \
+          fi; \
+	  cp gamess.00.x runall rungms *.DOC install.info \
+	     $(PKGROOT); \
+	  cp -r auxdata tests $(PKGROOT) \
 	)
 
 clean::

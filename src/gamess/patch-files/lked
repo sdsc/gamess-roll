@@ -948,6 +948,7 @@ switch ($TARGET)
       set MPILIBS=''
       if ($TARGET == linux64) then
         if (($GMS_DDI_COMM == mpi) || ($GMS_DDI_COMM == mixed)) then
+ROLLCOMMENT setenv LD_LIBRARY_PATH $GMS_MPI_PATH/lib:$LD_LIBRARY_PATH
           switch ($GMS_MPI_LIB)
             case impi:
                set MPILIBS="-L$GMS_MPI_PATH/lib64"

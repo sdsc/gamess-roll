@@ -54,7 +54,12 @@
 #       file as the backend: one for Sun Grid Engine (sge-gms), and
 #       one for LoadLeveler "ll-gms" on the IBM SP line.
 #
-set TARGET=sockets
+if( -e /opt/ScaleMP) then
+  set TARGET=mpi
+else
+  set TARGET=sockets
+endif
+source /opt/gamess/install.info
 set SCR=$PWD
 #
 set JOB=$1      # name of the input file xxx.inp, give only the xxx part
@@ -89,7 +94,7 @@ if ($SCHED == PBS) then
    set PBS_HOSTFILE=$PBS_NODEFILE
    echo "PBS has assigned the following compute nodes to this run:"
    uniq $PBS_NODEFILE
-   if (`/sbin/ifconfig|grep -c ib0` != 0) then
+   if (`/sbin/ifconfig|grep -c ib0` != 0 && $TARGET == sockets ) then
       cat /dev/null > .nodes
       set hostnames=(`cat $PBS_NODEFILE`)
       foreach host ($hostnames)
@@ -772,7 +777,7 @@ if ($TARGET == mpi) then
    #      When using on the Infiniband clusters at Iowa State,
    #      just pick target=mpi, version no. of the iMPI, and kickoff style.
    #
-   set PPN=$4
+   set PPN=16
    #
    #  Allow for compute process and data servers (one pair per core)
    #  note that NCPUS = #cores, and NPROCS = #MPI processes
@@ -907,8 +912,8 @@ if ($TARGET == mpi) then
    #     add Intel MPI to the library path and to the execution path.
    #        version number might be 3.2.1, 4.0.1.007, 4.0.2.003, or ...
    #
-   setenv LD_LIBRARY_PATH /opt/intel/impi/4.0.2.003/lib64:$LD_LIBRARY_PATH
-   set path=(/opt/intel/impi/4.0.2.003/bin64 $path)
+   setenv LD_LIBRARY_PATH $GMS_MPI_PATH/lib:$LD_LIBRARY_PATH
+   set path=($GMS_MPI_PATH/bin $path)
    #
    #  add MVAPICH2 to the execution path
    #--set path=(/usr/mpi/gcc/mvapich2-1.2p1/bin $path)
@@ -948,7 +953,7 @@ if ($TARGET == mpi) then
    #  set up Intel MKL (math kernel library).  As of version 10, GAMESS
    #  links MKL statically, and also for single threaded execution.
    #  So, you probably don't need to sweat this...
-   #--setenv LD_LIBRARY_PATH /opt/intel/mkl/10.0.3.020/lib/em64t
+   setenv LD_LIBRARY_PATH ROLL_MATHLIB:$LD_LIBRARY_PATH 
    #--setenv LD_LIBRARY_PATH /opt/intel/composerxe-2011.1.107/mkl/lib/intel64
    #--setenv MKL_SERIAL YES
    #--setenv MKL_NUM_THREADS 1
@@ -1050,10 +1055,8 @@ if ($TARGET == mpi) then
    #
    case hydra:
       set echo
-      setenv I_MPI_HYDRA_ENV all
-      setenv I_MPI_PERHOST $PPN2
-      mpiexec.hydra -f $PROCFILE -n $NPROCS \
-            /home/mike/gamess/gamess.$VERNO.x < /dev/null
+      mpirun -f $PROCFILE -np $NPROCS \
+            /opt/gamess/gamess.$VERNO.x < /dev/null
       unset echo
       breaksw
    case default:

@@ -58,9 +58,12 @@
 ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
 endif
+ifndef ROLLMPI
+  ROLLMPI = sockets
+endif
 empty:=
 space:=$(empty) $(empty)
-ROLLSUFFIX = _$(subst $(space),+,$(ROLLCOMPILER))
+ROLLSUFFIX = _$(subst $(space),+,$(ROLLCOMPILER))_$(subst $(space),+,$(ROLLMPI))
 
 -include $(ROLLSROOT)/etc/Rolls.mk
 
@@ -73,9 +76,12 @@ default:
 	  for c in $(ROLLCOMPILER); do \
 	    perl -pi -e 'print and s/ROLLCOMPILER/'$${c}'/g if m/ROLLCOMPILER/' $$o; \
 	  done; \
-	  perl -pi -e '$$_ = "" if m/ROLLCOMPILER/' $$o; \
+	  for m in $(ROLLMPI); do \
+	    perl -pi -e 'print and s/ROLLMPI/'$${m}'/g if m/ROLLMPI/' $$o; \
+	  done; \
+	  perl -pi -e '$$_ = "" if m/ROLL(COMPILER|MPI)/' $$o; \
 	done
-	$(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" roll
+	$(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" ROLLMPI="$(ROLLMPI)" roll
 
 clean::
 	rm -f _arch bootstrap.py
