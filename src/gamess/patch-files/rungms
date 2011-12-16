@@ -1055,7 +1055,7 @@ if ($TARGET == mpi) then
    #
    case hydra:
       set echo
-      mpirun -f $PROCFILE -np $NPROCS \
+      mpirun -np $NPROCS \
             /opt/gamess/gamess.$VERNO.x < /dev/null
       unset echo
       breaksw
