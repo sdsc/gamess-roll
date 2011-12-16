@@ -118,7 +118,9 @@ build:
 	  $(F90COMP) -o actvte.x actvte.f; \
 	  cd ../ddi; \
 	  ./compddi; \
-	  mv ddikick.x ..; \
+          if test $(ROLLMPI) = "sockets"; then \
+	      mv ddikick.x ..; \
+          fi; \
 	  cd ..; \
 	  ./compall; \
 	  ./lked \

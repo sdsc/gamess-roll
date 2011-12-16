@@ -1342,8 +1342,6 @@ if ($TARGET == mpi) then
    set nnodes=$nnodes[1]
    @ n=1
    set master=`hostname`
-           # burn off the .local suffix in our cluster's hostname
-   set master=$master:r
    while ($n <= $nnodes)
       set host=`sed -n -e "$n p" $HOSTFILE`
            # in case of openMPI, unwanted stuff may follow the hostname
