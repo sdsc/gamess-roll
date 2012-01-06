@@ -109,9 +109,7 @@ build:
 	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE)/install.info
 	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE)/lked
 	( \
-          echo "BEFORE"; \
  	  $(COMPILERSETUP); \
-          echo "AFTER"; \
 	  perl -pi -e 's!^(.*ROLL)!# $$1!m' $(SOURCE)/install.info; \
 	  perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' $(SOURCE)/rungms; \
 	  cd $(SOURCE)/tools; \
