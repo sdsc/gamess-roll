@@ -25,10 +25,17 @@ if test -f /etc/profile.d/gamess.sh; then
   if test `grep -c /opt/modulefiles/applications /etc/profile.d/modules.csh` = 0; then
     echo 'setenv MODULEPATH /opt/modulefiles/applications:$MODULEPATH' >> \
          /etc/profile.d/modules.csh
+    echo 'if ( -s ${HOME}/.modules ) then' >> /etc/profile.d/modules.csh
+    echo 'source ${HOME}/.modules' >> /etc/profile.d/modules.csh
+    echo 'endif' >> /etc/profile.d/modules.csh
+
   fi
   if test `grep -c /opt/modulefiles/applications /etc/profile.d/modules.sh` = 0; then
     echo 'export MODULEPATH=/opt/modulefiles/applications:$MODULEPATH' >> \
          /etc/profile.d/modules.sh
+    echo 'if test -f ${HOME}/.modules; then' >> /etc/profile.d/modules.sh
+    echo '. ${HOME}/.modules' >> /etc/profile.d/modules.sh
+    echo 'fi' >> /etc/profile.d/modules.sh
   fi
 
   /bin/mkdir -m 0755 -p /opt/modulefiles/applications/gamess
