@@ -56,6 +56,23 @@
 #
 if( -e /usr/local/bin/vsmpversion ) then
   set TARGET=mpi
+  setenv MKL_VSMP 1
+  setenv VSMP_PLACEMENT PACKED
+  setenv VSMP_VERBOSE YES
+  setenv VSMP_MEM_PIN YES
+# setenv ncpus `grep -wc processor /proc/cpuinfo`
+# setenv nboards `vsmpversion --boards`
+# setenv  cpuboards $(((`numactl --show|grep nodebind|wc -w` - 1)/2))
+# if [ $cpuboards -lt $nboards ]; then
+#       setenv  nboards $cpuboards
+# fi
+# if [ "_$nboards" = "_" ]; then
+        setenv nboards 1
+# fi
+# setenv cpusperboard $((ncpus/nboards))
+# setenv LD_PRELOAD $BASE/ddivsmp/libddivsmp.so
+# setenv LOCAL_NODE_SIZE $cpusperboard
+
 else
   set TARGET=sockets
 endif

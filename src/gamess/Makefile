@@ -103,10 +103,10 @@ build:
 	cp patch-files/lked $(SOURCE)
 	cp patch-files/rungms $(SOURCE)
 	if test $(ROLLMPI) -eq "vsmp"; then \
-	    mkdir ddivsmp; \
-	    cp patch-files/Makefile ddivsmp; \
-	    cp patch-files/ddivsmp.c ddivsmp; \
-	    cp patch-files/symver ddivsmp; \
+	    mkdir $(SOURCE)/ddivsmp; \
+	    cp patch-files/Makefile $(SOURCE)/ddivsmp; \
+	    cp patch-files/ddivsmp.c $(SOURCE)/ddivsmp; \
+	    cp patch-files/symver $(SOURCE)/ddivsmp; \
         fi
 	perl -pi -e 's!ROLL_FCC!$(F90COMP)!' $(SOURCE)/install.info
 	perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE)/install.info
@@ -119,8 +119,9 @@ build:
 	  perl -pi -e 's!^(.*ROLL)!# $$1!m' $(SOURCE)/install.info; \
 	  perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' $(SOURCE)/rungms; \
           if $(ROLLCOMPILER) = "vsmp"; then; \
-              cd ddivsmp; \
+              cd $(SOURCE)/ddivsmp; \
               make; \
+              cd  ../..; \
           fi; \
 	  cd $(SOURCE)/tools; \
 	  $(F90COMP) -o actvte.x actvte.f; \
@@ -143,7 +144,7 @@ install::
           fi; \
 	  cp gamess.00.x runall rungms *.DOC install.info \
 	     $(ROOT)/$(PKGROOT); \
-	  cp -r auxdata tests $(ROOT)/$(PKGROOT) \
+	  cp -r auxdata ddivsmp tests $(ROOT)/$(PKGROOT) \
 	)
 
 clean::
