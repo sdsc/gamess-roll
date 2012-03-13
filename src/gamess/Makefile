@@ -102,7 +102,7 @@ build:
 	cp patch-files/install.info $(SOURCE)
 	cp patch-files/lked $(SOURCE)
 	cp patch-files/rungms $(SOURCE)
-	if test $(ROLLMPI) -eq "vsmp"; then \
+	if test $(ROLLMPI) = "vsmp"; then \
 	    mkdir $(SOURCE)/ddivsmp; \
 	    cp patch-files/Makefile $(SOURCE)/ddivsmp; \
 	    cp patch-files/ddivsmp.c $(SOURCE)/ddivsmp; \
