@@ -118,7 +118,7 @@ build:
  	  $(COMPILERSETUP); \
 	  perl -pi -e 's!^(.*ROLL)!# $$1!m' $(SOURCE)/install.info; \
 	  perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' $(SOURCE)/rungms; \
-          if $(ROLLCOMPILER) = "vsmp"; then; \
+          if $(ROLLMPI) = "vsmp"; then; \
               cd $(SOURCE)/ddivsmp; \
               make; \
               cd  ../..; \
