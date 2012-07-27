@@ -144,7 +144,10 @@ install::
           fi; \
 	  cp gamess.00.x runall rungms *.DOC install.info \
 	     $(ROOT)/$(PKGROOT); \
-	  cp -r auxdata ddivsmp tests $(ROOT)/$(PKGROOT) \
+	  cp -r auxdata tests $(ROOT)/$(PKGROOT); \
+	  if test $(ROLLMPI) = "vsmp"; then \
+	    cp -r ddivsmp $(ROOT)/$(PKGROOT); \
+	  fi \
 	)
 
 clean::

@@ -16,17 +16,6 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 </changelog>
 
 <package>gamess_ROLLCOMPILER_ROLLMPI</package>
-
-<post>
-
-<file name="/etc/profile.d/gamess.csh" perms="0644">
-  set path = ( /opt/gamess $path )
-</file>
-
-<file name="/etc/profile.d/gamess.sh" perms="0644">
-  export PATH=/opt/gamess:$PATH
-</file>
-
-</post>
+<package>gamess-modules</package>
 
 </kickstart>

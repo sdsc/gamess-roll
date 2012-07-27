@@ -1,0 +1,2 @@
+#%Module1.0
+prepend-path PATH /opt/gamess

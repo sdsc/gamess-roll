@@ -58,7 +58,7 @@ if($appliance =~ /$installedOnAppliancesPattern/) {
 }
 SKIP: {
 
-  skip 'gamess roll not installed', 1 if ! $isInstalled;
+  skip 'gamess roll not installed', 4 if ! $isInstalled;
   print "Running gamess verification tests (takes ~6 minutes)\n";
   $output = `/bin/bash $TESTFILE >$TESTFILE.out 2>&1`;
   my $passed = `grep -c 'TERMINATED NORMALLY' $TESTFILE.out`;
@@ -67,28 +67,13 @@ SKIP: {
   chomp($total);
   ok($passed == $total, "test 100% pass rate $passed/$total");
 
-}
-
-# gamess-modules-common.xml
-SKIP: {
-
-  skip 'gamess not installed', 1 if ! $isInstalled;
-  my $modulesInstalled = -f '/etc/profile.d/modules.sh';
-  if($modulesInstalled) {
-    ok(! -f '/etc/profile.d/gamess.csh' &&
-       ! -f '/etc/profile.d/gamess.sh', 'gamess profile.d removed');
-    like($ENV{MODULEPATH}, qr#/opt/modulefiles/applications#,
-         'MODULEPATH set for applications');
-    `/bin/ls /opt/modulefiles/applications/gamess/[0-9]* 2>&1`;
-    ok($? == 0, 'gamess module installed');
-    `/bin/ls /opt/modulefiles/applications/gamess/.version.[0-9]* 2>&1`;
-    ok($? == 0, 'gamess version module installed');
-    ok(-l '/opt/modulefiles/applications/gamess/.version',
-       'gamess version module link created');
-  } else {
-    ok(-f '/etc/profile.d/gamess.csh' && -f '/etc/profile.d/gamess.sh',
-       'gamess profile.d installed');
-  }
+  skip 'modules not installed', 3 if ! -f '/etc/profile.d/modules.sh';
+  `/bin/ls /opt/modulefiles/applications/gamess/[0-9]* 2>&1`;
+  ok($? == 0, 'gamess module installed');
+  `/bin/ls /opt/modulefiles/applications/gamess/.version.[0-9]* 2>&1`;
+  ok($? == 0, 'gamess version module installed');
+  ok(-l '/opt/modulefiles/applications/gamess/.version',
+     'gamess version module link created');
 
 }
 
