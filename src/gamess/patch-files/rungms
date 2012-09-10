@@ -102,7 +102,7 @@ if ($SCHED == PBS) then
    if (`/sbin/ifconfig|grep -c ib0` != 0 && $TARGET == sockets ) then
       cat /dev/null > .nodes
       set hostnames=(`cat $PBS_NODEFILE`)
-      set current_test = "_foo_"
+      set current_host = "_foo_"
       foreach host ($hostnames)
          if ( $current_host != $host) then
             set address = (`ssh $host /sbin/ifconfig | awk 'BEGIN{foundib=0} { if ( $1 ~ /ib0/ ) { foundib=1; next } } { if (foundib == 1 ) { split($2,array,":");foundib = 0 } } END {print array[2]}'`)
