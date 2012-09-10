@@ -3,6 +3,7 @@
 #   generated on triton-47.sdsc.edu
 #   generated at Tue Sep  7 12:05:59 PDT 2010
 setenv GMS_PATH            ROLL_GAMESSROOT
+setenv GMS_BUILD_DIR       ROLL_BUILDPATH
 #         machine type
 setenv GMS_TARGET          linux64
 #         FORTRAN compiler setup

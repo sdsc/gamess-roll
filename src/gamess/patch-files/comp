@@ -1,6 +1,6 @@
 #!/bin/csh -f
 #
-#  11 August 11 - script to compile one GAMESS source file
+#  20 March 12 - script to compile one GAMESS source file
 #  Invoke this script by './comp MODULE >& MODULE.log &'.
 #
 #  This script no longer requires customization, as it starts off by
@@ -19,8 +19,8 @@ endif
 #  and possibly several other GMS_XXX values that may be used below.
 #
 set TARGET=$GMS_TARGET
-chdir $GMS_PATH
-#
+#chdir $GMS_PATH
+chdir $GMS_BUILD_DIR/object
 #        allow for "dry run" that doesn't actually do anything
 #
 if ($?GMS_COMP_DRYRUN) then
@@ -86,6 +86,7 @@ if ($TARGET == sun32)      set OK=true
 if ($TARGET == sun64)      set OK=true
 if ($TARGET == win32)      set OK=true
 if ($TARGET == win64)      set OK=true
+if ($TARGET == winazure)   set OK=true
 if ($OK == false) then
    echo The comp script does not select a correct TARGET machine type.
    echo What you typed when editing this script was $TARGET
@@ -135,26 +136,39 @@ if  ($TARGET == sgi64)        set BLAS3=true
 if (($TARGET == sun32) && (-e /opt/SUNWspro/lib/libsunperf.so)) set BLAS3=true
 if (($TARGET == sun64) && (-e /opt/SUNWspro/lib/libsunperf.so)) set BLAS3=true
 if  ($TARGET == win32) then
-   if (-e $PGI\\win32\\11.7\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win32\\11.6\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win32\\11.1\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win32\\11.0\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win32\\10.8\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win32\\10.6\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win32\\10.4\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win32\\10.3\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win32\\10.2\\lib\\libblas.lib) set BLAS3=true
+   switch ($GMS_FORTRAN) 
+       case pgfortran:
+         if ($GMS_MATHLIB == blas ) then
+           if (-e $PGI\\win32\\12.4\\lib\\libblas.lib) set BLAS3=true
+         endif
+         if ($GMS_MATHLIB == acml ) then
+           if (-e $PGI\\win32\\12.4\\lib\\libacml.lib) set BLAS3=true
+         endif
+         breaksw
+       case ifort:
+         if ($GMS_MATHLIB == mkl) then
+           set BLAS3=true
+         endif
+         breaksw
+   endsw
 endif
-if  ($TARGET == win64) then
-   if (-e $PGI\\win64\\11.7\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win64\\11.6\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win64\\11.1\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win64\\11.0\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win64\\10.8\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win64\\10.6\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win64\\10.4\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win64\\10.3\\lib\\libblas.lib) set BLAS3=true
-   if (-e $PGI\\win64\\10.2\\lib\\libblas.lib) set BLAS3=true
+if  (($TARGET == win64) || ($TARGET == winazure)) then
+   switch ($GMS_FORTRAN) 
+       case pgfortran:
+         if ($GMS_MATHLIB == blas ) then
+           if (-e $PGI\\win64\\12.4\\lib\\libblas.lib) set BLAS3=true
+         endif
+         if ($GMS_MATHLIB == acml ) then
+           if (-e $PGI\\win64\\12.4\\lib\\libacml.lib) set BLAS3=true
+         endif
+         breaksw
+       case ifort:
+         if ($GMS_MATHLIB == mkl) then 
+            set BLAS3=true
+            echo "Using Intel's blas library for BLAS3"
+         endif
+         breaksw
+   endsw
 endif
 #
 if ($BLAS3 == true) then
@@ -179,19 +193,19 @@ endif
 #        and these are always deleted at the end of this script.
 #        These places are vector, valence bond, and sed hacking.
 #
-set SRCDIR=source
-set OBJDIR=object
+set SRCDIR=$GMS_PATH/source
+set OBJDIR=$GMS_BUILD_DIR/object
 #
 #        a few source files are kept in non-standard places, defined here
-#        there is a secret option to store code other than in 'source'.
 #
-if ($MODULE == blaswrap) set SRCDIR=misc
-if ($MODULE == serial)   set SRCDIR=misc
-if ($MODULE == ddi)      set SRCDIR=ddi/oldddi/v1
-if ($MODULE == ddishm)   set SRCDIR=ddi/oldddi/shmem
-if ($MODULE == ddit3e)   set SRCDIR=ddi/oldddi/shmem
-if ($MODULE == ddio3k)   set SRCDIR=ddi/oldddi/shmem
-if ($MODULE == ddixt3)   set SRCDIR=ddi/oldddi/shmem
+if ($MODULE == blaswrap) set SRCDIR=$GMS_PATH/misc
+if ($MODULE == serial)   set SRCDIR=$GMS_PATH/misc
+if ($MODULE == vbdum)    set SRCDIR=$GMS_PATH/misc
+if ($MODULE == ddi)      set SRCDIR=$GMS_PATH/ddi/olddi/v1
+if ($MODULE == ddishm)   set SRCDIR=$GMS_PATH/ddi/olddi/shmem
+if ($MODULE == ddit3e)   set SRCDIR=$GMS_PATH/ddi/olddi/shmem
+if ($MODULE == ddio3k)   set SRCDIR=$GMS_PATH/ddi/olddi/shmem
+if ($MODULE == ddixt3)   set SRCDIR=$GMS_PATH/ddi/olddi/shmem
 if ($?GMS_OTHER_SRCDIR) then
     set SRCDIR=$GMS_OTHER_SRCDIR
 endif
@@ -306,29 +320,28 @@ if ($MODULE == Toys)    set TINKCODE=yes
 #       so that its INCLUDE statements will work.
 #       Note that Tinker must also skip the code deletion at end!
 if ($TINKCODE == yes) then
-   chdir tinker
-   set SRCDIR=.
-   set OBJDIR=../object
+   chdir $GMS_PATH/tinker
+   set SRCDIR=$GMS_PATH/tinker
    goto cmp
 endif
 #
-#        optional Valence Band method using VB2000
-#        Do Not Edit the "VB2000" value,
-#        but you may need to edit the variable VBPATH just below.
+#        Valence Bond method using VB2000
+#             Do not edit here
+#             == === ==== ====
+#        If VB2000 is required, edit compall and lked, but not this file!
 set VB2000=false
 if ($MODULE == vb2000) set VB2000=true
 if ($MODULE == vb2gms) set VB2000=true
 #        compiling in the top level directory means code is erased later
 if ($VB2000 == true ) then
-   set VBPATH=~/VB2000/SRC
+   set VBPATH=$GMS_PATH/vb2000/SRC
    echo Copying $MODULE.src from VB2000 directory named $VBPATH
-   set SRCDIR=.
    if ($MODULE == vb2000) then
 #        Some messy sed stuff to set up.
       sed "s/^CTMAP/     /g" $VBPATH/vb2000.src | \
-      sed "s/^CGMS/    /g"  > vb2000.src
+      sed "s/^CGMS/    /g"  > $SRCDIR/vb2000.src
    endif
-   if ($MODULE == vb2gms) cp $VBPATH/vb2gms.src .
+   if ($MODULE == vb2gms) cp $VBPATH/vb2gms.src $SRCDIR/vb2gms.src
 endif
 #
 #        Nuclear Electronic Orbital (NEO) method plugin
@@ -339,7 +352,7 @@ endif
 set NEOCMP=false
 if ($MODULE =~ neo*)   set NEOCMP=true
 if ($MODULE == neostb) set NEOCMP=false
-if ($NEOCMP == true && $ACTONLY != true) set SRCDIR=qmnuc/neo
+if ($NEOCMP == true && $ACTONLY != true) set SRCDIR=$GMS_PATH/qmnuc/neo
 #
 #   ----- Does this module need to be activated? -----
 #
@@ -581,12 +594,12 @@ if ($TARGET == win32) then
    if ($MODULE == unport) setenv MACHIN '*W32'
 endif
 #
-if ($TARGET == win64) then
+if (($TARGET == win64) || ($TARGET == winazure)) then
                           setenv MACHIN '*I64'
    if ($MODULE == iolib)  setenv MACHIN '*UNX'
    if ($MODULE == unport) then
      if ($GMS_FORTRAN == ifort) then
-       setenv MACHIN '*INT'
+       setenv MACHIN '*I64'
      else
        setenv MACHIN '*W64'
      endif
@@ -595,7 +608,7 @@ endif
 #
 #  Check to see if the configuration step has built actvte.x
 #
-if (!(-x tools/actvte.x)) then
+if (!(-x $GMS_BUILD_DIR/tools/actvte.x)) then
    echo "Something went wrong with 'config', so that the source code"
    echo "activation program was not correctly compiled.  Please repeat"
    echo "the 'config' step, so that tools/actvte.x is created."
@@ -610,8 +623,14 @@ endif
 #
 echo "Activating $SRCDIR/$MODULE.src to create $MODULE.f for target $TARGET..."
 #
-setenv   SRCIN $SRCDIR/$MODULE.src
+if (($TARGET == win32) || ($TARGET == win64) || ($TARGET == winazure)) then
+  setenv   SRCIN c:/cygwin/$SRCDIR/$MODULE.src
+  rm -f $MODULE.f
+else
+  setenv   SRCIN $SRCDIR/$MODULE.src
+endif
 setenv CODEOUT $MODULE.f
+if (-e $MODULE.f) rm -f $MODULE.f
 switch ($TARGET)
    case ibm64-sp:
    case ibm-bg:
@@ -619,7 +638,7 @@ switch ($TARGET)
       sed -e "s/^$MACHIN/    /" $SRCIN > $CODEOUT
       breaksw
    default:
-      tools/actvte.x
+      $GMS_BUILD_DIR/tools/actvte.x > /dev/null
       breaksw
 endsw
 unsetenv SRCIN
@@ -683,9 +702,27 @@ endif
 #   There is a special wrapper file gamess/misc/blaswrap.src that deals
 #   with this problem, if we change the source to call the wrappers.
 #
-if (($TARGET == fuji-pp64) || ($TARGET == ibm64) || ($TARGET == ibm64-sp) || \
-    ($TARGET == mac64)     || ($TARGET == sgi64) || ($TARGET == sun64)) then
+set mathhack=false
+if ($TARGET == fuji-pp64) set mathhack=true
+if ($TARGET == ibm64)     set mathhack=true
+if ($TARGET == ibm64-sp)  set mathhack=true
+if ($TARGET == mac64) then
+   switch ($GMS_MAC_OSX_VERNO)
+      case 10.4:
+      case 10.5:
+         set mathhack=true
+         breaksw
+      case 10.7:
+      case 10.6:
+      default:
+         set mathhack=false
+         breaksw
+   endsw
+endif
+if ($TARGET == sgi64)     set mathhack=true
+if ($TARGET == sun64)     set mathhack=true
 #
+if ($mathhack == true) then
    set par="("
    switch ($MODULE)
 #
@@ -806,7 +843,7 @@ if (($GMS_DDI_COMM == mpi) || ($GMS_DDI_COMM == mixed)) then
         breaksw
      case mpich2:
         set FGEhack=false
-        if (($TARGET == win32) || ($TARGET == win64)) set FGEhack=true
+        if (($TARGET == win32) || ($TARGET == win64) || ($TARGET == winazure)) set FGEhack=true
         breaksw
      case msmpi:
         set FGEhack=true
@@ -888,6 +925,26 @@ if ($TINKER == true) then
    endif
 endif
 #
+#          Windows 64-Bit Timer hack 
+#
+if (($MODULE == unport) && ($TARGET == win64)) then
+  if($GMS_FORTRAN == pgfortran) then
+     mv -f unport.f unport.junk
+     sed -e "s/\*64W/    /" unport.junk > unport.f
+     rm -f unport.junk
+   endif
+  if($GMS_FORTRAN == ifort) then
+     mv -f unport.f unport.junk
+     sed -e "s/\*64I/    /" unport.junk > unport.f
+     rm -f unport.junk
+   endif
+endif
+if (($MODULE == unport) && ($TARGET == winazure)) then
+  mv -f unport.f unport.junk
+  sed -e "s/\*WAZ/    /" unport.junk > unport.f
+  rm -f unport.junk
+endif
+#
 #   ...and this is the end of the ugly "sed hack"s.
 #
 #   --------- Now we are ready to compile on the target machine ----------
@@ -898,7 +955,9 @@ cmp:
 #   syntax scan by the nifty FORTRAN analysis program FTNCHEK.
 #
 if ($ACTONLY == true) then
-   mv -f $MODULE.f ~/scr
+#AAD since we operate within OBJDIR, the following is not required
+   #mv -f $MODULE.f ~/scr
+   if ($VB2000 == true) rm -f ../source/$MODULE.src
    exit
 endif
 #
@@ -939,7 +998,7 @@ if (-e $OBJDIR/$MODULE.o) rm -f $OBJDIR/$MODULE.o
 #  Under AXP Linux, it has a different name, but is the same great compiler.
 #
 if ($TARGET == axp64) then
-                         set FORT='f77'
+                         set FORT='f90'
    if (`uname` == Linux) set FORT='fort'
    set OPT = '-O4'
    if ($MODULE == zheev) set OPT='-O0'
@@ -1154,7 +1213,7 @@ if ($TARGET == cray-xt) then
       if ($MODULE == tdxitr) set OPT='-O1' # 10.0, exam39
       if ($MODULE == zheev)  set OPT='-O0' # defensive compiling
       if ($MODULE == prppop) set OPT='-O0' # defensive compiling
-      set BASE   = "-i8 -auto -ftz -assume byterecl"
+      set BASE   = "-i8 -auto -ftz -assume byterecl -w95 -cm"
       set INFO   = "-opt-report -vec-report3"
       set INFO   = " "
       set XT_OPT = "-xSSE4.2"
@@ -1390,27 +1449,10 @@ if ($TARGET == ibm-bg) then
       set ARCH='450d'
       set TUNE='450'
    endif
-   set OPT='-O3'
-   if ($MODULE == grd2b)  set OPT='-O3 -qspillsize=1500'
-   if ($MODULE == gugdm)  set OPT='-O2'
-   if ($MODULE == gugem)  set OPT='-O2'
-   if ($MODULE == qrel)   set OPT='-O2'
-   if ($MODULE == trnstn) set OPT='-O2'
-   if ($MODULE == ormas1) set OPT='-O2'
+   set OPT='-O2 -qstrict'
+   if ($MODULE == grd2b)  set OPT='-O2 -qstrict -qspillsize=1500'
    if ($MODULE == prpel)  set OPT='-O0'  # Graham, 2010, for the P
-   if ($MODULE == zheev)  set OPT='-O0'
-   if ($MODULE == qeigen) set OPT="-O3 -qstrict"
-   if ($MODULE == fmoint) set OPT="-O3 -qstrict"
-#        higher optimization for selected modules
-   if ($MODULE == scflib) set OPT="-O3 -qhot"
-   if ($MODULE == int2a)  set OPT="-O3 -qhot"
-   if ($MODULE == int2b)  set OPT="-O3 -qhot"
-   if ($MODULE == int2r)  set OPT="-O3 -qhot"
-   if ($MODULE == grd2a)  set OPT="-O3 -qhot"
-   if ($MODULE == grd2b)  set OPT="-O3 -qhot"
-   if ($MODULE == grd2c)  set OPT="-O3 -qhot"
-   if ($MODULE == mp2ddi) set OPT="-O3 -qhot"
-   if ($MODULE == rhfuhf) set OPT="-O3 -qhot"
+   if ($MODULE == zheev)  set OPT='-O0'  # the usual "defensive compiling"
    set echo
    $FORT -c $OPT -qarch=$ARCH -qtune=$TUNE \
          -qflag=W:W -qhalt=W -qmaxmem=-1  -qnosave $MODULE.f
@@ -1507,8 +1549,8 @@ if ($TARGET == linux32) then
    set EXTRAOPT=" "
    if ($GMS_IFORT_VERNO >=  8) set EXTRAOPT="$EXTRAOPT -assume byterecl"
    if ($GMS_IFORT_VERNO >= 10) set EXTRAOPT="$EXTRAOPT -vec-report0"
-   if ($GMS_IFORT_VERNO  < 12) set EXTRAOPT="$EXTRAOPT"
-   if ($GMS_IFORT_VERNO >= 12) set EXTRAOPT="$EXTRAOPT -warn nousage"
+   if ($GMS_IFORT_VERNO  < 12) set EXTRAOPT="$EXTRAOPT -w95 -cm"
+   if ($GMS_IFORT_VERNO >= 12) set EXTRAOPT="$EXTRAOPT -warn nousage -inline-level=0"
    set echo
    ifort -c -i4 $OPT -ftz -auto $EXTRAOPT $MODULE.f
    unset echo
@@ -1523,6 +1565,7 @@ if ($TARGET == linux32) then
 #    exam19 may hang when using this compiler.  -Mlfs at link-time
 #    enables large file support.
 #
+   case pgfortran:
    case pgf77:
    if (($MODULE == qfmm) || ($MODULE =~ so*) || ($MODULE == zheev)) then
        mv -f $MODULE.f $MODULE.junk
@@ -1540,7 +1583,7 @@ if ($TARGET == linux32) then
    if ($MODULE == zheev)  set OPT = '-O2 -Kieee'
    if ($MODULE == bassto) set OPT = '-O0'  # Takako
    set echo
-   pgf77 -c $OPT -Msecond_underscore $MODULE.f
+   $GMS_FORTRAN -c $OPT -Msecond_underscore $MODULE.f
    unset echo
    breaksw
 #
@@ -1617,18 +1660,40 @@ if ($TARGET == linux64) then
    case gfortran:
 #           -finit-real=<zero|inf|-inf|nan>  could be interesting debug opt
 #           -fno-automatic forces static storage of all local variables
-      set OPT='-O2'
+#           -fno-whole-file suppresses argument's data type checking
+      set OPT='-O2 -mavx'
       if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
-      if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
-      if (($MODULE == qeigen) || ($MODULE == int2c)) then
-         mv -f $MODULE.f $MODULE.junk
-         sed -e "s/Q-/D-/g" \
-             -e "s/Q+00/D+00/g" \
-             -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
-         rm -f $MODULE.junk
+      if ($GMS_GFORTRAN_VERNO == 4.6) then
+         if ($MODULE == tddgrd) set OPT='-O0'   # this issue seen in 4.6.1
       endif
+      if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
+#        as of 4.6 tested in late 2011, gfortran can do q.p.!
+      switch ($GMS_GFORTRAN_VERNO)
+         case 4.0:
+         case 4.1:
+         case 4.2:
+         case 4.3:
+         case 4.4:
+         case 4.5:
+            set extraflags=''
+            if (($MODULE == qeigen) || ($MODULE == int2c)) then
+               mv -f $MODULE.f $MODULE.junk
+               sed -e "s/Q-/D-/g" \
+                   -e "s/Q+00/D+00/g" \
+                   -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+               rm -f $MODULE.junk
+            endif
+            breaksw
+         case 4.6:
+            set extraflags='-fno-whole-file'
+            breaksw
+         default:
+            echo Unrecognized gfortran version
+            exit 4
+            breaksw
+      endsw
       set echo
-      gfortran -c -fdefault-integer-8 $OPT -std=legacy $MODULE.f
+      gfortran -c -fdefault-integer-8 $OPT -std=legacy $extraflags $MODULE.f
       unset echo
       breaksw
 
@@ -1648,7 +1713,7 @@ if ($TARGET == linux64) then
 #     -WB means warn but don't fail on out-of-bounds array references
 #     -ftz flushes underflow results to zero
 #
-      set OPT = '-O2'
+      set OPT = '-O2 -xHost'
       if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
 #       alas, I'm so tired of hearing about so many versions failing to
 #       diagonalize, that this time critical code is run w/o optimization.
@@ -1660,7 +1725,7 @@ if ($TARGET == linux64) then
       if ($MODULE == morokm) set OPT='-O0' # Jan Fredin
       if ($MODULE == prpel)  set OPT='-O1' # 10.0, exam13
       if (($MODULE == rohfcc) && ($GMS_IFORT_VERNO == 12)) \
-                             set OPT='-O1' # 12.0.1, exam42 (op.shell CC)
+                             set OPT='-O0' # exam42+exam47 (op.sh.CC,IP-EOM)
       if ($MODULE == tdxitr) set OPT='-O1' # 10.0, exam39
       if ($MODULE == vscf)   set OPT='-O0' # intensities for combinations
       if ($MODULE == zheev)  set OPT='-O0' # defensive compiling
@@ -1668,13 +1733,14 @@ if ($TARGET == linux64) then
       set EXTRAOPT=" "
       if ($GMS_IFORT_VERNO >=  8) set EXTRAOPT="$EXTRAOPT -assume byterecl"
       if ($GMS_IFORT_VERNO >= 10) set EXTRAOPT="$EXTRAOPT -vec-report0"
-      if ($GMS_IFORT_VERNO  < 12) set EXTRAOPT="$EXTRAOPT"
-      if ($GMS_IFORT_VERNO >= 12) set EXTRAOPT="$EXTRAOPT -warn nousage"
+      if ($GMS_IFORT_VERNO  < 12) set EXTRAOPT="$EXTRAOPT -w95 -cm"
+      if ($GMS_IFORT_VERNO >= 12) set EXTRAOPT="$EXTRAOPT -warn nousage -inline-level=0"
       set echo
       ifort -c -i8 $OPT -ftz -auto $EXTRAOPT $MODULE.f
       unset echo
       breaksw
 
+   case pgfortran:
    case pgf77:
       if (($MODULE == qeigen) || ($MODULE == int2c)) then
          mv -f $MODULE.f $MODULE.junk
@@ -1683,17 +1749,49 @@ if ($TARGET == linux64) then
              -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
          rm -f $MODULE.junk
       endif
-      set OPT = '-fastsse -Mipa=fast,safe -Mprof=func'
-      if ($MODULE == int2b)  set OPT = "$OPT -Mnounroll"
-      if ($MODULE == mcpgrd) set OPT = '-O1'
-      if ($MODULE == mpcdat) set OPT = '-Mprof=func -O0'
-      if ($MODULE == mpcgrd) set OPT = '-Mprof=func -O0'
-      if ($MODULE == mpcint) set OPT = '-Mprof=func -O0'
-      if ($MODULE == mpcmol) set OPT = '-Mprof=func -O0'
-      if ($MODULE == mpcmsc) set OPT = '-Mprof=func -O0'
-      if ($MODULE == zheev)  set OPT = '-Mprof=func -O0' # defensive compiling
+      if ($GMS_L64_OPT == testing) then
+        set OPT = "$GMS_PGI_OPT $GMS_IPA_OPT"
+        if ($MODULE == efelec) set OPT=$GMS_PGI_OPT
+        if ($MODULE == efmo)   set OPT=$GMS_PGI_OPT
+        if ($MODULE == gradex) set OPT=$GMS_PGI_OPT
+        if ($MODULE == grd1)   set OPT=$GMS_PGI_OPT
+        if ($MODULE == int2b)  set OPT="$OPT -Mnounroll"
+        if ($MODULE == int2r)  set OPT=$GMS_PGI_OPT
+        if ($MODULE == mcpgrd) set OPT='-O1'
+        if ($MODULE == mnsol)  set OPT=$GMS_PGI_OPT
+        if ($MODULE =~ mpc*)   set OPT='-O0'
+        if ($MODULE == mthlib) set OPT=$GMS_PGI_OPT
+        if ($MODULE == ormas1) set OPT=$GMS_PGI_OPT
+        if ($MODULE == prppop) set OPT=$GMS_PGI_OPT
+        if ($MODULE == rxncrd) set OPT=$GMS_PGI_OPT
+        if ($MODULE == solib)  set OPT=$GMS_PGI_OPT
+        if ($MODULE == statpt) set OPT=$GMS_PGI_OPT
+        if ($MODULE == tddefp) set OPT=$GMS_PGI_OPT
+        if ($MODULE == trnstn) set OPT=$GMS_PGI_OPT
+        if ($MODULE == zheev)  set OPT='-O0'
+      else
+        set OPT = '-fastsse -Mipa=fast,safe'
+        if ($MODULE == efelec) set OPT='-fastsse'
+        if ($MODULE == efmo)   set OPT='-fastsse'
+        if ($MODULE == gradex) set OPT='-fastsse'
+        if ($MODULE == grd1)   set OPT='-fastsse'
+        if ($MODULE == int2b)  set OPT="$OPT -Mnounroll"
+        if ($MODULE == int2r)  set OPT='-fastsse'
+        if ($MODULE == mcpgrd) set OPT='-O1'
+        if ($MODULE == mnsol)  set OPT='-fastsse'
+        if ($MODULE =~ mpc*)   set OPT='-O0'
+        if ($MODULE == mthlib) set OPT='-fastsse'
+        if ($MODULE == ormas1) set OPT='-fastsse'
+        if ($MODULE == prppop) set OPT='-fastsse'
+        if ($MODULE == rxncrd) set OPT='-fastsse'
+        if ($MODULE == solib)  set OPT='-fastsse'
+        if ($MODULE == statpt) set OPT='-fastsse'
+        if ($MODULE == tddefp) set OPT='-fastsse'
+        if ($MODULE == trnstn) set OPT='-fastsse'
+        if ($MODULE == zheev)  set OPT='-O0'
+      endif
       set echo
-      pgf77 -c -i8 -i8storage -mcmodel=medium $OPT $MODULE.f
+      $GMS_FORTRAN $GMS_LIN_FLAGS -c -i8 -i8storage -mcmodel=medium $OPT $MODULE.f
       unset echo
       breaksw
 #
@@ -1806,16 +1904,37 @@ endif
 #
 if ($TARGET == mac64) then
    set OPT='-O2'
-   if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
-   if (($MODULE == qeigen) || ($MODULE == int2c)) then
-      mv -f $MODULE.f $MODULE.junk
-      sed -e "s/Q-/D-/g" \
-          -e "s/Q+00/D+00/g" \
-          -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
-      rm -f $MODULE.junk
+   if ($GMS_GFORTRAN_VERNO == 4.6) then
+      if ($MODULE == tddgrd) set OPT='-O0'   # this issue seen in 4.6.1
    endif
+   if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
+#        as of 4.6 tested in late 2011, gfortran can do q.p.!
+   switch ($GMS_GFORTRAN_VERNO)
+      case 4.0:
+      case 4.1:
+      case 4.2:
+      case 4.3:
+      case 4.4:
+      case 4.5:
+         set extraflags=''
+         if (($MODULE == qeigen) || ($MODULE == int2c)) then
+            mv -f $MODULE.f $MODULE.junk
+            sed -e "s/Q-/D-/g" \
+                -e "s/Q+00/D+00/g" \
+                -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
+            rm -f $MODULE.junk
+         endif
+         breaksw
+      case 4.6:
+         set extraflags='-fno-whole-file'
+         breaksw
+      default:
+         echo Unrecognized gfortran version
+         exit 4
+         breaksw
+   endsw
    set echo
-   gfortran -c -m64 -fdefault-integer-8 $OPT -std=legacy $MODULE.f
+   gfortran -c -m64 -fdefault-integer-8 $OPT -std=legacy $extraflags $MODULE.f
    unset echo
 endif
 #
@@ -2023,7 +2142,8 @@ endif
 #   ------ Windows on 32 bit chips ------
 #
 if ($TARGET == win32) then
-    switch ($GMS_FORTRAN)
+   set OPT=''
+   switch ($GMS_FORTRAN)
 #
 #    1. Portland Group (PGI) Compiler
 #
@@ -2032,7 +2152,7 @@ if ($TARGET == win32) then
 #    seems to be the source of several incorrect results.  It is said that
 #    "-Munroll" and "-tp p6" gives no significant improvement in run times.
 #
-   case pgf77:
+   case pgfortran:
    if (($MODULE == qfmm) || ($MODULE == solib) || ($MODULE == zheev)) then
        mv -f $MODULE.f $MODULE.junk
        sed -e s/DREAL/DBLE/g $MODULE.junk > $MODULE.f
@@ -2045,36 +2165,28 @@ if ($TARGET == win32) then
           -e "s/REAL\*16/DOUBLE PRECISION/" $MODULE.junk > $MODULE.f
       rm -f $MODULE.junk
    endif
-   if ($GMS_WIN_OPT == baseline) then
-     set OPT = '-O0'
-     if ($MODULE == zheev)  set OPT = "$OPT -Kieee"
-   endif
-   if ($GMS_WIN_OPT == linux) then
-     set OPT = '-O2'
-     if ($MODULE == zheev)  set OPT = '-Kieee'
-     if ($MODULE == bassto) set OPT = '-O0'
-   endif
+   if ($GMS_WIN_OPT == baseline)     set OPT='-O0'
+   if ($GMS_WIN_OPT == linux)        set OPT='-O2'
+   if ($GMS_WIN_OPT == samara)       set OPT='-O3'
    if ($GMS_WIN_OPT == fast) then
-     set OPT = '-fast -Mipa=fast,safe'
-     if ($MODULE == zheev)  set OPT = '-Kieee'
-     if ($MODULE == bassto) set OPT = '-O0'
-     if ($MODULE == fmo)    set OPT = '-fast'
+                                     set OPT='-fastsse -Mipa=fast,inline,safe'
+     if ($MODULE == fmo)             set OPT='-fastsse'
    endif
    if ($GMS_WIN_OPT == testing) then
-     set OPT = '-fast -Mipa=fast,safe'
-     if ($MODULE == zheev)  set OPT = "-Kieee $GMS_WIN_FLAGS"
-     if ($MODULE == bassto) set OPT = "-O0 $GMS_WIN_FLAGS"
-     if ($MODULE == fmo)    set OPT = "-fast $GMS_WIN_FLAGS"
+                                     set OPT="$GMS_PGI_OPT $GMS_IPA_OPT"
+     if ($MODULE == fmo)             set OPT=$GMS_PGI_OPT
    endif
+   if ($MODULE == bassto)            set OPT="-O0"
+   if ($MODULE == zheev)             set OPT="-Kieee"
 #
 #  For more detailed information as to which flags are being used
 #  by the compiler during the build - uncomment the line below.
 #
-#  set OPT = "$OPT -v"
+#  set OPT="$OPT -v"
 #
    set echo
-   pgf77 -c -Msecond_underscore -Munix -Bstatic $OPT $GMS_WIN_TP \
-         -o $MODULE.o $MODULE.f
+   $GMS_FORTRAN $GMS_WIN_FLAGS -c -Msecond_underscore -Munix -Bstatic $OPT $GMS_WIN_TP \
+                -o $MODULE.o $MODULE.f
    unset echo
    breaksw
 #
@@ -2088,9 +2200,45 @@ endif
 #
 #   ------ Windows on 64 bit chips ------
 #
-if ($TARGET == win64) then
+if (($TARGET == win64) || ($TARGET == winazure)) then
+   set OPT=''
    switch ($GMS_FORTRAN)
-   case pgf77:
+   case ifort:
+      if ($GMS_WIN_OPT == linux)    set OPT='-O2'
+      if ($GMS_WIN_OPT == samara)   set OPT='-O3'
+      if ($GMS_WIN_OPT == fast)     set OPT='-fast'
+      if ($GMS_WIN_OPT == testing)  set OPT="$GMS_INT_OPT $GMS_IPO_OPT"
+#
+#   We carry over special compilar optimization cases from Linux when
+#   using the Intel compiler (just to be cautious)
+#
+#   Very many (all?) ifort versions have problems with eigen.src.
+#
+      if ($MODULE == eigen)  set OPT='-Od' # read note just above.
+      if ($MODULE == fmo)    set OPT='-O1' # 12.0.4, exam37
+      if ($MODULE == guess)  set OPT='-Od' # 10.0, exam39
+      if ($MODULE == locpol) set OPT='-O1' # 10.0, makefp/gmres
+      if ($MODULE == morokm) set OPT='-Od' # Jan Fredin
+      if ($MODULE == prpel)  set OPT='-O1' # 10.0, exam13
+      if (($MODULE == rohfcc) && ($GMS_IFORT_VERNO == 12)) \
+                             set OPT='-O0' # exam42+exam47 (op.sh.CC,IP-EOM)
+      if ($MODULE == tdxitr) set OPT='-O1' # 10.0, exam39
+      if ($MODULE == vscf)   set OPT='-Od' # intensities for combinations
+      if ($MODULE == zheev)  set OPT='-Od' # defensive compiling
+#
+#   We move the 'baseline' to the bottom in order to override -O1 in the above list
+#
+      if ($GMS_WIN_OPT == baseline) set OPT='-Od'
+      set EXTRAOPT=''
+      if ($GMS_IFORT_VERNO >=  8) set EXTRAOPT="$EXTRAOPT -assume:byterecl"
+      if ($GMS_IFORT_VERNO >= 10) set EXTRAOPT="$EXTRAOPT -Qvec-report0"
+      if ($GMS_IFORT_VERNO >= 12) set EXTRAOPT="$EXTRAOPT -warn:nousage"
+      set echo
+      ifort $GMS_WIN_TP -c -integer-size:64 -Qzero -Qftz $OPT -auto $EXTRAOPT $GMS_WIN_FLAGS $MODULE.f
+      unset echo
+      if (-e $MODULE.obj) mv -v $MODULE.obj $MODULE.o # needed for ifort on Windows
+      breaksw
+   case pgfortran:
       if (($MODULE == qeigen) || ($MODULE == int2c)) then
          mv -f $MODULE.f $MODULE.junk
          sed -e "s/Q-/D-/g" \
@@ -2099,37 +2247,115 @@ if ($TARGET == win64) then
          rm -f $MODULE.junk
       endif
       if ($GMS_WIN_OPT == baseline) then
-        set OPT = '-O0'
+        set OPT='-O0'
       endif
       if ($GMS_WIN_OPT == linux) then
-        set OPT = '-fastsse -Mipa=fast,safe -Mprof=func'
-        if ($MODULE == int2b)  set OPT = "$OPT -Mnounroll"
-        if ($MODULE == mcpgrd) set OPT = '-O1'
-        if ($MODULE =~ mpc*)   set OPT = '-Mprof=func -O0'
-        if ($MODULE == zheev)  set OPT = '-Mprof=func -O0'
+        set OPT='-fastsse -Mipa=fast,safe'
+        if ($MODULE == efelec) set OPT='-fastsse'
+        if ($MODULE == efmo)   set OPT='-fastsse'
+        if ($MODULE == gradex) set OPT='-fastsse'
+        if ($MODULE == grd1)   set OPT='-fastsse'
+        if ($MODULE == int2b)  set OPT="$OPT -Mnounroll"
+        if ($MODULE == int2r)  set OPT='-fastsse'
+        if ($MODULE == mcpgrd) set OPT='-O1'
+        if ($MODULE == mnsol)  set OPT='-fastsse'
+        if ($MODULE =~ mpc*)   set OPT='-O0'
+        if ($MODULE == mthlib) set OPT='-fastsse'
+        if ($MODULE == ormas1) set OPT='-fastsse'
+        if ($MODULE == prppop) set OPT='-fastsse'
+        if ($MODULE == rxncrd) set OPT='-fastsse'
+        if ($MODULE == solib)  set OPT='-fastsse'
+        if ($MODULE == statpt) set OPT='-fastsse'
+        if ($MODULE == tddefp) set OPT='-fastsse'
+        if ($MODULE == trnstn) set OPT='-fastsse'
+        if ($MODULE == zheev)  set OPT='-O0'
+      endif
+      if ($GMS_WIN_OPT == samara) then
+        set OPT='-O3 -Mipa=fast,safe'
+        if ($MODULE == efelec) set OPT='-O3'
+        if ($MODULE == efmo)   set OPT='-O3'
+        if ($MODULE == gradex) set OPT='-O3'
+        if ($MODULE == grd1)   set OPT='-O3'
+        if ($MODULE == int2b)  set OPT="$OPT -Mnounroll"
+        if ($MODULE == int2r)  set OPT='-O3'
+        if ($MODULE == mcpgrd) set OPT='-O1'
+        if ($MODULE == mnsol)  set OPT='-O3'
+        if ($MODULE =~ mpc*)   set OPT='-O0'
+        if ($MODULE == mthlib) set OPT='-O3'
+        if ($MODULE == ormas1) set OPT='-O3'
+        if ($MODULE == prppop) set OPT='-O3'
+        if ($MODULE == rxncrd) set OPT='-O3'
+        if ($MODULE == solib)  set OPT='-O3'
+        if ($MODULE == statpt) set OPT='-O3'
+        if ($MODULE == tddefp) set OPT='-O3'
+        if ($MODULE == trnstn) set OPT='-O3'
+        if ($MODULE == zheev)  set OPT='-O0'
       endif
       if ($GMS_WIN_OPT == fast) then
-        set OPT = '-fast -Mipa=fast,safe'
-        if ($MODULE == int2b)  set OPT = "$OPT -Mnounroll"
-        if ($MODULE == mcpgrd) set OPT = '-O1'
-        if ($MODULE =~ mpc*)   set OPT = '-O0'
-        if ($MODULE == zheev)  set OPT = '-O0'        # defensive compiling
+        set OPT='-fastsse -Mipa=fast,inline,safe'
+        if ($MODULE == efelec) set OPT='-fastsse'
+        if ($MODULE == efmo)   set OPT='-fastsse'
+        if ($MODULE == gradex) set OPT='-fastsse'
+        if ($MODULE == grd1)   set OPT='-fastsse'
+        if ($MODULE == int2b)  set OPT="$OPT -Mnounroll"
+        if ($MODULE == int2r)  set OPT='-fastsse'
+        if ($MODULE == mcpgrd) set OPT='-O1'
+        if ($MODULE == mnsol)  set OPT='-fastsse'
+        if ($MODULE =~ mpc*)   set OPT='-O0'
+        if ($MODULE == mthlib) set OPT='-fastsse'
+        if ($MODULE == ormas1) set OPT='-fastsse'
+        if ($MODULE == prppop) set OPT='-fastsse'
+        if ($MODULE == rxncrd) set OPT='-fastsse'
+        if ($MODULE == solib)  set OPT='-fastsse'
+        if ($MODULE == statpt) set OPT='-fastsse'
+        if ($MODULE == tddefp) set OPT='-fastsse'
+        if ($MODULE == trnstn) set OPT='-fastsse'
+        if ($MODULE == zheev)  set OPT='-O0'
       endif
       if ($GMS_WIN_OPT == testing) then
-        set OPT = "-fast -Mipa=fast,safe $GMS_WIN_FLAGS"
-        if ($MODULE == int2b)  set OPT = "$OPT -Mnounroll"
-        if ($MODULE == mcpgrd) set OPT = "-O1 $GMS_WIN_FLAGS"
-        if ($MODULE =~ mpc*)   set OPT = "-O0 $GMS_WIN_FLAGS"
-        if ($MODULE == zheev)  set OPT = "-O0 $GMS_WIN_FLAGS"
+        set OPT="$GMS_PGI_OPT $GMS_IPA_OPT"
+        if ($MODULE == efelec) set OPT=$GMS_PGI_OPT
+        if ($MODULE == efmo)   set OPT=$GMS_PGI_OPT
+        if ($MODULE == gradex) set OPT=$GMS_PGI_OPT
+        if ($MODULE == grd1)   set OPT=$GMS_PGI_OPT
+        if ($MODULE == int2b)  set OPT="$OPT -Mnounroll"
+        if ($MODULE == int2r)  set OPT=$GMS_PGI_OPT
+        if ($MODULE == mcpgrd) set OPT=$GMS_PGI_OPT
+        if ($MODULE == mnsol)  set OPT=$GMS_PGI_OPT
+        if ($MODULE =~ mpc*)   set OPT='-O1'
+        if ($MODULE == mthlib) set OPT='-O0'
+        if ($MODULE == ormas1) set OPT=$GMS_PGI_OPT
+        if ($MODULE == prppop) set OPT=$GMS_PGI_OPT
+        if ($MODULE == rxncrd) set OPT=$GMS_PGI_OPT
+        if ($MODULE == solib)  set OPT=$GMS_PGI_OPT
+        if ($MODULE == statpt) set OPT=$GMS_PGI_OPT
+        if ($MODULE == tddefp) set OPT=$GMS_PGI_OPT
+        if ($MODULE == trnstn) set OPT=$GMS_PGI_OPT
+        if ($MODULE == zheev)  set OPT='-O0'
       endif
+#
+#     IMS MP2 has problems when building with pgfortran.
+#     This problem does not persist for optimization levels with '-Mipa=fast,safe'
+#     for win64/winazure.
+#     Word around:
+#     - used the DDI version of MP2, $mp2 code=ddi $end
+#     - take the winazure route below and set GMS_FORTRAN to pgf77
+# 
+#     Note that $MP2RES will write to fort.35 since F77 and F90 runtime
+#     libraries are different and do not know about filepaths set but the other.
+#
+#     if ($TARGET == winazure) then
+#       if ($MODULE == dcmp2)  set GMS_FORTRAN=pgf77
+#       if ($MODULE == mp2ims) set GMS_FORTRAN=pgf77
+#     endif
 #
 #     For more detailed information as to which flags are being used
 #     by the compiler during the build - uncomment the line below.
 #
-#     set OPT = "$OPT -v"
+#     set OPT="$OPT -v"
 #
       set echo
-      pgf77 -c -i8 -Bstatic $OPT $GMS_WIN_TP -o $MODULE.o $MODULE.f
+      $GMS_FORTRAN $GMS_WIN_FLAGS -c -i8 -Mnobackslash -Minform=inform -Bstatic $OPT $GMS_WIN_TP -o $MODULE.o $MODULE.f
       unset echo
       breaksw
 #
@@ -2143,8 +2369,10 @@ endif
 #
 #  Store the generated object code, clean up, and quit
 #
-mv -f $MODULE.o $OBJDIR/$MODULE.o
-if ($TINKCODE == yes) exit
+if ($TINKCODE == yes) then
+  mv -f $MODULE.o $OBJDIR/$MODULE.o
+  exit
+endif
 #
 #  option to possibly save the preprocessed code, out of the way
 #
@@ -2153,14 +2381,16 @@ if ( ".$GMS_DEBUG_FLAGS" == '.' ) then
 else
    mv -f $MODULE.f tmp/
 endif
-if ($SRCDIR == .) rm -f $MODULE.src    # delete copy with no scalar code
+#
+if ($SRCDIR == .)    rm -f $MODULE.src    # delete copy with no scalar code
+if ($VB2000 == true) rm -f ../source/$MODULE.src
 #
 #  Exit gracelessly if we fail to generate the object file
 #
 unset echo
 date
 time
-if (-e object/$MODULE.o ) then
+if (-e $MODULE.o ) then
    exit
 else
    echo Compilation failure for $MODULE, please fix the problem.

@@ -1,6 +1,6 @@
 #!/bin/csh -f
 #
-#  17 May 11 - script to compile all of the GAMESS quantum chemistry code.
+#   3 May 12 - script to compile all of the GAMESS quantum chemistry code.
 #
 #     Invoke this script by './compall >& compall.log &'.
 #     UNIX compilers are sometimes slow, so start this up, and go for tea.
@@ -17,10 +17,15 @@ else
    exit 4
 endif
 #
+#        this flag allows compall to exit after compilation of zunix
+set makezunix=$1
+#
 #  the configuration file read just above provides the next two variables.
 #
 set TARGET=$GMS_TARGET
-chdir $GMS_PATH
+#AAD this script is run from GMS_BUILD_DIR only which may be the same
+#    as GMS_PATH
+#chdir $GMS_PATH
 #
 #  ----- and now the script begins...
 #
@@ -125,16 +130,45 @@ if (($TARGET == sun32) || ($TARGET == sun64)) then
    endif
 endif
 #
-if (($TARGET == win32) || ($TARGET == win64)) then
-   set CCOMP='pgcc'
-   set CFLAGS="-v -Bstatic -Minfo=all -Minform=severe $GMS_WIN_TP"
-   if ($GMS_WIN_OPT == baseline) set CFLAGS="$CFLAGS -O0"
-   if ($GMS_WIN_OPT == fast)     set CFLAGS="$CFLAGS -fast"
-   if ($GMS_WIN_OPT == testing)  set CFLAGS="$CFLAGS -fast $GMS_WIN_FLAGS"
-   if ($GMS_MPI_LIB == msmpi)  set MPIFLAG='-Mmpi=msmpi'
-   if ($GMS_MPI_LIB == mpich2) set MPIFLAG="-I C:\Progra~1\MPICH2\include"
-   if ($TARGET == win32) set extraflags="$CFLAGS -DWINDOWS32 $MPIFLAG"
-   if ($TARGET == win64) set extraflags="$CFLAGS -DWINDOWS64 $MPIFLAG"
+if (($TARGET == win32) || ($TARGET == win64) || ($TARGET == winazure)) then
+   set EXTRA_FLAGS=''
+   set MPIFLAG=''
+   if ($GMS_FORTRAN == pgfortran) then
+     set CCOMP='pgcc'
+     set CFLAGS="-v -Bstatic -Minfo=all -Minform=severe"
+     if ($GMS_WIN_OPT == baseline) set CFLAGS="$CFLAGS -O0"
+     if ($GMS_WIN_OPT == linux)    set CFLAGS="$CFLAGS -O2"
+     if ($GMS_WIN_OPT == fast)     set CFLAGS="$CFLAGS -fastsse"
+     if ($GMS_WIN_OPT == testing)  set CFLAGS="$CFLAGS $GMS_PGI_OPT"
+     if ($GMS_MPI_LIB == msmpi)    set MPIFLAG='-Mmpi=msmpi'
+     if ($GMS_MPI_LIB == mpich2)   set MPIFLAG="-I C:\Progra~1\MPICH2\include"
+     if ($TARGET == win32)         set extraflags="$GMS_WIN_FLAGS $CFLAGS $GMS_WIN_TP -DWINDOWS32 $MPIFLAG"
+     if ($TARGET == win64)         set extraflags="$GMS_WIN_FLAGS $CFLAGS $GMS_WIN_TP -DWINDOWS64 $MPIFLAG"
+     if ($TARGET == winazure)      set extraflags="$GMS_WIN_FLAGS $CFLAGS $GMS_WIN_TP -DWINDOWS64 -DWINDOWSAZURE"
+   endif
+   if ($GMS_FORTRAN == ifort) then
+     set CCOMP='icl'
+     set CFLAGS="-Dmemget_=MEMGET -Dmemrel_=MEMREL -Dnaptime_=NAPTIME -Dwalltimer_=WALLTIMER"
+     if ($GMS_WIN_OPT == baseline) set CFLAGS="$CFLAGS -Od"
+     if ($GMS_WIN_OPT == linux)    set CFLAGS="$CFLAGS -O2"
+     if ($GMS_WIN_OPT == samara)   set CFLAGS="$CFLAGS -O3"
+     if ($GMS_WIN_OPT == fast)     set CFLAGS="$CFLAGS -fast"
+     if ($GMS_WIN_OPT == testing)  set CFLAGS="$CFLAGS $GMS_INT_OPT"
+     if ($GMS_MPI_LIB == msmpi) then
+       if ($?MSMPI_INC) then
+         echo "MPI header path: $MSMPI_INC"
+         set MPIFLAG=""
+         set EXTRA_FLAGS="-I$MSMPI_INC"
+       else
+         echo "Set MSMPI_INC to the MPI header directory and try again."
+         exit 1
+       endif
+     endif
+     if ($GMS_MPI_LIB == mpich2)     set MPIFLAG="-I C:\Progra~1\MPICH2\include"
+     if ($TARGET == win32)           set extraflags="$GMS_WIN_TP $CFLAGS $GMS_WIN_FLAGS -DWINDOWS32 $MPIFLAG"
+     if ($TARGET == win64)           set extraflags="$GMS_WIN_TP $CFLAGS $GMS_WIN_FLAGS -DWINDOWS64 $MPIFLAG"
+     if ($TARGET == winazure)        set extraflags="$GMS_WIN_TP $CFLAGS $GMS_WIN_FLAGS -DWINDOWS64 -DWINDOWSAZURE"
+   endif
 endif
 #
 #     defend against possibly mistyped compilation target
@@ -149,10 +183,21 @@ endif
 #
 if ($?GMS_COMP_DRYRUN) set CCOMP="echo ZUNIX:$CCOMP"
 #
-set echo
-$CCOMP -c $extraflags -o object/zunix.o source/zunix.c
-unset echo
+if (($TARGET == win32) || ($TARGET == win64) || ($TARGET == winazure)) then
+  set echo
+  $CCOMP -c $extraflags $EXTRA_FLAGS:q -o $GMS_BUILD_DIR/object/zunix.o c:/cygwin/$GMS_PATH/source/zunix.c
+  if (-e zunix.obj) mv zunix.obj $GMS_BUILD_DIR/object/zunix.o
+  unset echo
+else
+  set echo
+  $CCOMP -c $extraflags -o $GMS_BUILD_DIR/object/zunix.o $GMS_PATH/source/zunix.c
+  unset echo
+endif
+set FAILED=$status
 #
+if (null$makezunix != null) then
+   exit $FAILED
+endif
 skip-zunix:
 
 #
@@ -166,10 +211,12 @@ if ($TARGET == ibm64)      ./comp blas
 if ($TARGET == ibm-bg)     ./comp blas
 if ($TARGET == linux32)    ./comp blas
 if ($TARGET == linux64)    ./comp blas
+if ($TARGET == mac64)      ./comp blas
 if ($TARGET == sun32)      ./comp blas
 if ($TARGET == sun64)      ./comp blas
 if ($TARGET == win32)      ./comp blas
 if ($TARGET == win64)      ./comp blas
+if ($TARGET == winazure)   ./comp blas
 #
 #  Sometimes we need a wrapper to pass 64 bit integers in GAMESS to 
 #  system BLAS libraries that expect 32 bit args (see 'comp' hacking)
@@ -187,6 +234,11 @@ if ($TARGET == cray-pvp) ./comp vector
 if ($TARGET == cray-x1)  ./comp vector
 if ($TARGET == necsx)    ./comp vector
 #
+#  If we are compiling a serial binary
+#
+if ($GMS_DDI_COMM == serial) ./comp serial
+#
+#
 #  ---------- now, compile all of the individual source files -----------
 #
 ./comp aldeci
@@ -195,6 +247,7 @@ if ($TARGET == necsx)    ./comp vector
 ./comp basecp
 ./comp basext
 ./comp basg3l
+./comp basg3x
 ./comp bashuz
 ./comp bashz2
 ./comp baskar
@@ -210,6 +263,7 @@ if ($TARGET == necsx)    ./comp vector
 ./comp ceeis
 ./comp chgpen
 ./comp cisgrd
+./comp comp
 ./comp cosmo
 ./comp cosprt
 ./comp cphf
@@ -268,6 +322,7 @@ if ($TARGET == necsx)    ./comp vector
 ./comp elglib
 ./comp elgloc
 ./comp elgscf
+./comp excorr
 ./comp eomcc
 ./comp ewald
 ./comp ffield
@@ -279,6 +334,7 @@ if ($TARGET == necsx)    ./comp vector
 ./comp fmoint
 ./comp fmoio
 ./comp fmolib
+./comp fmomm
 ./comp fmopbc
 ./comp fmoprp
 ./comp frfmt
@@ -364,6 +420,7 @@ if ($TARGET == necsx)    ./comp vector
 ./comp mpcint
 ./comp mpcmol
 ./comp mpcmsc
+./comp mpqcst
 ./comp mthlib
 ./comp nameio
 ./comp neostb
@@ -395,6 +452,7 @@ if ($TARGET == necsx)    ./comp vector
 ./comp ricab
 ./comp riint
 ./comp rimp2
+./comp roeom
 ./comp rohfcc
 ./comp rxncrd
 ./comp ryspol
@@ -420,6 +478,7 @@ if ($TARGET == necsx)    ./comp vector
 ./comp tddfxc
 ./comp tddgrd
 ./comp tddint
+./comp tddnlr
 ./comp tddxca
 ./comp tddxcc
 ./comp tddxcd
@@ -436,7 +495,6 @@ if ($TARGET == necsx)    ./comp vector
 ./comp umpddi
 ./comp unport
 ./comp utddft
-./comp vbdum
 ./comp vibanl
 ./comp vscf
 ./comp vvos
@@ -446,7 +504,7 @@ if ($TARGET == necsx)    ./comp vector
 #
 #                 five plug-in codes are available:
 #      TINKER  is available from the GAMESS web site  (see INTRO.DOC),
-#      VB2000  is available from an external web site (see INTRO.DOC),
+#      VB2000  is distributed with GAMESS source code tar file.
 #      XMVB    is available by electronic mail        (see INTRO.DOC),
 #      NEO     is distributed with GAMESS source code tar file.
 #      GPUCODE is distributed with GAMESS source code tar file.
@@ -479,15 +537,23 @@ endif
 #
 #      optional Valence Bond method, using VB2000 code
 #      to select this plug-in, set "VB2000" true in compall/lked.
+#      VB2000 is incompatible with XMVB, at most, choose only one of these.
+#      in 5/2012, only gfortran/ifort seem to produce working VB2000.
 #
-set VB2000=false
+                         set VB2000=false
+if ($TARGET == linux64)  set VB2000=true
+if ($TARGET == linux32)  set VB2000=true
+if ($TARGET == mac64)    set VB2000=true
 if ($VB2000 == true) then
    ./comp vb2000
    ./comp vb2gms
+else
+   ./comp vbdum
 endif
 #
 #      optional Valence Bond method, using XMVB code
 #      to select this plug-in, set "XMVB" true in compall/lked.
+#      XMVB is incompatible with VB2000, at most, choose only one of these.
 #
 set XMVB=false
 if ($XMVB == true) then
