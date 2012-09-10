@@ -82,7 +82,8 @@ COMPILERSETUP =  \
   module load $(ROLLCOMPILER); \
   perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE)/install.info; \
   perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE)/install.info; \
-  perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info
+  perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE)/install.info; \
+  perl -pi -e "s!ROLL_BUILDPATH!$(PWD)!" $(SOURCE)/install.info; \
 
 ifeq ("$(ROLLCOMPILER)", "intel")
   F90COMP = ifort
