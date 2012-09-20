@@ -42,7 +42,7 @@ if test -f /etc/profile.d/modules.sh; then
   . /etc/profile.d/modules.sh
   module load ROLLCOMPILER gamess
 fi
-cd /opt/gamess/tests
+cd /opt/gamess/tests/standard
 for input in *.inp; do
   testname=`echo \$input | sed 's/\\..*//'`
   /opt/gamess/rungms \$testname 00 1
@@ -63,7 +63,7 @@ SKIP: {
   $output = `/bin/bash $TESTFILE >$TESTFILE.out 2>&1`;
   my $passed = `grep -c 'TERMINATED NORMALLY' $TESTFILE.out`;
   chomp($passed);
-  my $total = `ls /opt/gamess/tests/*.inp | wc -w`;
+  my $total = `ls /opt/gamess/tests/standard/*.inp | wc -w`;
   chomp($total);
   ok($passed == $total, "test 100% pass rate $passed/$total");
 
