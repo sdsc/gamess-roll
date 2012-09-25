@@ -57,15 +57,15 @@
 ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
 endif
+ifndef ROLLOPTS
+  ROLLOPTS = sockets
+endif
 
 PKGROOT = /opt/gamess
 SOURCE = gamess.$(VERSION)
-
-
 REDHAT.ROOT = $(PWD)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
-
 
 F90COMP = gfortran
 MATHLIB = none
@@ -89,9 +89,9 @@ ifeq ("$(ROLLCOMPILER)", "intel")
   F90COMP = ifort
   MATHLIB = mkl
 endif
-ifeq ("$(ROLLMPI)", "vsmp")
-   ROLL_COMM = mpi
-   ROLLCOMMENT = 
+ifneq ("$(ROLLOPTS)", "$(subst vsmp,,$(ROLLOPTS))")
+  ROLL_COMM = mpi
+  ROLLCOMMENT = 
 endif
 
 build:
@@ -103,12 +103,10 @@ build:
 	cp patch-files/install.info $(SOURCE)
 	cp patch-files/lked $(SOURCE)
 	cp patch-files/rungms $(SOURCE)
-	if test $(ROLLMPI) = "vsmp"; then \
-	    mkdir $(SOURCE)/ddivsmp; \
-	    cp patch-files/Makefile $(SOURCE)/ddivsmp; \
-	    cp patch-files/ddivsmp.c $(SOURCE)/ddivsmp; \
-	    cp patch-files/symver $(SOURCE)/ddivsmp; \
-        fi
+	mkdir $(SOURCE)/ddivsmp
+	cp patch-files/Makefile $(SOURCE)/ddivsmp
+	cp patch-files/ddivsmp.c $(SOURCE)/ddivsmp
+	cp patch-files/symver $(SOURCE)/ddivsmp
 	perl -pi -e 's!ROLL_FCC!$(F90COMP)!' $(SOURCE)/install.info
 	perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE)/install.info
 	perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE)!' $(SOURCE)/install.info
@@ -116,21 +114,19 @@ build:
 	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE)/install.info
 	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE)/lked
 	( \
- 	  $(COMPILERSETUP); \
-	  perl -pi -e 's!^(.*ROLL)!# $$1!m' $(SOURCE)/install.info; \
-	  perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' $(SOURCE)/rungms; \
-          if test $(ROLLMPI) = "vsmp"; then \
-              cd $(SOURCE)/ddivsmp; \
-              make; \
-              cd  ../..; \
-          fi; \
-	  cd $(SOURCE)/tools; \
+	  $(COMPILERSETUP); \
+	  cd $(SOURCE); \
+	  perl -pi -e 's!^(.*ROLL)!# $$1!m' install.info; \
+	  perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' rungms; \
+	  cd tools; \
 	  $(F90COMP) -o actvte.x actvte.f; \
-	  cd ../ddi; \
-	  ./compddi; \
-          if test $(ROLLMPI) = "sockets"; then \
-	      mv ddikick.x ..; \
-          fi; \
+	  if test "$(ROLL_COMM)" = "sockets"; then \
+	    cd ../ddi; \
+	    ./compddi; \
+	  else \
+	    cd ../ddivsmp; \
+	    make; \
+	  fi; \
 	  cd ..; \
 	  ./compall; \
 	  ./lked \
@@ -140,13 +136,12 @@ install::
 	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
 	( \
 	  cd $(SOURCE); \
-          if test $(ROLLMPI) = "sockets"; then \
-	      cp ddikick.x $(ROOT)/$(PKGROOT); \
-          fi; \
 	  cp gamess.00.x runall rungms *.DOC install.info \
 	     $(ROOT)/$(PKGROOT); \
 	  cp -r auxdata tests $(ROOT)/$(PKGROOT); \
-	  if test $(ROLLMPI) = "vsmp"; then \
+	  if test $(ROLL_COMM) = "sockets"; then \
+	    cp ddi/ddikick.x $(ROOT)/$(PKGROOT); \
+	  else \
 	    cp -r ddivsmp $(ROOT)/$(PKGROOT); \
 	  fi \
 	)

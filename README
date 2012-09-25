@@ -14,3 +14,6 @@ make ROLLCOMPILER=intel
 
 produces a roll with a name that begins "gamess-intel"; it contains and
 installs a similarly-named rpm.
+
+This roll also supports the ROLLOPTS make variable.  If it contains 'vsmp',
+the gamess executable uses mpi for communication; otherwise, it uses sockets.
