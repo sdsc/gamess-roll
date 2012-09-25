@@ -58,15 +58,13 @@
 ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
 endif
-ifndef ROLLMPI
-  ROLLMPI = openmpi
-endif
-ifndef ROLLNETWORK
-  ROLLNETWORK = eth
-endif
 empty:=
 space:=$(empty) $(empty)
-ROLLSUFFIX = _$(subst $(space),+,$(ROLLCOMPILER))_$(subst $(space),+,$(ROLLMPI))
+ifeq ("$(ROLLOPTS)", "")
+  ROLLSUFFIX = _$(subst $(space),+,$(ROLLCOMPILER))
+else
+  ROLLSUFFIX = _$(subst $(space),+,$(ROLLCOMPILER))_$(subst $(space),+,$(ROLLOPTS))
+endif
 
 -include $(ROLLSROOT)/etc/Rolls.mk
 
