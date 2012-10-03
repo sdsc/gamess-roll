@@ -1,4 +1,4 @@
-ROLLNAME = gamess$(ROLLSUFFIX)
+ROLLNAME = gamess
 RELEASE  = 1
 COLOR    = orange
 

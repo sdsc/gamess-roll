@@ -17,5 +17,6 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 
 <package>gamess_ROLLCOMPILER</package>
 <package>gamess-modules</package>
+<package>gamess-roll-test</package>
 
 </kickstart>

@@ -1,25 +1,4 @@
-<?xml version="1.0" standalone="no"?>
-
-<kickstart>
-
-<description>
-The gamess roll installation test.
-</description>
-
-<copyright>
-Copyright (c) 2000 - 2011 The Regents of the University of California.
-All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
-</copyright>
-
-<changelog>
-</changelog>
-
-<post>
-
-/bin/mkdir -m 0755 /root/rolltests
-
-<file name="/root/rolltests/gamess.t" perms="0755">
-<![CDATA[#!/usr/bin/perl -w
+#!/usr/bin/perl -w
 # gamess roll installation test.  Usage:
 # gamess.t [nodetype]
 #   where nodetype is one of "Compute", "Dbnode", "Frontend" or "Login"
@@ -42,7 +21,9 @@ if test -f /etc/profile.d/modules.sh; then
   . /etc/profile.d/modules.sh
   module load ROLLCOMPILER gamess
 fi
-cd /opt/gamess/tests/standard
+mkdir $TESTFILE.dir
+cd $TESTFILE.dir
+cp /opt/gamess/tests/standard/*.inp .
 for input in *.inp; do
   testname=`echo \$input | sed 's/\\..*//'`
   /opt/gamess/rungms \$testname 00 1
@@ -78,9 +59,3 @@ SKIP: {
 }
 
 `rm -f $TESTFILE*`;
-]]>
-</file>
-
-</post>
-
-</kickstart> 

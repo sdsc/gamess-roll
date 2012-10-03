@@ -22,11 +22,4 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
   <tail>gamess-common</tail>
 </order>
 
-<edge from="base">
-  <to>gamess-roll-test</to>
-</edge>
-<order head="base">
-  <tail>gamess-roll-test</tail>
-</order>
-
 </graph>

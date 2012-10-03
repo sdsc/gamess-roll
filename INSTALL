@@ -1,0 +1,25 @@
+This roll bundles the GAMESS quantum chemistry package.  To install, execute
+these instructions on a Rocks development machine (e.g., a frontend), starting
+in this directory:
+
+% make
+% rocks add roll *.iso
+% rocks enable roll gamess
+% cd /export/rocks/install
+% rocks create distro
+% rocks run roll gamess | bash
+
+In addition to the software itself, the roll installs GAMESS environment module
+files in /opt/modulefiles/applications/gamess.
+
+This roll source supports building with different compilers.  By default, it
+builds using the gnu compilers.  To build for a different configuration, use
+the ROLLCOMPILER make variable, e.g.,
+
+% make ROLLCOMPILER=intel
+
+The build process currently supports the values "intel" and "gnu" for the
+ROLLCOMPILER variable, defaulting to "gnu".
+
+This roll also supports the ROLLOPTS make variable.  If it contains 'vsmp',
+the gamess executable uses mpi for communication; otherwise, it uses sockets.
