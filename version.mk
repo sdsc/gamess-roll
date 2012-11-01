@@ -1,5 +1,5 @@
 ROLLNAME = gamess
-RELEASE  = 1
+RELEASE  = 0
 COLOR    = orange
 
 REDHAT.ROOT = $(PWD)
