@@ -1,3 +1,3 @@
 NAME    = gamess-modules
-VERSION = 8.2011
+VERSION = 5.2012
 RELEASE = 1
