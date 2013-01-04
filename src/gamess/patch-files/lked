@@ -534,6 +534,7 @@ if ($TARGET == linux64) then
         case 10:
         case 11:
         case 12:
+        case 13:
           # next are a static link, in single-threaded mode (serial BLAS).
           # The choices preclude any need to
           #     a) install .so shared object libraries on every node,
