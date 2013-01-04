@@ -424,6 +424,7 @@ if ($TARGET == linux32) then
           breaksw
         case 11:
         case 12:
+        case 13:
           # next attempts a static link, whereas 10 above is a dynamic link.
           # if this fails to work, try the version 10 lines shown just above.
           set MATHLIBS="$mpath/libmkl_intel.a"
