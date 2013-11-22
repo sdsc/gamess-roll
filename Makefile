@@ -3,11 +3,12 @@
 #
 # @Copyright@
 # 
-# 				Rocks(tm)
+# 				Rocks(r)
 # 		         www.rocksclusters.org
-# 		        version 4.3 (Mars Hill)
+# 		         version 5.6 (Emerald Boa)
+# 		         version 6.1 (Emerald Boa)
 # 
-# Copyright (c) 2000 - 2011 The Regents of the University of California.
+# Copyright (c) 2000 - 2013 The Regents of the University of California.
 # All rights reserved.	
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -25,7 +26,7 @@
 # 3. All advertising and press materials, printed or electronic, mentioning
 # features or use of this software must display the following acknowledgement: 
 # 
-# 	"This product includes software developed by the Rocks(tm)
+# 	"This product includes software developed by the Rocks(r)
 # 	Cluster Group at the San Diego Supercomputer Center at the
 # 	University of California, San Diego and its contributors."
 # 
@@ -54,36 +55,19 @@
 # 
 # @Copyright@
 #
-
-ifndef ROLLCOMPILER
-  ROLLCOMPILER = gnu
-endif
+# $Log$
+#
 
 -include $(ROLLSROOT)/etc/Rolls.mk
+include Rolls.mk
 
-default:
-# Copy and substitute lines of nodes/*.in that reference ROLLCOMPILER,
-# and/or ROLLMPI, making one copy for each
-# ROLLCOMPILER/ROLLMPI value
-	for i in `ls nodes/*.in`; do \
-	  export o=`echo $$i | sed 's/\.in//'`; \
-	  cp $$i $$o; \
-	  for c in $(ROLLCOMPILER); do \
-	    perl -pi -e 'print and s/ROLLCOMPILER/'$${c}'/g if m/ROLLCOMPILER/' $$o; \
-	  done; \
-	  for m in $(ROLLMPI); do \
-	    perl -pi -e 'print and s/ROLLMPI/'$${m}'/g if m/ROLLMPI/' $$o; \
-	  done; \
-	  perl -pi -e '$$_ = "" if m/ROLL(COMPILER|NETWORK|MPI)/' $$o; \
-	done
-	$(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" ROLLMPI="$(ROLLMPI)" roll
+default: roll
 
 clean::
 	rm -f _arch bootstrap.py
 
 cvsclean: clean
-	for i in `ls nodes/*.in`; do \
-	  export o=`echo $$i | sed 's/\.in//'`; \
-	  rm -f $$o; \
-	done
-	rm -fr RPMS SRPMS
+	rm -fr RPMS SRPMS src/build-*
+
+distclean:: clean
+	-rm -f build.log
