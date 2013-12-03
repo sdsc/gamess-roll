@@ -58,16 +58,36 @@
 # $Log$
 #
 
+ifndef ROLLCOMPILER
+  ROLLCOMPILER = gnu
+endif
+
 -include $(ROLLSROOT)/etc/Rolls.mk
 include Rolls.mk
 
-default: roll
+default:
+	for i in `ls nodes/*.in`; do \
+	  export o=`echo $$i | sed 's/\.in//'`; \
+	  cp $$i $$o; \
+	  for c in $(ROLLCOMPILER); do \
+	    perl -pi -e 'print and s/ROLLCOMPILER/'$${c}'/g if m/ROLLCOMPILER/' $$o; \
+	  done; \
+	  for m in $(ROLLMPI); do \
+	    perl -pi -e 'print and s/ROLLMPI/'$${m}'/g if m/ROLLMPI/' $$o; \
+	  done; \
+	  perl -pi -e '$$_ = "" if m/ROLL(COMPILER|NETWORK|MPI)/' $$o; \
+	done
+	$(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" ROLLMPI="$(ROLLMPI)" roll
 
 clean::
 	rm -f _arch bootstrap.py
 
 cvsclean: clean
-	rm -fr RPMS SRPMS src/build-*
+	for i in `ls nodes/*.in`; do \
+	  export o=`echo $$i | sed 's/\.in//'`; \
+	  rm -f $$o; \
+	done
+	rm -fr RPMS SRPMS
 
-distclean:: clean
+distclean:: cvsclean
 	-rm -f build.log
