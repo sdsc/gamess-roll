@@ -6,8 +6,7 @@ This roll bundles the GAMESS quantum chemistry package.
 
 For more information about the various packages included in the gamess roll please visit their official web pages:
 
-- <a href="" target="_blank"></a> is .
-- <a href="" target="_blank"></a> is .
+- <a href="http://www.msg.chem.iastate.edu/GAMESS/" target="_blank">GAMESS</a> is a general ab initio quantum chemistry package.
 
 
 ## Requirements
