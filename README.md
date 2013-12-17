@@ -85,23 +85,3 @@ ok 4 - gamess version module installed
 ok 5 - gamess version module link created
 1..5
 ```
-
-
-
-
-
-
-  To install, execute
-these instructions on a Rocks development machine (e.g., a frontend), starting
-in this directory:
-
-% make
-% rocks add roll *.iso
-% rocks enable roll gamess
-% cd /export/rocks/install
-% rocks create distro
-% rocks run roll gamess | bash
-
-In addition to the software itself, the roll installs GAMESS environment module
-files in /opt/modulefiles/applications/gamess.
-
