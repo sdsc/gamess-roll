@@ -69,18 +69,11 @@ copyright rpm pkg clean::
 	  grep -q ROLLCOMPILER $$i/version.mk; \
 	  if test $$? -eq 0; then \
 	    for c in $(ROLLCOMPILER); do \
-	        grep -q ROLLMPI $$i/version.mk; \
-	        if test $$? -eq 0; then \
-	          for m in $(ROLLMPI); do \
-	            echo make $@ in $$i with ROLLCOMPILER=$$c ROLLMPI=$$m; \
-	            (cd $$i; $(MAKE) ROLLCOMPILER=$$c ROLLMPI=$$m $@); \
-	          done; \
-	        else \
-	          echo make $@ in $$i with ROLLCOMPILER=$$c; \
-	          (cd $$i; $(MAKE) ROLLCOMPILER=$$c $@); \
-	        fi; \
+	        echo make $@ in $$i with ROLLCOMPILER=$$c starting at `date +"%F %T"`; \
+	        (cd $$i; $(MAKE) ROLLCOMPILER=$$c  $@) ; \
 	    done; \
 	  else \
-	    (cd $$i; $(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" ROLLMPI="$(ROLLMPI)" $@) ; \
+	    echo make $@ in $$i with ROLLCOMPILER="$(ROLLCOMPILER)" starting at `date +"%F %T"`; \
+	    (cd $$i; $(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" $@) ; \
 	  fi; \
 	done
