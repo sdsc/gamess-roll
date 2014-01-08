@@ -1,0 +1,8 @@
+--- gamess.5.2012/compall	2012-05-04 12:35:20.000000000 -0700
++++ patch-files/compall	2014-01-07 21:26:38.000000000 -0800
+@@ -1,4 +1,4 @@
+-#!/bin/csh
++#!/bin/csh -f
+ #
+ #   3 May 12 - script to compile all of the GAMESS quantum chemistry code.
+ #

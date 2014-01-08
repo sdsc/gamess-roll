@@ -15,5 +15,7 @@ setenv GMS_MATHLIB_PATH    ROLL_MATHPATH
 setenv GMS_MKL_VERNO       ROLL_MKLVERSION
 #         parallel message passing model setup
 setenv GMS_DDI_COMM        ROLL_COMM
+setenv GMS_L64_OPT         ""
+setenv GMS_LIN_FLAGS       ""
 ROLLCOMMENT setenv GMS_MPI_LIB         mpich2
 ROLLCOMMENT setenv GMS_MPI_PATH        /opt/ScaleMP/mpich2/1.4

@@ -91,23 +91,27 @@ ifeq ("$(ROLLCOMPILER)", "intel")
   F90COMP = ifort
   MATHLIB = mkl
 endif
+ifeq ("$(ROLLCOMPILER)", "pgi")
+   F90COMP = pgfortran
+   MATHLIB = mkl
+endif
 ifneq ("$(ROLLOPTS)", "$(subst vsmp,,$(ROLLOPTS))")
   ROLL_COMM = mpi
   ROLLCOMMENT =
 endif
 
 build: $(SRC_DIRS)
-	cp patch-files/actvte.f $(SOURCE_DIR)/tools
-	cp patch-files/compddi $(SOURCE_DIR)/ddi
-	cp patch-files/comp $(SOURCE_DIR)
-	cp patch-files/compall $(SOURCE_DIR)
-	cp patch-files/install.info $(SOURCE_DIR)
-	cp patch-files/lked $(SOURCE_DIR)
-	cp patch-files/rungms $(SOURCE_DIR)
+	patch $(SOURCE_DIR)/tools/actvte.code  patch-files/actvte.code.patch
+	patch $(SOURCE_DIR)/ddi/compddi  patch-files/compddi.patch
+	patch $(SOURCE_DIR)/comp  patch-files/comp.patch
+	patch $(SOURCE_DIR)/compall  patch-files/compall.patch
+	patch $(SOURCE_DIR)/lked  patch-files/lked.patch
+	cp install.info $(SOURCE_DIR)
+	patch $(SOURCE_DIR)/rungms  patch-files/rungms.patch
 	mkdir $(SOURCE_DIR)/ddivsmp
-	cp patch-files/Makefile $(SOURCE_DIR)/ddivsmp
-	cp patch-files/ddivsmp.c $(SOURCE_DIR)/ddivsmp
-	cp patch-files/symver $(SOURCE_DIR)/ddivsmp
+	cp Makefile.vsmp $(SOURCE_DIR)/ddivsmp/Makefile
+	cp ddivsmp.c $(SOURCE_DIR)/ddivsmp
+	cp symver $(SOURCE_DIR)/ddivsmp
 	perl -pi -e 's!ROLL_FCC!$(F90COMP)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE_DIR)!' $(SOURCE_DIR)/install.info
@@ -118,8 +122,9 @@ build: $(SRC_DIRS)
 	  $(COMPILERSETUP); \
 	  cd $(SOURCE_DIR); \
 	  perl -pi -e 's!^(.*ROLL)!# $$1!m' install.info; \
-	  perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' rungms; \
-	  cd tools; \
+          perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' rungms; \
+          cd tools; \
+          mv actvte.code actvte.f; \
 	  $(F90COMP) -o actvte.x actvte.f; \
 	  if test "$(ROLL_COMM)" = "sockets"; then \
 	    cd ../ddi; \
@@ -137,7 +142,7 @@ build: $(SRC_DIRS)
 install::
 	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
 	( \
-	  cd $(SOURCE_DIR); \a
+	  cd $(SOURCE_DIR); \
 	  cp gamess.00.x runall rungms *.DOC install.info \
 	     $(ROOT)/$(PKGROOT); \
 	  cp -r auxdata tests $(ROOT)/$(PKGROOT); \

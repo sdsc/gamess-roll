@@ -1,0 +1,26 @@
+--- gamess.5.2012/comp	2012-05-04 12:32:21.000000000 -0700
++++ patch-files/comp	2014-01-07 21:19:08.000000000 -0800
+@@ -1,4 +1,4 @@
+-#!/bin/csh
++#!/bin/csh -f
+ #
+ #  20 March 12 - script to compile one GAMESS source file
+ #  Invoke this script by './comp MODULE >& MODULE.log &'.
+@@ -1661,7 +1661,7 @@
+ #           -finit-real=<zero|inf|-inf|nan>  could be interesting debug opt
+ #           -fno-automatic forces static storage of all local variables
+ #           -fno-whole-file suppresses argument's data type checking
+-      set OPT='-O2'
++      set OPT='-O2 -mavx'
+       if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
+       if ($GMS_GFORTRAN_VERNO == 4.6) then
+          if ($MODULE == tddgrd) set OPT='-O0'   # this issue seen in 4.6.1
+@@ -1713,7 +1713,7 @@
+ #     -WB means warn but don't fail on out-of-bounds array references
+ #     -ftz flushes underflow results to zero
+ #
+-      set OPT = '-O2'
++      set OPT = '-O2 -xHost'
+       if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
+ #       alas, I'm so tired of hearing about so many versions failing to
+ #       diagonalize, that this time critical code is run w/o optimization.
