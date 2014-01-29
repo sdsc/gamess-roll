@@ -17,5 +17,6 @@ setenv GMS_MKL_VERNO       ROLL_MKLVERSION
 setenv GMS_DDI_COMM        ROLL_COMM
 setenv GMS_L64_OPT         ""
 setenv GMS_LIN_FLAGS       ""
+setenv GMS_GFORTRAN_VERNO 4.7
 ROLLCOMMENT setenv GMS_MPI_LIB         mpich2
 ROLLCOMMENT setenv GMS_MPI_PATH        /opt/ScaleMP/mpich2/1.4

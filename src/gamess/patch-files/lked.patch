@@ -1,20 +1,20 @@
---- gamess.5.2012/lked	2012-05-04 12:34:46.000000000 -0700
-+++ patch-files/lked	2014-01-07 21:27:45.000000000 -0800
+--- gamess/lked	2013-05-17 09:15:06.000000000 -0700
++++ patch-files/lked	2014-01-14 16:26:24.000000000 -0800
 @@ -1,4 +1,4 @@
 -#!/bin/csh
 +#!/bin/csh -f
  #
- #   4 May 12 - script to "link-edit" a GAMESS executable
+ # 17 May 2013 - script to "link-edit" a GAMESS executable
  #
-@@ -424,6 +424,7 @@
+@@ -435,6 +435,7 @@
            breaksw
          case 11:
          case 12:
 +        case 13:
            # next attempts a static link, whereas 10 above is a dynamic link.
            # if this fails to work, try the version 10 lines shown just above.
-           set MATHLIBS="$mpath/libmkl_intel.a"
-@@ -533,6 +534,7 @@
+           set MATHLIBS="-Wl,--start-group"
+@@ -548,6 +549,7 @@
          case 10:
          case 11:
          case 12:
@@ -22,7 +22,7 @@
            # next are a static link, in single-threaded mode (serial BLAS).
            # The choices preclude any need to
            #     a) install .so shared object libraries on every node,
-@@ -933,6 +935,7 @@
+@@ -972,6 +974,7 @@
        set MPILIBS=''
        if ($TARGET == linux64) then
          if (($GMS_DDI_COMM == mpi) || ($GMS_DDI_COMM == mixed)) then

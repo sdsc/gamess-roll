@@ -57,6 +57,7 @@
 # $Log$
 
 REDHAT.ROOT = $(CURDIR)/../../
+ROLLPPN=32
 
 ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
@@ -106,6 +107,7 @@ build: $(SRC_DIRS)
 	patch $(SOURCE_DIR)/comp  patch-files/comp.patch
 	patch $(SOURCE_DIR)/compall  patch-files/compall.patch
 	patch $(SOURCE_DIR)/lked  patch-files/lked.patch
+	patch $(SOURCE_DIR)/ddi/src/ddi_create.c  patch-files/ddi_create.c.patch
 	cp install.info $(SOURCE_DIR)
 	patch $(SOURCE_DIR)/rungms  patch-files/rungms.patch
 	mkdir $(SOURCE_DIR)/ddivsmp
@@ -115,6 +117,8 @@ build: $(SRC_DIRS)
 	perl -pi -e 's!ROLL_FCC!$(F90COMP)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE_DIR)!' $(SOURCE_DIR)/install.info
+	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
+	perl -pi -e "s!ROLLPPN!$(ROLLPPN)!" $(SOURCE_DIR)/rungms
 	perl -pi -e 's!ROLL_COMM!$(ROLL_COMM)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE_DIR)/lked
@@ -145,7 +149,7 @@ install::
 	  cd $(SOURCE_DIR); \
 	  cp gamess.00.x runall rungms *.DOC install.info \
 	     $(ROOT)/$(PKGROOT); \
-	  cp -r auxdata tests $(ROOT)/$(PKGROOT); \
+	  cp -r gms-files.csh auxdata tests $(ROOT)/$(PKGROOT); \
 	  if test $(ROLL_COMM) = "sockets"; then \
 	    cp ddi/ddikick.x $(ROOT)/$(PKGROOT); \
 	  else \

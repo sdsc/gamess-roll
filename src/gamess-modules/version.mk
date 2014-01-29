@@ -1,4 +1,4 @@
 NAME    = gamess-modules
-VERSION = 5.2012
+VERSION = 5.2013
 RELEASE = 0
 RPM.EXTRAS         = AutoReq:No

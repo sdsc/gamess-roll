@@ -1,5 +1,5 @@
---- gamess.5.2012/tools/actvte.code	2011-11-22 11:54:40.000000000 -0800
-+++ patch-files/actvte.code	2014-01-07 21:23:42.000000000 -0800
+--- gamess/tools/actvte.code	2011-11-22 11:54:40.000000000 -0800
++++ patch-files/actvte.code	2014-01-14 16:18:34.000000000 -0800
 @@ -45,7 +45,7 @@
  C     --------------
        CHARACTER*4 KEY,BLANK,MACHIN

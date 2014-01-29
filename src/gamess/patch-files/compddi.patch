@@ -1,21 +1,21 @@
---- gamess.5.2012/ddi/compddi	2012-03-14 07:48:00.000000000 -0700
-+++ patch-files/compddi	2014-01-07 21:21:47.000000000 -0800
+--- gamess/ddi/compddi	2013-05-03 13:14:15.000000000 -0700
++++ patch-files/compddi	2014-01-14 16:14:28.000000000 -0800
 @@ -1,4 +1,4 @@
 -#!/bin/csh
 +#!/bin/csh -f
  #
  #  15 Feb 11 - script to compile the Distributed Data Interface (DDI)
  #
-@@ -15,8 +15,6 @@
+@@ -15,7 +15,7 @@
     exit 4
  endif
  #
 -set EXTRA_FLAGS=''
--#
++#set EXTRA_FLAGS=''
+ #
  #  the configuration file read just above provides the next two variables,
  #  and several other GMS_XXX values that will be used further down.
- #
-@@ -82,7 +80,7 @@
+@@ -82,7 +82,7 @@
  #     It is OK if these values are larger than your system,
  #     but a serious error if they are smaller!
  #
@@ -24,194 +24,65 @@
  set MAXNODES = 256
  #
  if ($TARGET == cray-xt) then
-@@ -101,11 +99,6 @@
-    endif
- endif
- 
--if($TARGET == winazure) then
--  echo "Windows Azure requires serial communication.  DDI does not need to be compiled."
--  exit 8
--endif
--
- #  3. Use System V-style shared-memory
- #        Please see the file readme.ddi for checking and changing
- #        System V shared memory/IPC limits for your particular OS.
-@@ -234,7 +227,7 @@
-         breaksw
- #            MicroSoft MPI uses a compiler flag, set below, not a pathname
-      case msmpi:
--        if(($GMS_FORTRAN == pgf77) || ($GMS_FORTRAN == pgfortran) || ($GMS_FORTRAN == ifort)) set MPI_INCLUDE_PATH = " "
-+        if($GMS_FORTRAN == pgf77) set MPI_INCLUDE_PATH = " "
-         goto skip_mpi_setup
-         breaksw
- #            big machines will find their mpi.f, don't check it.
-@@ -647,7 +640,6 @@
+@@ -646,7 +646,7 @@
  
       switch ($FORTRAN)
          case g77:
 -        case pgfortran:
++#       case pgfortran:
          case pgf77:
          case f2c:
             set NumUS=2
-@@ -706,7 +698,6 @@
+@@ -705,7 +705,7 @@
             set NumUS=1
             set FORT_FLAGS = "-O2 $ARCH -fdefault-integer-8 -std=legacy"
             breaksw
 -        case pgfortran
++#       case pgfortran
          case pgf77:
             set NumUS=1
             set CFLAGS = "$CFLAGS -mcmodel=medium"
-@@ -935,25 +926,23 @@
- 
-   if($TARGET == win32) then
- 
--     set FORTRAN=$GMS_FORTRAN     # choose from pgf77 and pgfortran
-+     set FORTRAN=pgf77     # choose from pgf77
- 
--        case pgfortran:
-+     switch ($FORTRAN)
-         case pgf77:
-            set CC = 'pgcc'
- #
- #          For more detailed information as to which flags are being used
- #          by the compiler during the build - uncomment the line below.
- #
--#          set CC = "$CC -v"
-+           set CC = "$CC -v"
- #
--#          set CFLAGS = '-DLINUX -DWINDOWS -DUSE_DDI_COLLECTIVE_ROUTINES -DOLDDDITIMER'
--           set CFLAGS = '-DLINUX -DWINDOWS -DOLDDDITIMER'
-+           set CFLAGS = '-DLINUX -DWINDOWS -DUSE_DDI_COLLECTIVE_ROUTINES -DOLDDDITIMER'
-            if ($GMS_WIN_OPT == baseline)    set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -O0"
--           if ($GMS_WIN_OPT == linux)       set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -O2"
--           if ($GMS_WIN_OPT == samara)      set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -O3"
--           if ($GMS_WIN_OPT == fast)        set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -fastsse"
--           if ($GMS_WIN_OPT == testing)     set CFLAGS = "$CFLAGS -Bstatic -Minform=severe"
--           set CFLAGS = "$GMS_WIN_FLAGS $CFLAGS $GMS_WIN_TP -I./include"
-+           if ($GMS_WIN_OPT == linux)       set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -O3"
-+           if ($GMS_WIN_OPT == fast)        set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -fast"
-+           if ($GMS_WIN_OPT == testing)     set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -fast $GMS_WIN_FLAGS"
-+           set CFLAGS = "$CFLAGS $GMS_WIN_TP -I./include"
-            set NumUS=2
-            if ($COMM == mpi) then
-              echo "----------------------------------------------   ATTENTION   ----------------------------------------------"
-@@ -974,40 +963,25 @@
- 
-   if($TARGET == win64) then
- 
--     set FORTRAN=$GMS_FORTRAN     # choose from pgf77 and ifort
-+     set FORTRAN=pgf77     # choose from pgf77
- 
-      switch ($FORTRAN)
--        case ifort:
--           set CC = 'icl'
--           set CFLAGS = '-DLINUX -DWINDOWS -DWINDOWS64 -DWINTEL -DOLDDDITIMER'
--           if ($GMS_WIN_OPT == baseline)    set CFLAGS = "$CFLAGS -Od"
--           if ($GMS_WIN_OPT == linux)       set CFLAGS = "$CFLAGS -O2"
--           if ($GMS_WIN_OPT == samara)      set CFLAGS = "$CFLAGS -O3"
--           if ($GMS_WIN_OPT == fast)        set CFLAGS = "$CFLAGS -O3"          # '-fast' will not work with DDI. Linking will fail.
--           if ($GMS_WIN_OPT == testing)     set CFLAGS = "$CFLAGS $GMS_INT_OPT"
--           set CFLAGS = "$GMS_WIN_TP $CFLAGS $GMS_WIN_FLAGS -I./include"
--           set NumUS=0
--           set F77_OPTS = "-DF77_UPPERCASE -Dgetarg_=GETARG -Diargc_=IARGC"
--           breaksw
--        case pgfortran:
-         case pgf77:
-            set CC = 'pgcc'
- #
- #          For more detailed information as to which flags are being used
- #          by the compiler during the build - uncomment the line below.
- #
--#          set CC = "$CC -v"
-+           set CC = "$CC -v"
- #
--#          set CFLAGS = '-DLINUX -DWINDOWS -DWINDOWS64 -DUSE_DDI_COLLECTIVE_ROUTINES -DOLDDDITIMER'
--           set CFLAGS = '-DLINUX -DWINDOWS -DWINDOWS64 -DOLDDDITIMER'
-+           set CFLAGS = '-DLINUX -DWINDOWS -DWINDOWS64 -DUSE_DDI_COLLECTIVE_ROUTINES -DOLDDDITIMER'
-+#          set CFLAGS = '-DLINUX -DWINDOWS -DWINDOWS64 -DOLDDDITIMER'
-            if ($GMS_WIN_OPT == baseline)    set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -O0"
-            if ($GMS_WIN_OPT == linux)       set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -O2"
--           if ($GMS_WIN_OPT == samara)      set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -O3"
--           if ($GMS_WIN_OPT == fast)        set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -fastsse"
--           if ($GMS_WIN_OPT == testing)     set CFLAGS = "$CFLAGS -Bstatic -Minform=severe $GMS_PGI_OPT"
--           set CFLAGS = "$GMS_WIN_FLAGS $CFLAGS $GMS_WIN_TP -I./include"
-+           if ($GMS_WIN_OPT == fast)        set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -fast"
-+           if ($GMS_WIN_OPT == testing)     set CFLAGS = "$CFLAGS -Bstatic -Minform=severe -fast $GMS_WIN_FLAGS"
-+           set CFLAGS = "$CFLAGS $GMS_WIN_TP -I./include"
-            set NumUS=1
--           set F77_OPTS = ""
-            if ($COMM == mpi) then
-              echo "----------------------------------------------   ATTENTION   ----------------------------------------------"
-              echo "- We are using MPI and not TCP/IP sockets so please ignore the following compiler warning message:        -"
-@@ -1020,7 +994,7 @@
-            exit 4
-      endsw
-      set CLIBS  = ' '
--     set F77_OPTS = "-DINT_SIZE=__int64 -D_UNDERSCORES=$NumUS $F77_OPTS"
-+     set F77_OPTS = "-DINT_SIZE=__int64 -D_UNDERSCORES=$NumUS $GMS_WIN_FLAGS"
-      set AR_FLAGS     = 'cr'
-      set RANLIB_FLAGS = ' '
-   endif
-@@ -1054,19 +1028,7 @@
-   if($COMM == mpi)   then
-      switch ($GMS_MPI_LIB)
-         case msmpi:
--           if (($GMS_FORTRAN == pgf77) || ($GMS_FORTRAN == pgfortran)) set CFLAGS = "$CFLAGS -Mmpi=msmpi"
--           if ($GMS_FORTRAN == ifort) then
--             if ($?MSMPI_INC) then
--               echo "MPI headers path: $MSMPI_INC"
--               # We set EXTRA_FLAGS, instead of CFLAGS as we want to
--               # properly pass through spaces in MSMPI_INC to the compiler.
--               # Setting -I$MSMPI_INC in CFLAGS causes problems with whitespace
+@@ -1060,7 +1060,7 @@
+                # We set EXTRA_FLAGS, instead of CFLAGS as we want to
+                # properly pass through spaces in MSMPI_INC to the compiler.
+                # Setting -I$MSMPI_INC in CFLAGS causes problems with whitespace
 -               set EXTRA_FLAGS="-I$MSMPI_INC"
--             else
--               echo "Set MSMPI_INC to the include path for Microsoft MPI and try again"
--               exit 1
--             endif
--           endif
-+           set CFLAGS = "$CFLAGS -Mmpi=msmpi"
-            breaksw
-         case Cray-XT-MPI:
-         case IBM-BlueGene-MPI:
-@@ -1095,9 +1057,8 @@
++#              set EXTRA_FLAGS="-I$MSMPI_INC"
+              else
+                echo "Set MSMPI_INC to the include path for Microsoft MPI and try again"
+                exit 1
+@@ -1094,7 +1094,8 @@
                )
      echo "Compiling common object: $OBJ.o"
      set echo
 -    $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
++#   $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
 +    $CC $CFLAGS $DDI_OPTS -o $OBJ.o -c $OBJ.c
      unset echo
--    if(-e $OBJ.obj) mv -v $OBJ.obj $OBJ.o
+     if(-e $OBJ.obj) mv -v $OBJ.obj $OBJ.o
      if(-e $OBJ.o) then
-        echo "Finished compiling: $OBJ.o"
-     else
-@@ -1154,17 +1115,9 @@
- 
-   foreach OBJ ($OBJ_LIST) 
-     echo "Compiling DDI object: $OBJ.o"
--    if(($OBJ == windows) && ($GMS_FORTRAN == ifort)) then
--      set WFLAGS = '-DLINUX -DWINDOWS -DWINDOWS64 -DWINTEL -DOLDDDITIMER'
--      set WFLAGS = "$WFLAGS -Od $GMS_WIN_TP -I./include"
--      set echo
+@@ -1158,10 +1159,12 @@
+       set WFLAGS = '-DLINUX -DWINDOWS -DWINDOWS64 -DWINTEL -DOLDDDITIMER'
+       set WFLAGS = "$WFLAGS -Od $GMS_WIN_TP -I./include"
+       set echo
 -      $CC $WFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
--    else
--      set echo
--      $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
--    endif
-+    set echo
-+    $CC $CFLAGS $DDI_OPTS -o $OBJ.o -c $OBJ.c
-     unset echo
--    if(-e $OBJ.obj) mv -v $OBJ.obj $OBJ.o
-     if(-e $OBJ.o) then
-        echo "Finished compiling: $OBJ.o"
++#     $CC $WFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
++      $CC $WFLAGS  $DDI_OPTS -o $OBJ.o -c $OBJ.c
      else
-@@ -1183,9 +1136,8 @@
+       set echo
+-      $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
++#     $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
++      $CC $CFLAGS $DDI_OPTS -o $OBJ.o -c $OBJ.c
+     endif
+     unset echo
+     if(-e $OBJ.obj) mv -v $OBJ.obj $OBJ.o
+@@ -1183,7 +1186,8 @@
    chdir src
    echo "Compiling FORTRAN wrappers for DDI"
    set echo
 -  $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS $F77_OPTS -o ddi_fortran.o -c ddi_fortran.c
-+  $CC $CFLAGS $DDI_OPTS $F77_OPTS -o ddi_fortran.o -c ddi_fortran.c
++#  $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS $F77_OPTS -o ddi_fortran.o -c ddi_fortran.c
++   $CC $CFLAGS $DDI_OPTS $F77_OPTS -o ddi_fortran.o -c ddi_fortran.c
    unset echo
--  if(-e ddi_fortran.obj) mv -v ddi_fortran.obj ddi_fortran.o
+   if(-e ddi_fortran.obj) mv -v ddi_fortran.obj ddi_fortran.o
    if(-e ddi_fortran.o) then
-      echo "Finished compiling: ddi_fortran.o"
-   else
