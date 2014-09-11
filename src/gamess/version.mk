@@ -1,4 +1,4 @@
-NAME               = gamess_$(ROLLCOMPILER)
+NAME               = gamess_$(ROLLCOMPILER)_$(ROLLMPI)_$(ROLLNETWORK)
 VERSION            = 5.2013
 RELEASE            = 0
 PKGROOT            = /opt/gamess

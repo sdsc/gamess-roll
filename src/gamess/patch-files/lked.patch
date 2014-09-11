@@ -1,5 +1,5 @@
 --- gamess/lked	2013-05-17 09:15:06.000000000 -0700
-+++ patch-files/lked	2014-01-14 16:26:24.000000000 -0800
++++ patch-files/lked	2014-09-10 21:13:15.356847497 -0700
 @@ -1,4 +1,4 @@
 -#!/bin/csh
 +#!/bin/csh -f
@@ -26,7 +26,28 @@
        set MPILIBS=''
        if ($TARGET == linux64) then
          if (($GMS_DDI_COMM == mpi) || ($GMS_DDI_COMM == mixed)) then
-+ROLLCOMMENT setenv LD_LIBRARY_PATH $GMS_MPI_PATH/lib:$LD_LIBRARY_PATH
++          setenv LD_LIBRARY_PATH $GMS_MPI_PATH/lib:$LD_LIBRARY_PATH
            switch ($GMS_MPI_LIB)
              case impi:
                 set MPILIBS="-L$GMS_MPI_PATH/lib64"
+@@ -1009,12 +1012,14 @@
+ #                   a new cluster needed to also look into -libnetdisc.
+ #                   Finally, allow it to peek into the runtime/thread libs 
+ #
+-               set OFEDLIST="-libverbs -lrdmacm -libumad"
+-               if (-e $GMS_OFED_PATH/libibnetdisc.so ) then
+-                  set OFEDLIST="$OFEDLIST -libnetdisc"
+-               endif
+-               set MPILIBS="$MPILIBS -L$GMS_OFED_PATH $OFEDLIST"
+-               set MPILIBS="$MPILIBS -lrt -lpthread"
++#               set OFEDLIST="-libverbs -lrdmacm -libumad"
++                set OFEDLIST="-libverbs -libmad -lrdmacm -libumad"
++#              if (-e $GMS_OFED_PATH/libibnetdisc.so ) then
++#                 set OFEDLIST="$OFEDLIST -libnetdisc"
++#              endif
++#              set MPILIBS="$MPILIBS -L$GMS_OFED_PATH $OFEDLIST"
++               set MPILIBS="$MPILIBS -L$GMS_MPI_PATH/lib $OFEDLIST"
++               set MPILIBS="$MPILIBS -llimic2 -lrt -lpthread"
+                breaksw
+ 
+             case myrinet:
