@@ -19,11 +19,16 @@ print OUT <<END;
 #!/bin/bash
 if test -f /etc/profile.d/modules.sh; then
   . /etc/profile.d/modules.sh
-  module load ROLLCOMPILER gamess
+  module load intel mvapich2_ib gamess
 fi
 mkdir $TESTFILE.dir
 cd $TESTFILE.dir
 cp /opt/gamess/tests/standard/*.inp .
+export PBS_NUM_PPN=1
+export PBS_JOBID=1
+export PBS_O_LOGNAME=1
+echo `hostname` >nodes
+export PBS_NODEFILE=`pwd`/nodes
 for input in *.inp; do
   testname=`echo \$input | sed 's/\\..*//'`
   /opt/gamess/rungms \$testname 00 1
