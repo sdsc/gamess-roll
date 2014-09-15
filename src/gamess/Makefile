@@ -57,7 +57,6 @@
 # $Log$
 
 REDHAT.ROOT = $(CURDIR)/../../
-ROLLPPN=32
 
 ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
@@ -72,22 +71,38 @@ include pull.mk
 
 F90COMP = gfortran
 MATHLIB = none
-ROLL_COMM = sockets
-ROLLCOMMENT = \#
 COMPILERSETUP =  \
   if test -e /etc/profile.d/modules.sh; then \
     . /etc/profile.d/modules.sh; \
     module load intel; \
     export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`; \
     export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
+    perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE_DIR)/install.info; \
+    perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE_DIR)/install.info; \
+    perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE_DIR)/install.info; \
     module unload intel; \
   fi; \
-  module load $(ROLLCOMPILER); \
-  perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE_DIR)/install.info; \
-  perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE_DIR)/install.info; \
-  perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE_DIR)/install.info; \
-  perl -pi -e "s!ROLL_BUILDPATH!$(PWD)/$(SOURCE_DIR)!" $(SOURCE_DIR)/install.info
+  module load $(ROLLCOMPILER)
 
+ifeq ("$(ROLLNETWORK)", "eth")
+  MPIMODULE = $(ROLLMPI)
+else
+  MPIMODULE = $(ROLLMPI)_$(ROLLNETWORK)
+endif
+
+MPISETUP = \
+  if test -e /etc/profile.d/modules.sh; then \
+    . /etc/profile.d/modules.sh; \
+    module load $(MPIMODULE) || true; \
+  fi; \
+  if test -z "$${MPIHOME}"; then \
+    export MPIHOME=/opt/$(ROLLMPI); \
+  fi; \
+  echo === MPIHOME ===; \
+  echo $${MPIHOME}
+
+
+ROLL_COMM = mpi
 ifeq ("$(ROLLCOMPILER)", "intel")
   F90COMP = ifort
   MATHLIB = mkl
@@ -96,10 +111,7 @@ ifeq ("$(ROLLCOMPILER)", "pgi")
    F90COMP = pgfortran
    MATHLIB = mkl
 endif
-ifneq ("$(ROLLOPTS)", "$(subst vsmp,,$(ROLLOPTS))")
-  ROLL_COMM = mpi
-  ROLLCOMMENT =
-endif
+
 
 build: $(SRC_DIRS)
 	patch $(SOURCE_DIR)/tools/actvte.code  patch-files/actvte.code.patch
@@ -115,22 +127,23 @@ build: $(SRC_DIRS)
 	cp ddivsmp.c $(SOURCE_DIR)/ddivsmp
 	cp symver $(SOURCE_DIR)/ddivsmp
 	perl -pi -e 's!ROLL_FCC!$(F90COMP)!' $(SOURCE_DIR)/install.info
-	perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE_DIR)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
-	perl -pi -e "s!ROLLPPN!$(ROLLPPN)!" $(SOURCE_DIR)/rungms
 	perl -pi -e 's!ROLL_COMM!$(ROLL_COMM)!' $(SOURCE_DIR)/install.info
-	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE_DIR)/install.info
-	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE_DIR)/lked
+	perl -pi -e "s!ROLL_BUILDPATH!$(PWD)/$(SOURCE_DIR)!" $(SOURCE_DIR)/install.info
+	perl -pi -e "s!ROLL_MPITYPE!$(ROLLMPI)!" $(SOURCE_DIR)/rungms
 	( \
 	  $(COMPILERSETUP); \
+          $(MPISETUP); \
+	  perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE_DIR)/install.info; \
+          perl -pi -e "s!ROLLMPI!$${MPIHOME}!" $(SOURCE_DIR)/install.info; \
+          perl -pi -e "s!ROLLMPI!$${MPIHOME}!" $(SOURCE_DIR)/rungms; \
+          perl -pi -e "s!ROLL_MPIFLAVOR!$(ROLLMPI)!" $(SOURCE_DIR)/install.info; \
 	  cd $(SOURCE_DIR); \
-	  perl -pi -e 's!^(.*ROLL)!# $$1!m' install.info; \
-          perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' rungms; \
           cd tools; \
           mv actvte.code actvte.f; \
 	  $(F90COMP) -o actvte.x actvte.f; \
-	  if test "$(ROLL_COMM)" = "sockets"; then \
+	  if test "$(ROLL_COMM)" != "vsmp"; then \
 	    cd ../ddi; \
 	    ./compddi; \
 	  else \
@@ -145,6 +158,7 @@ build: $(SRC_DIRS)
 	
 install::
 	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
+	mkdir -m 755 $(REDHAT.ROOT)/src/build-gamess-modules
 	( \
 	  cd $(SOURCE_DIR); \
 	  cp gamess.00.x runall rungms *.DOC install.info \
@@ -156,6 +170,9 @@ install::
 	    cp -r ddivsmp $(ROOT)/$(PKGROOT); \
 	  fi \
 	)
+	cat gamess.module | perl -pi -e "s!MODULEROOT!/opt/modulefiles/applications/gamess!g;s!VERSION!$(VERSION)!g;s!ROLLCOMPILER!$(ROLLCOMPILER)!g;s!ROLLMPI!$(ROLLMPI)!g;s!ROLLNETWORK!$(ROLLNETWORK)!g" \
+          > $(REDHAT.ROOT)/src/build-gamess-modules/$(NAME).module
+
 	@echo "::: Package $(NAME) install complete :::"
 
 clean::

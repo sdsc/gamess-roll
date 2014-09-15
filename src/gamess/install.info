@@ -1,7 +1,4 @@
 #!/bin/csh
-#   compilation configuration for GAMESS
-#   generated on triton-47.sdsc.edu
-#   generated at Tue Sep  7 12:05:59 PDT 2010
 setenv GMS_PATH            ROLL_GAMESSROOT
 setenv GMS_BUILD_DIR       ROLL_BUILDPATH
 #         machine type
@@ -18,5 +15,5 @@ setenv GMS_DDI_COMM        ROLL_COMM
 setenv GMS_L64_OPT         ""
 setenv GMS_LIN_FLAGS       ""
 setenv GMS_GFORTRAN_VERNO 4.7
-ROLLCOMMENT setenv GMS_MPI_LIB         mpich2
-ROLLCOMMENT setenv GMS_MPI_PATH        /opt/ScaleMP/mpich2/1.4
+setenv GMS_MPI_LIB         ROLL_MPIFLAVOR
+setenv GMS_MPI_PATH        ROLLMPI

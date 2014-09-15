@@ -58,20 +58,24 @@
 # $Log$
 #
 
-PKGROOT = /opt/modulefiles/applications/gamess
-REDHAT.ROOT = $(CURDIR)/../../
+REDHAT.ROOT     = $(PWD)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 
+
 build:
 
 install::
-	  mkdir -p $(ROOT)/$(PKGROOT)
-	  cp gamess.module $(ROOT)/$(PKGROOT)/$(VERSION)
-	  cp gamess.version $(ROOT)/$(PKGROOT)/.version.$(VERSION)
-	  perl -pi -e 's/VERSION/$(VERSION)/g' $(ROOT)/$(PKGROOT)/$(VERSION)
-	  perl -pi -e 's/VERSION/$(VERSION)/g' $(ROOT)/$(PKGROOT)/.version.$(VERSION)
-	  ln -s $(PKGROOT)/.version.$(VERSION) $(ROOT)/$(PKGROOT)/.version
+	( \
+           modulefiles=`ls $(REDHAT.ROOT)/src/build-gamess-modules/*.module 2>/dev/null`; \
+           if test  -n "$${modulefiles}"; then \
+                for modulefile in $${modulefiles}; do \
+                    perl -pi -e "s!ROOT_PKGROOT!$(ROOT)!g" $${modulefile}; \
+                    bash $${modulefile}; \
+                done; \
+           fi \
+        )
+
 
 clean::
