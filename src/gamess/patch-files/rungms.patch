@@ -1,5 +1,5 @@
---- gamess/rungms	2014-09-11 20:38:19.361691604 -0700
-+++ patch-files/rungms	2014-09-11 20:41:12.951330299 -0700
+--- gamess/rungms	2013-05-17 09:15:11.000000000 -0700
++++ patch-files/rungms	2014-09-12 16:53:03.287691595 -0700
 @@ -59,10 +59,17 @@
  #       both Sun Grid Engine (SGE), and Portable Batch System (PBS).
  #       See also a very old LoadLeveler "ll-gms" for some IBM systems.
@@ -53,13 +53,80 @@
     #
     #        ISU's various clusters have various iMPI paths
     #          the examples are our dynamo/chemphys2011/exalted/bolt clusters
-@@ -817,17 +824,18 @@
+@@ -541,16 +548,13 @@
+    #
+    #        ISU's various clusters have various MVAPICH2 paths
+    #          the examples are our dynamo/exalted/bolt clusters
+-   if ($DDI_MPI_CHOICE == mvapich2) then
+-      #-- DDI_MPI_ROOT=/share/apps/mpi/mvapich2-1.9a2-generic
+-      set DDI_MPI_ROOT=/share/apps/mpi/mvapich2-1.9a2-qlc
+-      #-- DDI_MPI_ROOT=/share/apps/mpi/mvapich2-1.9-generic-gnu
+-   endif
++   set DDI_MPI_ROOT=ROLLMPI
+    #
+    #       you probably don't need to modify the kickoff style (see below).
+    #
+    if ($DDI_MPI_CHOICE == impi)     set MPI_KICKOFF_STYLE=hydra
+    if ($DDI_MPI_CHOICE == mvapich2) set MPI_KICKOFF_STYLE=hydra
++   if ($DDI_MPI_CHOICE == openmpi)  set MPI_KICKOFF_STYLE=openmpi
+    #
+    #  Argonne's MPICH2, offers two possible kick-off procedures,
+    #  guided by two disk files (A and B).
+@@ -641,7 +645,30 @@
+       endif
+    endif
+    breaksw
+-
++   case openmpi:
++    if ($NNODES == 1) then
++              # when all processes are inside a single node, it is simple!
++              # all MPI processes, whether compute processes or data servers,
++              # are just in this node.   (note: NPROCS = 2*NCPUS!)
++       @ PPN2 = $PPN + $PPN
++       echo "`hostname` slots=$PPN2" > $PROCFILE
++    else
++              # For more than one node, we want PPN compute processes on
++              # each node, and of course, PPN data servers on each.
++              # Hence, PPN2 is doubled up.
++              # Front end script 'gms' is responsible to ensure that NCPUS
++              # is a multiple of PPN, and that PPN is less than or equals
++              # the actual number of cores in the node.
++       @ PPN2 = $PPN + $PPN
++       @ n=1
++       while ($n <= $NNODES)
++          set host=`sed -n -e "$n p" $HOSTFILE`
++          set host=$host[1]
++          echo "${host} slots=$PPN2" >> $PROCFILE
++          @ n++
++       end
++    endif
++    breaksw
+    case hydra:
+ 
+    if ($NNODES == 1) then
+@@ -682,7 +709,7 @@
+    endif
+    #
+    #     add MVAPICH2 to the execution path
+-   if ($DDI_MPI_CHOICE == mvapich2) then
++   if ($DDI_MPI_CHOICE == mvapich2 || $DDI_MPI_CHOICE == openmpi) then
+       setenv LD_LIBRARY_PATH $DDI_MPI_ROOT/lib:$LD_LIBRARY_PATH
+       set path=($DDI_MPI_ROOT/bin $path)
+    endif
+@@ -812,6 +839,12 @@
+       unset echo
+       breaksw
+    #
++   case openmpi:
++        set echo
++          mpirun -machinefile $PROCFILE -np $NPROCS \
++             $GMSPATH/gamess.$VERNO.x < /dev/null
++        unset echo
++        breaksw:
+    case hydra:
+       if ($DDI_MPI_CHOICE == impi) then
           set echo
-          setenv I_MPI_HYDRA_ENV all
-          setenv I_MPI_PERHOST $PPN2
-+         mpirun -machinefile $PROCFILE -np $NPROCS \
-+            $GMSPATH/gamess.$VERNO.x < /dev/null
-          unset echo
+@@ -821,13 +854,12 @@
        endif
        if ($DDI_MPI_CHOICE == mvapich2) then
           set echo
@@ -77,12 +144,14 @@
        breaksw
     #
     case default:
-@@ -1507,7 +1515,7 @@
+@@ -1507,7 +1539,9 @@
           #--endif
           #---------FMO rescue------
           ssh $host -l $USER "ls -l $SCR/$JOB.*"
 -         ssh $host -l $USER "rm -f $SCR/$JOB.*"
-+#        ssh $host -l $USER "rm -f $SCR/$JOB.*"
++         if( $USERSCR != $SCR ) then
++             ssh $host -l $USER "rm -f $SCR/$JOB.*"
++          endif
        endif
        @ n++
     end
