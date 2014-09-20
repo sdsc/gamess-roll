@@ -8,14 +8,11 @@ http://www.msg.ameslab.gov/GAMESS
 </description>
 
 <copyright>
-Copyright (c) 2000 - 2011 The Regents of the University of California.
+Copyright (c) 2000 - 2014 The Regents of the University of California.
 All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 </copyright>
 
-<changelog>
-</changelog>
-
-<package>gamess_ROLLCOMPILER</package>
+<package>gamess_COMPILERNAME</package>
 <package>gamess-modules</package>
 <package>gamess-roll-test</package>
 
