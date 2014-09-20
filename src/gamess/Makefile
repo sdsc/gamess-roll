@@ -59,77 +59,75 @@
 REDHAT.ROOT = $(CURDIR)/../../
 ROLLPPN=32
 
-ifndef ROLLCOMPILER
-  ROLLCOMPILER = gnu
-endif
-ifndef ROLLOPTS
-  ROLLOPTS = sockets
-endif
-
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 include pull.mk
 
-F90COMP = gfortran
+FC = gfortran
 MATHLIB = none
-ROLL_COMM = sockets
-ROLLCOMMENT = \#
-COMPILERSETUP =  \
-  if test -e /etc/profile.d/modules.sh; then \
-    . /etc/profile.d/modules.sh; \
-    module load intel; \
-    export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`; \
-    export iversion=`icc -v 2>&1 | perl -pe 's!\D*(\d+).*!$$1!'`; \
-    module unload intel; \
-  fi; \
-  module load $(ROLLCOMPILER); \
-  perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE_DIR)/install.info; \
-  perl -pi -e "s!ROLL_INTELVERSION!$$iversion!" $(SOURCE_DIR)/install.info; \
-  perl -pi -e "s!ROLL_MKLVERSION!$$iversion!" $(SOURCE_DIR)/install.info; \
-  perl -pi -e "s!ROLL_BUILDPATH!$(PWD)/$(SOURCE_DIR)!" $(SOURCE_DIR)/install.info
-
-ifeq ("$(ROLLCOMPILER)", "intel")
-  F90COMP = ifort
+ifeq ("$(COMPILERNAME)", "intel")
+  FC = ifort
+  MATHLIB = mkl
+else ifeq ("$(COMPILERNAME)", "pgi")
+  FC = pgfortran
   MATHLIB = mkl
 endif
-ifeq ("$(ROLLCOMPILER)", "pgi")
-   F90COMP = pgfortran
-   MATHLIB = mkl
-endif
+
+COMPILERSETUP =  \
+  module load $(ROLLCOMPILER) || true; \
+  echo === Compiler and version ===; \
+  $(FC) --version
+
+MKLSETUP = \
+  module load mkl || true; \
+  echo === MKL_ROOT ===; \
+  echo $${MKL_ROOT}; \
+  export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`
+
+ROLL_COMM = sockets
+ROLLCOMMENT = \#
 ifneq ("$(ROLLOPTS)", "$(subst vsmp,,$(ROLLOPTS))")
   ROLL_COMM = mpi
   ROLLCOMMENT =
 endif
 
 build: $(SRC_DIRS)
-	patch $(SOURCE_DIR)/tools/actvte.code  patch-files/actvte.code.patch
-	patch $(SOURCE_DIR)/ddi/compddi  patch-files/compddi.patch
-	patch $(SOURCE_DIR)/comp  patch-files/comp.patch
-	patch $(SOURCE_DIR)/compall  patch-files/compall.patch
-	patch $(SOURCE_DIR)/lked  patch-files/lked.patch
-	patch $(SOURCE_DIR)/ddi/src/ddi_create.c  patch-files/ddi_create.c.patch
+	patch $(SOURCE_DIR)/tools/actvte.code patch-files/actvte.code.patch
+	mv $(SOURCE_DIR)/tools/actvte.code $(SOURCE_DIR)/tools/actvte.f
+	patch $(SOURCE_DIR)/ddi/compddi patch-files/compddi.patch
+	patch $(SOURCE_DIR)/comp patch-files/comp.patch
+	patch $(SOURCE_DIR)/compall patch-files/compall.patch
+	patch $(SOURCE_DIR)/lked patch-files/lked.patch
+	patch $(SOURCE_DIR)/ddi/src/ddi_create.c patch-files/ddi_create.c.patch
 	cp install.info $(SOURCE_DIR)
-	patch $(SOURCE_DIR)/rungms  patch-files/rungms.patch
+	patch $(SOURCE_DIR)/rungms patch-files/rungms.patch
 	mkdir $(SOURCE_DIR)/ddivsmp
 	cp Makefile.vsmp $(SOURCE_DIR)/ddivsmp/Makefile
 	cp ddivsmp.c $(SOURCE_DIR)/ddivsmp
 	cp symver $(SOURCE_DIR)/ddivsmp
-	perl -pi -e 's!ROLL_FCC!$(F90COMP)!' $(SOURCE_DIR)/install.info
+	perl -pi -e 's!ROLL_FCC!$(FC)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE_DIR)!' $(SOURCE_DIR)/install.info
-	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
-	perl -pi -e "s!ROLLPPN!$(ROLLPPN)!" $(SOURCE_DIR)/rungms
 	perl -pi -e 's!ROLL_COMM!$(ROLL_COMM)!' $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE_DIR)/install.info
+	perl -pi -e "s!ROLL_BUILDPATH!$(PWD)/$(SOURCE_DIR)!" $(SOURCE_DIR)/install.info
+	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
+	perl -pi -e "s!ROLLPPN!$(ROLLPPN)!" $(SOURCE_DIR)/rungms
 	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE_DIR)/lked
 	( \
 	  $(COMPILERSETUP); \
-	  cd $(SOURCE_DIR); \
-	  perl -pi -e 's!^(.*ROLL)!# $$1!m' install.info; \
-          perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' rungms; \
-          cd tools; \
-          mv actvte.code actvte.f; \
-	  $(F90COMP) -o actvte.x actvte.f; \
+	  $(MKLSETUP); \
+	  fversion=`$(FC) --version 2>&1 | grep -o '[0-9][0-9]*' | head -1`; \
+	  perl -pi -e "s!ROLL_INTELVERSION!$$fversion!" $(SOURCE_DIR)/install.info; \
+	  mklversion=`module avail 2>&1 | grep -o mkl[^0-9]*[0-9][0-9]* | head -1 | grep -o [0-9]*`; \
+	  if test $$? -ne 0; then \
+	    mklversion=$$fversion; \
+	  fi; \
+	  perl -pi -e "s!ROLL_MKLVERSION!$$mklversion!" $(SOURCE_DIR)/install.info; \
+	  perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE_DIR)/install.info; \
+	  perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' $(SOURCE_DIR)/rungms; \
+	  cd $(SOURCE_DIR)/tools; \
+	  $(FC) -o actvte.x actvte.f; \
 	  if test "$(ROLL_COMM)" = "sockets"; then \
 	    cd ../ddi; \
 	    ./compddi; \
@@ -139,7 +137,7 @@ build: $(SRC_DIRS)
 	  fi; \
 	  cd ..; \
 	  ./compall; \
-	  ./lked; \
+	  ./lked \
 	)
 	@echo "::: Package $(NAME) build complete :::"
 	
@@ -147,9 +145,9 @@ install::
 	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
 	( \
 	  cd $(SOURCE_DIR); \
-	  cp gamess.00.x runall rungms *.DOC install.info \
-	     $(ROOT)/$(PKGROOT); \
-	  cp -r gms-files.csh auxdata tests $(ROOT)/$(PKGROOT); \
+	  cp gamess.00.x runall rungms *.DOC install.info gms-files.csh \
+	    $(ROOT)/$(PKGROOT); \
+	  cp -r auxdata tests $(ROOT)/$(PKGROOT); \
 	  if test $(ROLL_COMM) = "sockets"; then \
 	    cp ddi/ddikick.x $(ROOT)/$(PKGROOT); \
 	  else \
@@ -160,4 +158,3 @@ install::
 
 clean::
 	rm -rf $(SOURCE_DIR)
-
