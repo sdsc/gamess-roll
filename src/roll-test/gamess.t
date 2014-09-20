@@ -17,10 +17,7 @@ my $TESTFILE = 'tmpgamess';
 open(OUT, ">$TESTFILE");
 print OUT <<END;
 #!/bin/bash
-if test -f /etc/profile.d/modules.sh; then
-  . /etc/profile.d/modules.sh
-  module load ROLLCOMPILER gamess
-fi
+module load ROLLCOMPILER gamess
 mkdir $TESTFILE.dir
 cd $TESTFILE.dir
 cp /opt/gamess/tests/standard/*.inp .
@@ -40,7 +37,7 @@ if($appliance =~ /$installedOnAppliancesPattern/) {
 SKIP: {
 
   skip 'gamess roll not installed', 4 if ! $isInstalled;
-  print "Running gamess verification tests (takes ~6 minutes)\n";
+  print "Running gamess verification tests (takes ~8 minutes)\n";
   $output = `/bin/bash $TESTFILE >$TESTFILE.out 2>&1`;
   my $passed = `grep -c 'TERMINATED NORMALLY' $TESTFILE.out`;
   chomp($passed);
