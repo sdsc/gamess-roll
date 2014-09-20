@@ -57,20 +57,16 @@
 # $Log$
 
 REDHAT.ROOT = $(CURDIR)/../../
-ROLLPPN=32
 
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 include pull.mk
 
 FC = gfortran
-MATHLIB = none
 ifeq ("$(COMPILERNAME)", "intel")
   FC = ifort
-  MATHLIB = mkl
 else ifeq ("$(COMPILERNAME)", "pgi")
   FC = pgfortran
-  MATHLIB = mkl
 endif
 
 COMPILERSETUP =  \
@@ -85,55 +81,77 @@ MKLSETUP = \
   export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`
 
 ROLL_COMM = sockets
-ROLLCOMMENT = \#
 ifneq ("$(ROLLOPTS)", "$(subst vsmp,,$(ROLLOPTS))")
   ROLL_COMM = mpi
-  ROLLCOMMENT =
+endif
+
+# TODO: replace these hard-coded constants--particularly the path constant
+ROLLPPN = 32
+SCALEMP_MPI = mpich2
+SCALEMP_MPI_HOME = /opt/ScaleMP/$(SCALEMP_MPI)/1.4
+
+# Contents of install.info--gamess compilation configuration file
+INSTALL.INFO := \
+\#!/bin/csh -f\n\
+setenv GMS_PATH           $(PWD)/$(SOURCE_DIR)\n\
+setenv GMS_BUILD_DIR      $(PWD)/$(SOURCE_DIR)\n\
+\# machine type\n\
+setenv GMS_TARGET         linux64\n\
+\# FORTRAN compiler setup\n\
+setenv GMS_FORTRAN        $(FC)\n
+
+ifeq ("$(COMPILERNAME)", "gnu")
+  INSTALL.INFO += setenv GMS_GFORTRAN_VERNO $${fortVers}\n
+else ifeq ("$(COMPILERNAME)", "intel")
+  INSTALL.INFO += setenv GMS_IFORT_VERNO    $${fortVers}\n
+endif
+
+INSTALL.INFO += \
+\# mathematical library setup\n\
+setenv GMS_MATHLIB        mkl\n\
+setenv GMS_MATHLIB_PATH   $${MKLLIB}\n\
+setenv GMS_MKL_VERNO      $${mklVers}\n\
+\# parallel message passing model setup\n\
+setenv GMS_DDI_COMM       $(ROLL_COMM)\n
+  
+ifeq ("$(ROLL_COMM)", "mpi")
+  INSTALL.INFO += \
+    setenv GMS_MPI_LIB        $(SCALEMP_MPI)\n\
+    setenv GMS_MPI_PATH       $(SCALEMP_MPI_HOME)\n
 endif
 
 build: $(SRC_DIRS)
-	patch $(SOURCE_DIR)/tools/actvte.code patch-files/actvte.code.patch
-	mv $(SOURCE_DIR)/tools/actvte.code $(SOURCE_DIR)/tools/actvte.f
+	mkdir $(SOURCE_DIR)/ddivsmp
+	cp Makefile.vsmp $(SOURCE_DIR)/ddivsmp/Makefile
+	cp ddivsmp.c symver $(SOURCE_DIR)/ddivsmp
+	perl -pe 's/^.UNX/    /' $(SOURCE_DIR)/tools/actvte.code > \
+	  $(SOURCE_DIR)/tools/actvte.f
 	patch $(SOURCE_DIR)/ddi/compddi patch-files/compddi.patch
 	patch $(SOURCE_DIR)/comp patch-files/comp.patch
 	patch $(SOURCE_DIR)/compall patch-files/compall.patch
-	patch $(SOURCE_DIR)/lked patch-files/lked.patch
 	patch $(SOURCE_DIR)/ddi/src/ddi_create.c patch-files/ddi_create.c.patch
-	cp install.info $(SOURCE_DIR)
 	patch $(SOURCE_DIR)/rungms patch-files/rungms.patch
-	mkdir $(SOURCE_DIR)/ddivsmp
-	cp Makefile.vsmp $(SOURCE_DIR)/ddivsmp/Makefile
-	cp ddivsmp.c $(SOURCE_DIR)/ddivsmp
-	cp symver $(SOURCE_DIR)/ddivsmp
-	perl -pi -e 's!ROLL_FCC!$(FC)!' $(SOURCE_DIR)/install.info
-	perl -pi -e 's!ROLL_MATHLIB!$(MATHLIB)!' $(SOURCE_DIR)/install.info
-	perl -pi -e 's!ROLL_GAMESSROOT!$(PWD)/$(SOURCE_DIR)!' $(SOURCE_DIR)/install.info
-	perl -pi -e 's!ROLL_COMM!$(ROLL_COMM)!' $(SOURCE_DIR)/install.info
-	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE_DIR)/install.info
-	perl -pi -e "s!ROLL_BUILDPATH!$(PWD)/$(SOURCE_DIR)!" $(SOURCE_DIR)/install.info
 	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
 	perl -pi -e "s!ROLLPPN!$(ROLLPPN)!" $(SOURCE_DIR)/rungms
-	perl -pi -e 's!ROLLCOMMENT!$(ROLLCOMMENT)!' $(SOURCE_DIR)/lked
 	( \
 	  $(COMPILERSETUP); \
 	  $(MKLSETUP); \
-	  fversion=`$(FC) --version 2>&1 | grep -o '[0-9][0-9]*' | head -1`; \
-	  perl -pi -e "s!ROLL_INTELVERSION!$$fversion!" $(SOURCE_DIR)/install.info; \
-	  mklversion=`module avail 2>&1 | grep -o mkl[^0-9]*[0-9][0-9]* | head -1 | grep -o [0-9]*`; \
+	  fortVers=`$(FC) --version 2>&1 | grep -o '[0-9][0-9]*' | head -1`; \
+	  mklVers=`module avail 2>&1 | grep -o mkl[^0-9]*[0-9][0-9]* | head -1 | grep -o [0-9]*`; \
 	  if test $$? -ne 0; then \
-	    mklversion=$$fversion; \
+	    mklVers=$$fortVers; \
 	  fi; \
-	  perl -pi -e "s!ROLL_MKLVERSION!$$mklversion!" $(SOURCE_DIR)/install.info; \
-	  perl -pi -e "s!ROLL_MATHPATH!$${MKLLIB}!" $(SOURCE_DIR)/install.info; \
+	  echo -e "$(INSTALL.INFO)" > $(SOURCE_DIR)/install.info; \
 	  perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' $(SOURCE_DIR)/rungms; \
 	  cd $(SOURCE_DIR)/tools; \
 	  $(FC) -o actvte.x actvte.f; \
-	  if test "$(ROLL_COMM)" = "sockets"; then \
-	    cd ../ddi; \
-	    ./compddi; \
-	  else \
+	  if test "$(ROLL_COMM)" = "mpi"; then \
 	    cd ../ddivsmp; \
 	    $(MAKE); \
+	    export LD_LIBRARY_PATH=$(SCALEMP_MPI_HOME)/lib:$LD_LIBRARY_PATH; \
+	  else \
+	    cd ../ddi; \
+	    ./compddi; \
 	  fi; \
 	  cd ..; \
 	  ./compall; \
