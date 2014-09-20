@@ -1,6 +1,5 @@
 NAME       = gamess-modules
-VERSION    = 5.2013
+VERSION    = 1.0
 RELEASE    = 0
-PKGROOT    = /opt/modulefiles/applications/gamess
 
 RPM.EXTRAS = AutoReq:No

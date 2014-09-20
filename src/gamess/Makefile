@@ -80,15 +80,18 @@ MKLSETUP = \
   echo $${MKL_ROOT}; \
   export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`
 
-ROLL_COMM = sockets
-ifneq ("$(ROLLOPTS)", "$(subst vsmp,,$(ROLLOPTS))")
-  ROLL_COMM = mpi
+ifeq ("$(ROLLNETWORK)", "eth")
+  MPIMODULE = $(ROLLMPI)
+else
+  MPIMODULE = $(ROLLMPI)_$(ROLLNETWORK)
 endif
 
-# TODO: replace these hard-coded constants--particularly the path constant
-ROLLPPN = 32
-SCALEMP_MPI = mpich2
-SCALEMP_MPI_HOME = /opt/ScaleMP/$(SCALEMP_MPI)/1.4
+MPISETUP = \
+  module load $(MPIMODULE) || true; \
+  echo === MPIHOME ===; \
+  echo $${MPIHOME}
+
+ROLL_COMM = mpi
 
 # Contents of install.info--gamess compilation configuration file
 INSTALL.INFO := \
@@ -112,13 +115,9 @@ setenv GMS_MATHLIB        mkl\n\
 setenv GMS_MATHLIB_PATH   $${MKLLIB}\n\
 setenv GMS_MKL_VERNO      $${mklVers}\n\
 \# parallel message passing model setup\n\
-setenv GMS_DDI_COMM       $(ROLL_COMM)\n
-  
-ifeq ("$(ROLL_COMM)", "mpi")
-  INSTALL.INFO += \
-    setenv GMS_MPI_LIB        $(SCALEMP_MPI)\n\
-    setenv GMS_MPI_PATH       $(SCALEMP_MPI_HOME)\n
-endif
+setenv GMS_DDI_COMM       mpi\n\
+setenv GMS_MPI_LIB        $(ROLLMPI)\n\
+setenv GMS_MPI_PATH       $${MPIHOME}\n
 
 build: $(SRC_DIRS)
 	mkdir $(SOURCE_DIR)/ddivsmp
@@ -129,29 +128,30 @@ build: $(SRC_DIRS)
 	patch $(SOURCE_DIR)/ddi/compddi patch-files/compddi.patch
 	patch $(SOURCE_DIR)/comp patch-files/comp.patch
 	patch $(SOURCE_DIR)/compall patch-files/compall.patch
+	patch $(SOURCE_DIR)/lked patch-files/lked.patch
 	patch $(SOURCE_DIR)/ddi/src/ddi_create.c patch-files/ddi_create.c.patch
 	patch $(SOURCE_DIR)/rungms patch-files/rungms.patch
 	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
-	perl -pi -e "s!ROLLPPN!$(ROLLPPN)!" $(SOURCE_DIR)/rungms
+	perl -pi -e "s!ROLL_MPITYPE!$(ROLLMPI)!" $(SOURCE_DIR)/rungms
 	( \
 	  $(COMPILERSETUP); \
 	  $(MKLSETUP); \
+          $(MPISETUP); \
 	  fortVers=`$(FC) --version 2>&1 | grep -o '[0-9][0-9]*' | head -1`; \
 	  mklVers=`module avail 2>&1 | grep -o mkl[^0-9]*[0-9][0-9]* | head -1 | grep -o [0-9]*`; \
 	  if test $$? -ne 0; then \
 	    mklVers=$$fortVers; \
 	  fi; \
 	  echo -e "$(INSTALL.INFO)" > $(SOURCE_DIR)/install.info; \
-	  perl -pi -e 's!ROLL_MATHLIB!$${MKLLIB}!' $(SOURCE_DIR)/rungms; \
+	  perl -pi -e "s!ROLLMPI!$${MPIHOME}!" $(SOURCE_DIR)/rungms; \
 	  cd $(SOURCE_DIR)/tools; \
 	  $(FC) -o actvte.x actvte.f; \
-	  if test "$(ROLL_COMM)" = "mpi"; then \
-	    cd ../ddivsmp; \
-	    $(MAKE); \
-	    export LD_LIBRARY_PATH=$(SCALEMP_MPI_HOME)/lib:$LD_LIBRARY_PATH; \
-	  else \
+	  if test "$(ROLL_COMM)" != "vsmp"; then \
 	    cd ../ddi; \
 	    ./compddi; \
+	  else \
+	    cd ../ddivsmp; \
+	    $(MAKE); \
 	  fi; \
 	  cd ..; \
 	  ./compall; \
@@ -161,6 +161,7 @@ build: $(SRC_DIRS)
 	
 install::
 	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
+	mkdir -m 755 $(REDHAT.ROOT)/src/build-gamess-modules
 	( \
 	  cd $(SOURCE_DIR); \
 	  cp gamess.00.x runall rungms *.DOC install.info gms-files.csh \
@@ -172,6 +173,9 @@ install::
 	    cp -r ddivsmp $(ROOT)/$(PKGROOT); \
 	  fi \
 	)
+	cat gamess.module | perl -pi -e "s!MODULEROOT!/opt/modulefiles/applications/gamess!g;s!VERSION!$(VERSION)!g;s!ROLLCOMPILER!$(ROLLCOMPILER)!g;s!ROLLMPI!$(ROLLMPI)!g;s!ROLLNETWORK!$(ROLLNETWORK)!g" \
+          > $(REDHAT.ROOT)/src/build-gamess-modules/$(NAME).module
+
 	@echo "::: Package $(NAME) install complete :::"
 
 clean::

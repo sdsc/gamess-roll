@@ -6,9 +6,17 @@ ifndef ROLLCOMPILER
 endif
 COMPILERNAME := $(firstword $(subst /, ,$(ROLLCOMPILER)))
 
-NAME           = gamess_$(COMPILERNAME)
+ifndef ROLLMPI
+  ROLLMPI = openmpi
+endif
+
+ifndef ROLLNETWORK
+  ROLLNETWORK = eth
+endif
+
+NAME           = gamess_$(ROLLCOMPILER)_$(ROLLMPI)_$(ROLLNETWORK)
 VERSION        = 5.2013
-RELEASE        = 0
+RELEASE        = 1
 PKGROOT        = /opt/gamess
 
 SRC_SUBDIR     = gamess

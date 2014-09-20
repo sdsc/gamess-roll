@@ -69,11 +69,20 @@ copyright rpm pkg clean::
 	  grep -q ROLLCOMPILER $$i/version.mk; \
 	  if test $$? -eq 0; then \
 	    for c in $(ROLLCOMPILER); do \
-	        echo make $@ in $$i with ROLLCOMPILER=$$c starting at `date +"%F %T"`; \
-	        (cd $$i && $(MAKE) ROLLCOMPILER=$$c $@) || exit 2; \
+	      for n in $(ROLLNETWORK); do \
+	        grep -q ROLLMPI $$i/version.mk; \
+	        if test $$? -eq 0; then \
+	          for m in $(ROLLMPI); do \
+	            echo make $@ in $$i with ROLLCOMPILER=$$c ROLLNETWORK=$$n ROLLMPI=$$m; \
+	            (cd $$i && $(MAKE) ROLLCOMPILER=$$c ROLLNETWORK=$$n ROLLMPI=$$m $@) || exit 2; \
+	          done; \
+	        else \
+	          echo make $@ in $$i with ROLLCOMPILER=$$c ROLLNETWORK=$$n; \
+	          (cd $$i && $(MAKE) ROLLCOMPILER=$$c ROLLNETWORK=$$n $@) || exit 2; \
+	        fi; \
+	      done; \
 	    done; \
 	  else \
-	    echo make $@ in $$i with ROLLCOMPILER="$(ROLLCOMPILER)" starting at `date +"%F %T"`; \
-	    (cd $$i && $(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" $@) || exit 2; \
+	    (cd $$i && $(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" ROLLMPI="$(ROLLMPI)" ROLLNETWORK="$(ROLLNETWORK)" $@) || exit 2; \
 	  fi; \
 	done

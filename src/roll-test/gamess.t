@@ -17,10 +17,15 @@ my $TESTFILE = 'tmpgamess';
 open(OUT, ">$TESTFILE");
 print OUT <<END;
 #!/bin/bash
-module load ROLLCOMPILER gamess
+module load gamess
 mkdir $TESTFILE.dir
 cd $TESTFILE.dir
 cp /opt/gamess/tests/standard/*.inp .
+export PBS_NUM_PPN=1
+export PBS_JOBID=1
+export PBS_O_LOGNAME=1
+echo `hostname` >nodes
+export PBS_NODEFILE=`pwd`/nodes
 for input in *.inp; do
   testname=`echo \$input | sed 's/\\..*//'`
   /opt/gamess/rungms \$testname 00 1
