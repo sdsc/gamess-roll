@@ -91,8 +91,6 @@ MPISETUP = \
   echo === MPIHOME ===; \
   echo $${MPIHOME}
 
-ROLL_COMM = mpi
-
 # Contents of install.info--gamess compilation configuration file
 INSTALL.INFO := \
 \#!/bin/csh -f\n\
@@ -120,9 +118,6 @@ setenv GMS_MPI_LIB        $(ROLLMPI)\n\
 setenv GMS_MPI_PATH       $${MPIHOME}\n
 
 build: $(SRC_DIRS)
-	mkdir $(SOURCE_DIR)/ddivsmp
-	cp Makefile.vsmp $(SOURCE_DIR)/ddivsmp/Makefile
-	cp ddivsmp.c symver $(SOURCE_DIR)/ddivsmp
 	perl -pe 's/^.UNX/    /' $(SOURCE_DIR)/tools/actvte.code > \
 	  $(SOURCE_DIR)/tools/actvte.f
 	patch $(SOURCE_DIR)/ddi/compddi patch-files/compddi.patch
@@ -146,13 +141,8 @@ build: $(SRC_DIRS)
 	  perl -pi -e "s!ROLLMPI!$${MPIHOME}!" $(SOURCE_DIR)/rungms; \
 	  cd $(SOURCE_DIR)/tools; \
 	  $(FC) -o actvte.x actvte.f; \
-	  if test "$(ROLL_COMM)" != "vsmp"; then \
-	    cd ../ddi; \
-	    ./compddi; \
-	  else \
-	    cd ../ddivsmp; \
-	    $(MAKE); \
-	  fi; \
+	  cd ../ddi; \
+	  ./compddi; \
 	  cd ..; \
 	  ./compall; \
 	  ./lked \
@@ -166,12 +156,7 @@ install::
 	  cd $(SOURCE_DIR); \
 	  cp gamess.00.x runall rungms *.DOC install.info gms-files.csh \
 	    $(ROOT)/$(PKGROOT); \
-	  cp -r auxdata tests $(ROOT)/$(PKGROOT); \
-	  if test $(ROLL_COMM) = "sockets"; then \
-	    cp ddi/ddikick.x $(ROOT)/$(PKGROOT); \
-	  else \
-	    cp -r ddivsmp $(ROOT)/$(PKGROOT); \
-	  fi \
+	  cp -r auxdata tests $(ROOT)/$(PKGROOT) \
 	)
 	cat gamess.module | perl -pi -e "s!MODULEROOT!/opt/modulefiles/applications/gamess!g;s!VERSION!$(VERSION)!g;s!ROLLCOMPILER!$(ROLLCOMPILER)!g;s!ROLLMPI!$(ROLLMPI)!g;s!ROLLNETWORK!$(ROLLNETWORK)!g" \
           > $(REDHAT.ROOT)/src/build-gamess-modules/$(NAME).module
