@@ -1,5 +1,9 @@
-NAME       = gamess-modules
-VERSION    = 1.0
-RELEASE    = 0
+NAME        = gamess-modules
+RELEASE     = 1
+PKGROOT     = /opt/modulefiles/applications/gamess
 
-RPM.EXTRAS = AutoReq:No
+VERSION_SRC = $(REDHAT.ROOT)/src/gamess/version.mk
+VERSION_INC = version.inc
+include $(VERSION_INC)
+
+RPM.EXTRAS  = AutoReq:No

@@ -66,7 +66,7 @@ In addition to the software itself, the roll installs gamess environment
 module files in:
 
 ```shell
-/opt/modulefiles/applications/.(compiler)/gamess.
+/opt/modulefiles/applications/gamess
 ```
 
 

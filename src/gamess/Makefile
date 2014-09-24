@@ -151,15 +151,12 @@ build: $(SRC_DIRS)
 	
 install::
 	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
-	mkdir -m 755 $(REDHAT.ROOT)/src/build-gamess-modules
 	( \
 	  cd $(SOURCE_DIR); \
 	  cp gamess.00.x runall rungms *.DOC install.info gms-files.csh \
 	    $(ROOT)/$(PKGROOT); \
 	  cp -r auxdata tests $(ROOT)/$(PKGROOT) \
 	)
-	cat gamess.module | perl -pi -e "s!MODULEROOT!/opt/modulefiles/applications/gamess!g;s!VERSION!$(VERSION)!g;s!ROLLCOMPILER!$(ROLLCOMPILER)!g;s!ROLLMPI!$(ROLLMPI)!g;s!ROLLNETWORK!$(ROLLNETWORK)!g" \
-          > $(REDHAT.ROOT)/src/build-gamess-modules/$(NAME).module
 
 	@echo "::: Package $(NAME) install complete :::"
 
