@@ -101,6 +101,7 @@ setenv GMS_TARGET         linux64\n\
 \# FORTRAN compiler setup\n\
 setenv GMS_FORTRAN        $(FC)\n
 
+# Note: config wants major.minor version for gnu, major only for intel
 ifeq ("$(COMPILERNAME)", "gnu")
   INSTALL.INFO += setenv GMS_GFORTRAN_VERNO $${fortVers}\n
 else ifeq ("$(COMPILERNAME)", "intel")
@@ -131,9 +132,16 @@ build: $(SRC_DIRS)
 	( \
 	  $(COMPILERSETUP); \
 	  $(MKLSETUP); \
-          $(MPISETUP); \
-	  fortVers=`$(FC) --version 2>&1 | grep -o '[0-9][0-9]*' | head -1`; \
-	  mklVers=`module avail 2>&1 | grep -o mkl[^0-9]*[0-9][0-9]* | head -1 | grep -o [0-9]*`; \
+	  $(MPISETUP); \
+	  if test "$(COMPILERNAME)" = "intel"; then \
+	    fortVers=`$(FC) --version 2>&1 | \
+	              perl -ne 'print $$1 and exit if m/(\d+)/'`; \
+	  else \
+	    fortVers=`$(FC) --version 2>&1 | \
+	              perl -ne 'print $$1 and exit if m/(\d+(\.\d+)?)/'`; \
+	  fi; \
+	  mklVers=`module avail 2>&1 | \
+	           perl -ne 'print $$1 and exit if m/mkl\D+(\d+)/'`; \
 	  if test $$? -ne 0; then \
 	    mklVers=$$fortVers; \
 	  fi; \
