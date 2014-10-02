@@ -6,7 +6,7 @@ include Rules.mk
 build:
 
 install::
-	mkdir -p $(ROOT)/$(PKGROOT)
+	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
 	cp *.t $(ROOT)/$(PKGROOT)/
 	perl -pi -e 's#COMPILERNAME#$(COMPILERNAME)#g;' \
 	         -e 's#ROLLCOMPILER#$(ROLLCOMPILER)#g;' \

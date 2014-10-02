@@ -9,7 +9,7 @@ $(VERSION_INC): $(VERSION_SRC)
 	/bin/grep 'VERSION.*=' $(VERSION_SRC) > $@
 	
 install::
-	mkdir -p $(ROOT)/$(PKGROOT)
+	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
 	cp *.module $(ROOT)/$(PKGROOT)/$(VERSION)
 	cp *.version $(ROOT)/$(PKGROOT)/.version.$(VERSION)
 	perl -pi -e 's#COMPILERNAME#$(COMPILERNAME)#g;' \
