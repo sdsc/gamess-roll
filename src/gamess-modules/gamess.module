@@ -1,4 +1,4 @@
 #%Module1.0
 setenv GAMESSHOME /opt/gamess
 prepend-path PATH /opt/gamess
-module load ROLLCOMPILER
+module load ROLLCOMPILER ROLLMPI

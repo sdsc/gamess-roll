@@ -69,20 +69,18 @@ copyright rpm pkg clean::
 	  grep -q ROLLCOMPILER $$i/version.mk; \
 	  if test $$? -eq 0; then \
 	    for c in $(ROLLCOMPILER); do \
-	      for n in $(ROLLNETWORK); do \
-	        grep -q ROLLMPI $$i/version.mk; \
-	        if test $$? -eq 0; then \
-	          for m in $(ROLLMPI); do \
-	            echo make $@ in $$i with ROLLCOMPILER=$$c ROLLNETWORK=$$n ROLLMPI=$$m; \
-	            (cd $$i && $(MAKE) ROLLCOMPILER=$$c ROLLNETWORK=$$n ROLLMPI=$$m $@) || exit 2; \
-	          done; \
-	        else \
-	          echo make $@ in $$i with ROLLCOMPILER=$$c ROLLNETWORK=$$n; \
-	          (cd $$i && $(MAKE) ROLLCOMPILER=$$c ROLLNETWORK=$$n $@) || exit 2; \
-	        fi; \
-	      done; \
+	      grep -q ROLLMPI $$i/version.mk; \
+	      if test $$? -eq 0; then \
+	        for m in $(ROLLMPI); do \
+	          echo make $@ in $$i with ROLLCOMPILER=$$c ROLLMPI=$$m; \
+	          (cd $$i && $(MAKE) ROLLCOMPILER=$$c ROLLMPI=$$m $@) || exit 2; \
+	        done; \
+	      else \
+	        echo make $@ in $$i with ROLLCOMPILER=$$c; \
+	        (cd $$i && $(MAKE) ROLLCOMPILER=$$c $@) || exit 2; \
+	      fi; \
 	    done; \
 	  else \
-	    (cd $$i && $(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" ROLLMPI="$(ROLLMPI)" ROLLNETWORK="$(ROLLNETWORK)" $@) || exit 2; \
+	    (cd $$i && $(MAKE) ROLLCOMPILER="$(ROLLCOMPILER)" ROLLMPI="$(ROLLMPI)" $@) || exit 2; \
 	  fi; \
 	done

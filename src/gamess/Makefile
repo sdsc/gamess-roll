@@ -80,14 +80,8 @@ MKLSETUP = \
   echo $${MKL_ROOT}; \
   export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`
 
-ifeq ("$(ROLLNETWORK)", "eth")
-  MPIMODULE = $(ROLLMPI)
-else
-  MPIMODULE = $(ROLLMPI)_$(ROLLNETWORK)
-endif
-
 MPISETUP = \
-  module load $(MPIMODULE) || true; \
+  module load $(ROLLMPI) || true; \
   echo === MPIHOME ===; \
   echo $${MPIHOME}
 
@@ -108,6 +102,10 @@ else ifeq ("$(COMPILERNAME)", "intel")
   INSTALL.INFO += setenv GMS_IFORT_VERNO    $${fortVers}\n
 endif
 
+# List of recognized MPI flavors from gamess/comp. A comment in gamess/config
+# indicates that openmpi doesn't work, but minimal testing passes.
+MPIFLAVORS = impi mvapich2 myrinet openmpi mpt mpich2 msmpi
+
 INSTALL.INFO += \
 \# mathematical library setup\n\
 setenv GMS_MATHLIB        mkl\n\
@@ -115,7 +113,7 @@ setenv GMS_MATHLIB_PATH   $${MKLLIB}\n\
 setenv GMS_MKL_VERNO      $${mklVers}\n\
 \# parallel message passing model setup\n\
 setenv GMS_DDI_COMM       mpi\n\
-setenv GMS_MPI_LIB        $(ROLLMPI)\n\
+setenv GMS_MPI_LIB        $${MPIFLAVOR}\n\
 setenv GMS_MPI_PATH       $${MPIHOME}\n
 
 build: $(SRC_DIRS)
@@ -128,7 +126,6 @@ build: $(SRC_DIRS)
 	patch $(SOURCE_DIR)/ddi/src/ddi_create.c patch-files/ddi_create.c.patch
 	patch $(SOURCE_DIR)/rungms patch-files/rungms.patch
 	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
-	perl -pi -e "s!ROLL_MPITYPE!$(ROLLMPI)!" $(SOURCE_DIR)/rungms
 	( \
 	  $(COMPILERSETUP); \
 	  $(MKLSETUP); \
@@ -145,6 +142,13 @@ build: $(SRC_DIRS)
 	  if test $$? -ne 0; then \
 	    mklVers=$$fortVers; \
 	  fi; \
+	  MPIFLAVOR=unknown; \
+	  for F in $(MPIFLAVORS); do \
+	    if [[ "$(ROLLMPI)" =~ "$$F" ]]; then \
+	      MPIFLAVOR=$$F; \
+	    fi; \
+	  done; \
+	  perl -pi -e "s!ROLL_MPITYPE!$$MPIFLAVOR!" $(SOURCE_DIR)/rungms; \
 	  echo -e "$(INSTALL.INFO)" > $(SOURCE_DIR)/install.info; \
 	  perl -pi -e "s!ROLLMPI!$${MPIHOME}!" $(SOURCE_DIR)/rungms; \
 	  cd $(SOURCE_DIR)/tools; \
