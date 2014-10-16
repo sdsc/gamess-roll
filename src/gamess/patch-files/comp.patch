@@ -1,20 +1,21 @@
---- gamess/comp	2013-05-03 13:18:53.000000000 -0700
-+++ patch-files/comp	2014-09-24 21:03:59.418023789 -0700
+--- comp	2014-10-16 09:51:43.065646487 -0700
++++ patch-files/comp	2014-10-16 09:52:36.903606399 -0700
 @@ -1,4 +1,4 @@
 -#!/bin/csh
 +#!/bin/csh -f
  #
  #  1 Feb 2013 - script to compile one GAMESS source file
  #  Invoke this script by './comp MODULE >& MODULE.log &'.
-@@ -1612,6 +1612,7 @@
+@@ -1612,6 +1612,8 @@
           breaksw
        case 4.6:
        case 4.7:
 +      case 4.8:
++      case 4.9:
           set EXTRAOPT="$EXTRAOPT -fno-whole-file"
           breaksw
        default:
-@@ -1755,7 +1756,7 @@
+@@ -1755,7 +1757,7 @@
  #           -finit-real=<zero|inf|-inf|nan>  could be interesting debug opt
  #           -fno-automatic forces static storage of all local variables
  #           -fno-whole-file suppresses argument's data type checking
@@ -23,15 +24,16 @@
        if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
  
        if ($GMS_GFORTRAN_VERNO == 4.6) then
-@@ -1804,6 +1805,7 @@
+@@ -1804,6 +1806,8 @@
              breaksw
           case 4.6:
           case 4.7:
 +         case 4.8:
++         case 4.9:
              set EXTRAOPT="$EXTRAOPT -fno-whole-file"
              breaksw
           default:
-@@ -1833,7 +1835,7 @@
+@@ -1833,7 +1837,7 @@
  #     -WB means warn but don't fail on out-of-bounds array references
  #     -ftz flushes underflow results to zero
  #
@@ -40,19 +42,21 @@
        if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
  #       alas, I'm so tired of hearing about so many versions failing to
  #       diagonalize, that this time critical code is run w/o optimization.
-@@ -2041,6 +2043,7 @@
+@@ -2041,6 +2045,8 @@
              breaksw
           case 4.6:
           case 4.7:
 +         case 4.8:
++         case 4.9:
              set EXTRAOPT="$EXTRAOPT -fno-whole-file"
              breaksw
           default:
-@@ -2099,6 +2102,7 @@
+@@ -2099,6 +2105,8 @@
           breaksw
        case 4.6:
        case 4.7:
 +      case 4.8:
++      case 4.9:
           set EXTRAOPT="$EXTRAOPT -fno-whole-file"
           breaksw
        default:
