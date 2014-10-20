@@ -34,7 +34,7 @@ machine (e.g., a frontend or development appliance):
 % make 2>&1 | tee build.log
 ```
 
-A successful build will create the file `cpmd-*.disk1.iso`.  If you built the
+A successful build will create the file `gamess-*.disk1.iso`.  If you built the
 roll on a Rocks frontend, proceed to the installation step. If you built the
 roll on a Rocks development appliance, you need to copy the roll to your Rocks
 frontend before continuing with installation.
