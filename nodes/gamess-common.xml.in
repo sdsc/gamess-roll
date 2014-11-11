@@ -12,8 +12,8 @@ Copyright (c) 2000 - 2014 The Regents of the University of California.
 All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 </copyright>
 
-<package>gamess_COMPILERNAME_MPINAME</package>
-<package>gamess-modules</package>
-<package>gamess-roll-test</package>
+<package>sdsc-gamess</package>
+<package>sdsc-gamess-modules</package>
+<package>sdsc-gamess-roll-test</package>
 
 </kickstart>

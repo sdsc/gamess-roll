@@ -1,6 +1,3 @@
-# Note: normally this package is built with a single compiler, and the rpms
-# from multiple compiler builds will overwrite each other.
-
 ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
 endif
@@ -11,9 +8,9 @@ ifndef ROLLMPI
 endif
 MPINAME := $(firstword $(subst /, ,$(ROLLMPI)))
 
-NAME           = gamess_$(COMPILERNAME)_$(MPINAME)
+NAME           = sdsc-gamess
 VERSION        = 5.2013
-RELEASE        = 2
+RELEASE        = 3
 PKGROOT        = /opt/gamess
 
 SRC_SUBDIR     = gamess

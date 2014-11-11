@@ -60,30 +60,8 @@ REDHAT.ROOT = $(CURDIR)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
-include pull.mk
-
-FC = gfortran
-ifeq ("$(COMPILERNAME)", "intel")
-  FC = ifort
-else ifeq ("$(COMPILERNAME)", "pgi")
-  FC = pgfortran
-endif
-
-COMPILERSETUP =  \
-  module load $(ROLLCOMPILER) || true; \
-  echo === Compiler and version ===; \
-  $(FC) --version
-
-MKLSETUP = \
-  module load mkl || true; \
-  echo === MKL_ROOT ===; \
-  echo $${MKL_ROOT}; \
-  export MKLLIB=`find $${MKL_ROOT}/lib/* -maxdepth 0 | head -1`
-
-MPISETUP = \
-  module load $(ROLLMPI) || true; \
-  echo === MPIHOME ===; \
-  echo $${MPIHOME}
+include $(SDSCDEVEL)/Pull.mk
+include $(SDSCDEVEL)/Rules.mk
 
 # Contents of install.info--gamess compilation configuration file
 INSTALL.INFO := \
@@ -116,6 +94,26 @@ setenv GMS_DDI_COMM       mpi\n\
 setenv GMS_MPI_LIB        $${MPIFLAVOR}\n\
 setenv GMS_MPI_PATH       $${MPIHOME}\n
 
+LICENSE_FILES = gamess-LICENSE
+
+$(NAME).spec: DESCRIPTION LICENSE
+
+DESCRIPTION:
+	$(MODULE_LOAD_FC); \
+	( \
+	  $(DESCRIBE_PKG); \
+	  $(DESCRIBE_FC); \
+	  $(DESCRIBE_MKL); \
+	  $(DESCRIBE_MPI) \
+	) > $@
+
+LICENSE: $(SRC_DIRS)
+	# Doesn't appear to be a reference to the license in the sources
+	#if ! grep -q "GNU GENERAL PUBLIC LICENSE" $(SOURCE_DIR)/COPYING; then \
+	#  exit 2; \
+	#fi
+	echo gamess > $@
+
 build: $(SRC_DIRS)
 	perl -pe 's/^.UNX/    /' $(SOURCE_DIR)/tools/actvte.code > \
 	  $(SOURCE_DIR)/tools/actvte.f
@@ -127,9 +125,10 @@ build: $(SRC_DIRS)
 	patch $(SOURCE_DIR)/rungms patch-files/rungms.patch
 	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
 	( \
-	  $(COMPILERSETUP); \
-	  $(MKLSETUP); \
-	  $(MPISETUP); \
+	  $(MODULE_LOAD_FC); \
+	  $(MODULE_LOAD_MKL); \
+	  export MKLLIB=`find $${MKLHOME}/lib/* -maxdepth 0 | head -1`; \
+	  $(MODULE_LOAD_MPI); \
 	  if test "$(COMPILERNAME)" = "intel"; then \
 	    fortVers=`$(FC) --version 2>&1 | \
 	              perl -ne 'print $$1 and exit if m/(\d+)/'`; \
@@ -169,8 +168,9 @@ install::
 	    $(ROOT)/$(PKGROOT); \
 	  cp -r auxdata tests $(ROOT)/$(PKGROOT) \
 	)
+	$(INSTALL_LICENSE_FILES)
 
 	@echo "::: Package $(NAME) install complete :::"
 
 clean::
-	rm -rf $(SOURCE_DIR)
+	rm -rf $(SOURCE_DIR) DESCRIPTION LICENSE
