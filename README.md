@@ -52,16 +52,6 @@ The build process recognizes "gnu", "intel" or "pgi" as the value for the
 `ROLLCOMPILER` variable; any MPI modulefile name may be used as the value of
 the `ROLLMPI` variable.  The default values are "gnu" and "rocks-openmpi".
 
-The values of the `ROLLCOMPILER` and `ROLLMPI` variables are incorporated into
-the names of the produced rpms.  For example,
-
-```shell
-make ROLLCOMPILER=intel ROLLMPI=mvapich2_ib 2>&1 | tee build.log
-```
-
-produces a roll containing an rpm with a name that begins
-`gamess_intel_mvapich2_ib`.
-
 
 ## Installation
 
