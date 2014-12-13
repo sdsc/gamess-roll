@@ -94,8 +94,6 @@ setenv GMS_DDI_COMM       mpi\n\
 setenv GMS_MPI_LIB        $${MPIFLAVOR}\n\
 setenv GMS_MPI_PATH       $${MPIHOME}\n
 
-LICENSE_FILES = gamess-LICENSE
-
 $(NAME).spec: DESCRIPTION LICENSE
 
 DESCRIPTION:
@@ -108,10 +106,8 @@ DESCRIPTION:
 	) > $@
 
 LICENSE: $(SRC_DIRS)
-	# Doesn't appear to be a reference to the license in the sources
-	#if ! grep -q "GNU GENERAL PUBLIC LICENSE" $(SOURCE_DIR)/COPYING; then \
-	#  exit 2; \
-	#fi
+	cp license-files/LICENSE $(SOURCE_DIR)
+	$(CHECK_LICENSE_FILES)
 	echo gamess > $@
 
 build: $(SRC_DIRS)
