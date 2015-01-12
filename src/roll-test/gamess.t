@@ -14,6 +14,13 @@ my $output;
 
 my $TESTFILE = 'tmpgamess';
 
+if ($ENV{"USER"} eq "root") {
+  print STDERR "Aborting\n";
+  print STDERR "Due to openmpi restictions, this test reports spurious errors when run by root\n";
+  print STDERR "Rerun as a non-root user\n";
+  exit(1);
+}
+
 open(OUT, ">$TESTFILE");
 print OUT <<END;
 #!/bin/bash
