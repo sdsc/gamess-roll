@@ -15,7 +15,7 @@ PKGROOT        = /opt/gamess
 
 SRC_SUBDIR     = gamess
 
-SOURCE_NAME    = gamess
+SOURCE_NAME    = gamess.2014.12
 SOURCE_SUFFIX  = tgz
 SOURCE_VERSION = $(VERSION)
 SOURCE_PKG     = $(SOURCE_NAME).$(SOURCE_VERSION).$(SOURCE_SUFFIX)
