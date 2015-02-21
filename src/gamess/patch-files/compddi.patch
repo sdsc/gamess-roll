@@ -1,10 +1,10 @@
---- gamess/ddi/compddi	2013-05-03 13:14:15.000000000 -0700
-+++ patch-files/compddi	2014-01-14 16:14:28.000000000 -0800
+--- gamess.2014.12/ddi/compddi	2015-01-15 06:49:05.000000000 -0800
++++ patch-files/compddi	2015-02-18 10:13:09.000000000 -0800
 @@ -1,4 +1,4 @@
 -#!/bin/csh
 +#!/bin/csh -f
  #
- #  15 Feb 11 - script to compile the Distributed Data Interface (DDI)
+ # 27 Mar 2014 - script to compile the Distributed Data Interface (DDI)
  #
 @@ -15,7 +15,7 @@
     exit 4
@@ -15,16 +15,7 @@
  #
  #  the configuration file read just above provides the next two variables,
  #  and several other GMS_XXX values that will be used further down.
-@@ -82,7 +82,7 @@
- #     It is OK if these values are larger than your system,
- #     but a serious error if they are smaller!
- #
--set MAXCPUS  = 16
-+set MAXCPUS  = 32
- set MAXNODES = 256
- #
- if ($TARGET == cray-xt) then
-@@ -646,7 +646,7 @@
+@@ -616,7 +616,7 @@
  
       switch ($FORTRAN)
          case g77:
@@ -33,7 +24,7 @@
          case pgf77:
          case f2c:
             set NumUS=2
-@@ -705,7 +705,7 @@
+@@ -675,7 +675,7 @@
             set NumUS=1
             set FORT_FLAGS = "-O2 $ARCH -fdefault-integer-8 -std=legacy"
             breaksw
@@ -42,16 +33,25 @@
          case pgf77:
             set NumUS=1
             set CFLAGS = "$CFLAGS -mcmodel=medium"
-@@ -1060,7 +1060,7 @@
-                # We set EXTRA_FLAGS, instead of CFLAGS as we want to
-                # properly pass through spaces in MSMPI_INC to the compiler.
-                # Setting -I$MSMPI_INC in CFLAGS causes problems with whitespace
--               set EXTRA_FLAGS="-I$MSMPI_INC"
-+#              set EXTRA_FLAGS="-I$MSMPI_INC"
-              else
-                echo "Set MSMPI_INC to the include path for Microsoft MPI and try again"
-                exit 1
-@@ -1094,7 +1094,8 @@
+@@ -906,7 +906,7 @@
+ 
+      set FORTRAN=$GMS_FORTRAN     # choose from pgf77 and pgfortran
+ 
+-        case pgfortran:
++#       case pgfortran:
+         case pgf77:
+            set CC = 'pgcc'
+ #
+@@ -958,7 +958,7 @@
+            set NumUS=0
+            set F77_OPTS = "-DF77_UPPERCASE -Dgetarg_=GETARG -Diargc_=IARGC"
+            breaksw
+-        case pgfortran:
++#       case pgfortran:
+         case pgf77:
+            set CC = 'pgcc'
+ #
+@@ -1064,7 +1064,8 @@
                )
      echo "Compiling common object: $OBJ.o"
      set echo
@@ -61,13 +61,8 @@
      unset echo
      if(-e $OBJ.obj) mv -v $OBJ.obj $OBJ.o
      if(-e $OBJ.o) then
-@@ -1158,10 +1159,12 @@
-       set WFLAGS = '-DLINUX -DWINDOWS -DWINDOWS64 -DWINTEL -DOLDDDITIMER'
-       set WFLAGS = "$WFLAGS -Od $GMS_WIN_TP -I./include"
-       set echo
--      $CC $WFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
-+#     $CC $WFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
-+      $CC $WFLAGS  $DDI_OPTS -o $OBJ.o -c $OBJ.c
+@@ -1124,7 +1125,8 @@
+       $CC $WFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
      else
        set echo
 -      $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
@@ -76,13 +71,13 @@
      endif
      unset echo
      if(-e $OBJ.obj) mv -v $OBJ.obj $OBJ.o
-@@ -1183,7 +1186,8 @@
+@@ -1146,7 +1148,8 @@
    chdir src
    echo "Compiling FORTRAN wrappers for DDI"
    set echo
 -  $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS $F77_OPTS -o ddi_fortran.o -c ddi_fortran.c
-+#  $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS $F77_OPTS -o ddi_fortran.o -c ddi_fortran.c
-+   $CC $CFLAGS $DDI_OPTS $F77_OPTS -o ddi_fortran.o -c ddi_fortran.c
++# $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS $F77_OPTS -o ddi_fortran.o -c ddi_fortran.c
++  $CC $CFLAGS $DDI_OPTS $F77_OPTS -o ddi_fortran.o -c ddi_fortran.c
    unset echo
    if(-e ddi_fortran.obj) mv -v ddi_fortran.obj ddi_fortran.o
    if(-e ddi_fortran.o) then

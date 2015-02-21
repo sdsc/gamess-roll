@@ -117,7 +117,6 @@ build: $(SRC_DIRS)
 	patch $(SOURCE_DIR)/comp patch-files/comp.patch
 	patch $(SOURCE_DIR)/compall patch-files/compall.patch
 	patch $(SOURCE_DIR)/lked patch-files/lked.patch
-	patch $(SOURCE_DIR)/ddi/src/ddi_create.c patch-files/ddi_create.c.patch
 	patch $(SOURCE_DIR)/rungms patch-files/rungms.patch
 	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
 	( \
