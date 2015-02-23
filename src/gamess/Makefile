@@ -92,7 +92,8 @@ setenv GMS_MKL_VERNO      $${mklVers}\n\
 \# parallel message passing model setup\n\
 setenv GMS_DDI_COMM       mpi\n\
 setenv GMS_MPI_LIB        $${MPIFLAVOR}\n\
-setenv GMS_MPI_PATH       $${MPIHOME}\n
+setenv GMS_MPI_PATH       $${MPIHOME}\n\
+setenv GMS_MVAPICH2_VERNO $${mvapich2Vers}\n
 
 $(NAME).spec: DESCRIPTION LICENSE
 
@@ -131,6 +132,9 @@ build: $(SRC_DIRS)
 	    fortVers=`$(FC) --version 2>&1 | \
 	              perl -ne 'print $$1 and exit if m/(\d+(\.\d+)?)/'`; \
 	  fi; \
+	  if [[ "$(ROLLMPI)" =~ "mvapich2" ]]; then \
+            mvapich2Vers=`module display $(ROLLMPI) 2>&1 | grep -i version |awk '{print $$3}'|sed 's/[a-z].*//'`; \
+          fi; \
 	  mklVers=`module avail 2>&1 | \
 	           perl -ne 'print $$1 and exit if m/mkl\D+(\d+)/'`; \
 	  if test $$? -ne 0; then \
