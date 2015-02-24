@@ -1,5 +1,5 @@
 --- gamess.2014.12/lked	2014-12-08 09:56:59.000000000 -0800
-+++ patch-files/lked	2015-02-23 14:45:39.000000000 -0800
++++ patch-files/lked	2015-02-23 17:55:25.000000000 -0800
 @@ -1,4 +1,4 @@
 -#!/bin/csh
 +#!/bin/csh -f
@@ -38,23 +38,44 @@
            switch ($GMS_MPI_LIB)
              case impi:
                 set MPILIBS="-L$GMS_MPI_PATH/lib64"
-@@ -986,11 +990,14 @@
- #                   Finally, allow it to peek into the runtime/thread libs
- #
-                     set OFEDLIST="-libverbs -lrdmacm -libumad"
+@@ -966,39 +970,8 @@
+                   case 1.8:
+                   case 1.9:
+ #                          several of our older clusters allow a static link
+-                     set MPILIBS="$GMS_MPI_PATH/lib/libmpich.a"
+-                     set MPILIBS="$MPILIBS $GMS_MPI_PATH/lib/libopa.a"
+-                     set MPILIBS="$MPILIBS $GMS_MPI_PATH/lib/libmpl.a"
+-#                          but you can try a .so link if you like:
+-                     #--set MPILIBS="-L$GMS_MPI_PATH/lib -lmpich -lopa -lmpl"
+-#
+-#                   QLogic Infiniband likes to look at its
+-#                   its "path scale messaging" PSM library.
+-#                   Mellanux Infiniband does not need this library,
+-#                   and it can be an error to name if non-existent.
+-#
+-                    if (-e /usr/lib64/libpsm_infinipath.so) then
+-                       set MPILIBS="$MPILIBS -L/usr/lib64 -lpsm_infinipath"
+-                    endif
+-#
+-#                   Append OFED's libs to the end of the MVAPICH2 list,
+-#                   one particular cluster needed to look into -libnetdisc.
+-#                   Finally, allow it to peek into the runtime/thread libs
+-#
+-                    set OFEDLIST="-libverbs -lrdmacm -libumad"
 -                    if (-e $GMS_OFED_PATH/libibnetdisc.so ) then
 -                       set OFEDLIST="$OFEDLIST -libnetdisc"
 -                    endif
 -                    set MPILIBS="$MPILIBS -L$GMS_OFED_PATH $OFEDLIST"
 -                    set MPILIBS="$MPILIBS -lrt -lpthread"
-+#                   if (-e $GMS_OFED_PATH/libibnetdisc.so ) then
-+#                      set OFEDLIST="$OFEDLIST -libnetdisc"
-+#                   endif
-+#                   set MPILIBS="$MPILIBS -L$GMS_OFED_PATH $OFEDLIST"
-+#                   set MPILIBS="$MPILIBS -lrt -lpthread"
-+                    set MPILIBS="$MPILIBS -L$GMS_MPI_PATH/lib $OFEDLIST"
-+                    set MPILIBS="$MPILIBS -llimic2 -lrt -lpthread"
-+
++                    set MPILIBS="$MPILIBS -L$GMS_MPI_PATH/lib -lmpichf90 -Wl,-rpath -Wl,$GMS_MPI_PATH/lib -lmpich -lopa -lmpl -libmad -lrdmacm -libumad -libverbs -lrt -lhwloc -llimic2 -lpthread -lhwloc"
                      breaksw
- #
- #                       as of version 2.0, MVAPICH2 seems to have a simple
+-#
+-#                       as of version 2.0, MVAPICH2 seems to have a simple
+-#                       link list, just its own two libs.  It then finds
+-#                       the requisite OFED libraries all on its own.
+-#                       On our 2.1 cluster, DDI linked to various libs:
+-#                           xml2, ibmad, rdmacm, ibumad, ibverbs, rt
+-#                       without any need to specify them here.
+                   case 2.0:
+                   case 2.1:
+                   default:
