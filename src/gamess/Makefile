@@ -123,10 +123,10 @@ build: $(SRC_DIRS)
 	( \
 	  $(MODULE_LOAD_FC); \
 	  $(MODULE_LOAD_MKL); \
-	  MPILIBS=`mpif77 -show|sed 's/.*-L/-L/'` ; \
-	  perl -pi -e "s!ROLLMPILIBS!$${MPILIBS}!" $(SOURCE_DIR)/lked; \
 	  export MKLLIB=`find $${MKLHOME}/lib/* -maxdepth 0 | head -1`; \
 	  $(MODULE_LOAD_MPI); \
+	  MPILIBS=`mpif77 -show|sed 's/.*-L/-L/'` ; \
+	  perl -pi -e "s!ROLLMPILIBS!$${MPILIBS}!" $(SOURCE_DIR)/lked; \
 	  if test "$(COMPILERNAME)" = "intel"; then \
 	    fortVers=`$(FC) --version 2>&1 | \
 	              perl -ne 'print $$1 and exit if m/(\d+)/'`; \
