@@ -1,5 +1,5 @@
 --- gamess.2014.12/rungms	2014-12-10 08:01:06.000000000 -0800
-+++ patch-files/rungms	2015-05-19 10:27:08.617035851 -0700
++++ patch-files/rungms	2015-05-19 10:52:15.961467885 -0700
 @@ -84,6 +84,7 @@
  #      The SCHED variable, and scheduler assigned work space, is used
  #      below only in the MPI section.  See that part for more info.
@@ -8,7 +8,7 @@
  if ($?PBS_O_LOGNAME)  set SCHED=PBS
  if ($?SGE_O_LOGNAME)  set SCHED=SGE
  if ($SCHED == SGE) then
-@@ -101,6 +102,10 @@
+@@ -101,6 +102,11 @@
     echo "PBS has assigned the following compute nodes to this run:"
     uniq $PBS_NODEFILE
  endif
@@ -16,10 +16,11 @@
 +   echo "SLURM has assigned the following compute nodes to this run:"
 +   export PBS_NODEFILE=`generate_pbs_nodefile`
 +   uniq $PBS_NODEFILE
++endif
  #
  echo "Available scratch disk space (Kbyte units) at beginning of the job is"
  df -k $SCR
-@@ -415,7 +420,7 @@
+@@ -415,7 +421,7 @@
  #          names into the HOSTLIST string for the kickoff program,
  #          and to request the host name of the fast network adapters.
  #
@@ -28,7 +29,7 @@
  #
  #         The IBM cluster has two Gigabit adapters in each 4-way SMP,
  #         while the AXP cluster is based on a Myrinet network.
-@@ -660,7 +665,7 @@
+@@ -660,7 +666,7 @@
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
        endif
