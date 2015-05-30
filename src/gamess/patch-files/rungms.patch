@@ -1,5 +1,5 @@
 --- gamess.2014.12/rungms	2014-12-10 08:01:06.000000000 -0800
-+++ patch-files/rungms	2015-02-24 11:17:53.000000000 -0800
++++ patch-files/rungms	2015-05-19 15:25:17.114844125 -0700
 @@ -59,10 +59,14 @@
  #       both Sun Grid Engine (SGE), and Portable Batch System (PBS).
  #       See also a very old LoadLeveler "ll-gms" for some IBM systems.
@@ -19,7 +19,15 @@
  #
  set JOB=$1      # name of the input file xxx.inp, give only the xxx part
  set VERNO=$2    # revision number of the executable created by 'lked' step
-@@ -92,12 +96,6 @@
+@@ -84,6 +88,7 @@
+ #      The SCHED variable, and scheduler assigned work space, is used
+ #      below only in the MPI section.  See that part for more info.
+                       set SCHED=none
++if ($?SLURM_JOBID)  set SCHED=SLURM
+ if ($?PBS_O_LOGNAME)  set SCHED=PBS
+ if ($?SGE_O_LOGNAME)  set SCHED=SGE
+ if ($SCHED == SGE) then
+@@ -92,15 +97,15 @@
     uniq $TMPDIR/machines
  endif
  if ($SCHED == PBS) then
@@ -32,7 +40,25 @@
     echo "PBS has assigned the following compute nodes to this run:"
     uniq $PBS_NODEFILE
  endif
-@@ -558,7 +556,7 @@
++if ($SCHED == SLURM) then
++   echo "SLURM has assigned the following compute nodes to this run:"
++   setenv PBS_NODEFILE `generate_pbs_nodefile`
++   setenv PBS_NUM_PPN $SLURM_NTASKS_PER_NODE
++   uniq $PBS_NODEFILE
++endif
+ #
+ echo "Available scratch disk space (Kbyte units) at beginning of the job is"
+ df -k $SCR
+@@ -415,7 +420,7 @@
+ #          names into the HOSTLIST string for the kickoff program,
+ #          and to request the host name of the fast network adapters.
+ #
+-    if ($?PBS_JOBID) then
++    if ($?PBS_JOBID || $?SLURM_JOBID) then
+ #
+ #         The IBM cluster has two Gigabit adapters in each 4-way SMP,
+ #         while the AXP cluster is based on a Myrinet network.
+@@ -558,7 +563,7 @@
     #      we'll pass in a "processers per node" value, that is,
     #      all nodes are presumed to have equal numbers of cores.
     #
@@ -41,7 +67,7 @@
     #
     #      Allow for compute process and data servers (one pair per core)
     #      note that NCPUS = #cores, and NPROCS = #MPI processes
-@@ -573,7 +571,7 @@
+@@ -573,7 +578,7 @@
     #          this will have directories like include/lib/bin below it.
     #       3. a bit lower, perhaps specify your ifort path information.
     #
@@ -50,7 +76,7 @@
     #
     #        ISU's various clusters have various iMPI paths, in this order:
     #              dynamo/chemphys2011/exalted/bolt/CyEnce/CJ
-@@ -588,13 +586,7 @@
+@@ -588,13 +593,7 @@
     #
     #        ISU's various clusters have various MVAPICH2 paths, in this order:
     #              dynamo/exalted/bolt/thebunny/CJ
@@ -65,7 +91,16 @@
     #
     #        ISU's various clusters have various openMPI paths
     #          examples are our bolt/CyEnce clusters
-@@ -791,6 +783,7 @@
+@@ -660,7 +659,7 @@
+          set NNODES=`wc -l $HOSTFILE`
+          set NNODES=$NNODES[1]
+       endif
+-      if ($SCHED == PBS) then
++      if ($SCHED == PBS || $SCHED == SLURM) then
+          uniq $PBS_NODEFILE $HOSTFILE
+          set NNODES=`wc -l $HOSTFILE`
+          set NNODES=$NNODES[1]
+@@ -791,6 +790,7 @@
        set echo
        setenv MV2_USE_BLOCKING 1
        setenv MV2_ENABLE_AFFINITY 0
@@ -73,7 +108,7 @@
        unset echo
     endif
     #
-@@ -934,14 +927,14 @@
+@@ -934,14 +934,14 @@
           unset echo
        endif
        set echo
@@ -90,7 +125,16 @@
                $GMSPATH/gamess.$VERNO.x < /dev/null
        unset echo
        breaksw
-@@ -1619,7 +1612,9 @@
+@@ -1017,7 +1017,7 @@
+          set NNODES=`wc -l $HOSTFILE`
+          set NNODES=$NNODES[1]
+       endif
+-      if ($SCHED == PBS) then
++      if ($SCHED == PBS || $SCHED == SLURM) then
+          uniq $PBS_NODEFILE $HOSTFILE
+          set NNODES=`wc -l $HOSTFILE`
+          set NNODES=$NNODES[1]
+@@ -1619,7 +1619,9 @@
           #--endif
           #---------FMO rescue------
           ssh $host -l $USER "ls -l $SCR/$JOB.*"
