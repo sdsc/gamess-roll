@@ -10,7 +10,7 @@ MPINAME := $(firstword $(subst /, ,$(ROLLMPI)))
 
 NAME           = sdsc-gamess
 VERSION        = 2014.12
-RELEASE        = 1
+RELEASE        = 2
 PKGROOT        = /opt/gamess
 
 SRC_SUBDIR     = gamess
