@@ -1,0 +1,20 @@
+--- gamess.2014.12/source/iolib.src	2014-12-01 16:38:35.000000000 -0800
++++ patch-files/iolib.src	2015-07-15 17:34:12.745996329 -0700
+@@ -802,7 +802,7 @@
+ C
+       IOUT = 0
+ C
+-      IF ((FNAME.EQ.'INPUT')   .OR. (FNAME.EQ.'OUTPUT')  .OR.
++      IF ((FNAME.EQ.'NEWINPUT')   .OR. (FNAME.EQ.'OUTPUT')  .OR.
+      *    (FNAME.EQ.'PUNCH')   .OR. (FNAME.EQ.'RESTART') .OR.
+      *    (FNAME.EQ.'TRAJECT') .OR. (FNAME.EQ.'MAKEFP')  .OR.
+      *       (.NOT.DSKWRK)     .OR.     (NPROC.EQ.1)) THEN
+@@ -2503,7 +2503,7 @@
+          CALL GMS_GETENV('ERICFMT',ENVBUF(2))
+          CALL GMS_GETENV('EXTBAS', ENVBUF(3))
+          CALL GMS_GETENV('TRAJECT',ENVBUF(4))
+-         CALL GMS_GETENV('INPUT',  ENVBUF(IR))
++         CALL GMS_GETENV('NEWINPUT',  ENVBUF(IR))
+          CALL GMS_GETENV('OUTPUT', ENVBUF(IW))
+          CALL GMS_GETENV('PUNCH',  ENVBUF(IP))
+          CALL GMS_GETENV('AOINTS', ENVBUF(IJK))

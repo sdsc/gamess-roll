@@ -83,6 +83,7 @@ module files in:
 The gamess-roll includes a test script which can be run to verify proper
 installation of the roll documentation, binaries and module files. To
 run the test scripts execute the following command(s):
+Note that a total of 47 tests are run and they will take ~8 minutes to finish
 
 ```shell
 % /root/rolltests/gamess.t 

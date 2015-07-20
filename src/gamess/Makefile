@@ -119,6 +119,9 @@ build: $(SRC_DIRS)
 	patch $(SOURCE_DIR)/compall patch-files/compall.patch
 	patch $(SOURCE_DIR)/lked patch-files/lked.patch
 	patch $(SOURCE_DIR)/rungms patch-files/rungms.patch
+	patch $(SOURCE_DIR)/source/gamess.src patch-files/gamess.src.patch
+	patch $(SOURCE_DIR)/source/iolib.src patch-files/iolib.src.patch
+	patch $(SOURCE_DIR)/gms-files.csh patch-files/gms-files.csh.patch
 	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
 	( \
 	  $(MODULE_LOAD_FC); \
