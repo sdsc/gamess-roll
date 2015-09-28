@@ -1,5 +1,5 @@
 --- gamess.2014.12/ddi/compddi	2015-01-15 06:49:05.000000000 -0800
-+++ patch-files/compddi	2015-02-18 10:13:09.000000000 -0800
++++ patch-files/compddi	2015-09-24 21:58:45.237940690 -0700
 @@ -1,4 +1,4 @@
 -#!/bin/csh
 +#!/bin/csh -f
@@ -15,6 +15,15 @@
  #
  #  the configuration file read just above provides the next two variables,
  #  and several other GMS_XXX values that will be used further down.
+@@ -61,7 +61,7 @@
+ #  along with collecting information about which flavor of mpi,
+ #  where the MPI library is located, and so forth.
+ #
+-set COMM = $GMS_DDI_COMM
++set COMM = mixed
+ #
+ #     high end machines are just hardwired as follows.  Don't change them.
+ #
 @@ -616,7 +616,7 @@
  
       switch ($FORTRAN)

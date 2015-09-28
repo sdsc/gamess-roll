@@ -1,5 +1,5 @@
 --- gamess.2014.12/rungms	2014-12-10 08:01:06.000000000 -0800
-+++ patch-files/rungms	2015-07-15 17:29:19.220247764 -0700
++++ patch-files/rungms	2015-09-24 21:54:42.289995760 -0700
 @@ -59,10 +59,14 @@
  #       both Sun Grid Engine (SGE), and Portable Batch System (PBS).
  #       See also a very old LoadLeveler "ll-gms" for some IBM systems.
@@ -76,7 +76,7 @@
     #
     #        ISU's various clusters have various iMPI paths, in this order:
     #              dynamo/chemphys2011/exalted/bolt/CyEnce/CJ
-@@ -588,13 +593,7 @@
+@@ -588,20 +593,14 @@
     #
     #        ISU's various clusters have various MVAPICH2 paths, in this order:
     #              dynamo/exalted/bolt/thebunny/CJ
@@ -91,6 +91,17 @@
     #
     #        ISU's various clusters have various openMPI paths
     #          examples are our bolt/CyEnce clusters
+-   if ($DDI_MPI_CHOICE == openmpi) then
+-      #-- DDI_MPI_ROOT=/share/apps/mpi/openmpi-1.6.4-generic
+-      set DDI_MPI_ROOT=/shared/openmpi-1.6.4/intel-13.0.1
+-   endif
++#  if ($DDI_MPI_CHOICE == openmpi) then
++#     #-- DDI_MPI_ROOT=/share/apps/mpi/openmpi-1.6.4-generic
++#     set DDI_MPI_ROOT=/shared/openmpi-1.6.4/intel-13.0.1
++#  endif
+    #
+    #        pre-pend our MPI choice to the library and execution paths.
+    switch ($DDI_MPI_CHOICE)
 @@ -660,7 +659,7 @@
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
@@ -110,13 +121,13 @@
 -      setenv MV2_ENABLE_AFFINITY 0
 -      unset echo
 -   endif
-+   #if ($DDI_MPI_CHOICE == mvapich2) then
-+   #   set echo
-+   #   setenv MV2_USE_BLOCKING 1
-+   #   setenv MV2_ENABLE_AFFINITY 0
-+   #   setenv  MV2_USE_THREAD_WARNING 0
-+   #   unset echo
-+   #endif
++#  if ($DDI_MPI_CHOICE == mvapich2) then
++#      set echo
++#      setenv MV2_USE_BLOCKING 1
++#      setenv MV2_ENABLE_AFFINITY 0
++#      setenv MV2_USE_THREAD_WARNING 0
++#      unset echo
++#  endif
     #
     #      similar tunings for openMPI are
     #         this parameter appears to be ignored, in our hands,
