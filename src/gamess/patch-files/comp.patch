@@ -1,6 +1,14 @@
---- gamess.2014.12/comp	2015-01-15 06:49:05.000000000 -0800
-+++ patch-files/comp	2015-02-20 19:31:52.000000000 -0800
-@@ -1740,7 +1740,7 @@
+--- comp	2017-08-15 11:07:22.000000000 -0700
++++ patch-files/comp	2017-08-15 11:08:28.000000000 -0700
+@@ -1577,6 +1577,7 @@
+             breaksw
+          case 4.8:
+          case 4.9:
++         case 7.[0-9]:
+             if ($MODULE == cosmo)  set OPT='-O0'
+             if ($MODULE == dcscf)  set OPT='-O0'
+             if ($MODULE == tddgrd) set OPT='-O0'
+@@ -1740,7 +1741,7 @@
  #
  #         first, initialize OPT and EXTRAOPT
  #
@@ -9,7 +17,15 @@
        if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
  
        set EXTRAOPT=" "
-@@ -1829,7 +1829,7 @@
+@@ -1793,6 +1794,7 @@
+             breaksw
+          case 4.8:
+          case 4.9:
++         case 7.[0-9]:
+             if ($MODULE == cosmo)  set OPT='-O0'  # same issue as seen in 4.6
+             if ($MODULE == dcscf)  set OPT='-O0'  # exam44, continues from 4.7
+             if ($MODULE == tddgrd) set OPT='-O0'  # exam41, continues from 4.6
+@@ -1829,7 +1831,7 @@
  #     -WB means warn but don't fail on out-of-bounds array references
  #     -ftz flushes underflow results to zero
  #
@@ -18,3 +34,19 @@
        if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
  #       alas, I'm so tired of hearing about so many versions failing to
  #       diagonalize, that this time critical code is run w/o optimization.
+@@ -2008,6 +2010,7 @@
+             breaksw
+          case 4.8:
+          case 4.9:
++         case 7.[0-9]:
+             if ($MODULE == cosmo)  set OPT='-O0'
+             if ($MODULE == dcscf)  set OPT='-O0'
+             if ($MODULE == tddgrd) set OPT='-O0'
+@@ -2122,6 +2125,7 @@
+             breaksw
+          case 4.8:
+          case 4.9:
++         case 7.[0-9]:
+             if ($MODULE == cosmo)  set OPT='-O0'
+             if ($MODULE == dcscf)  set OPT='-O0'
+             if ($MODULE == tddgrd) set OPT='-O0'
