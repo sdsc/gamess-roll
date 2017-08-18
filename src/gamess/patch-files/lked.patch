@@ -1,5 +1,5 @@
 --- gamess-2017.04/lked	2017-04-25 19:54:06.000000000 -0700
-+++ patch-files/lked	2017-08-17 17:53:12.450492302 -0700
++++ patch-files/lked	2017-08-17 18:12:48.456870035 -0700
 @@ -404,6 +404,7 @@
            breaksw
          case 11:
@@ -8,6 +8,15 @@
            # next attempts a static link, whereas 10 above is a dynamic link.
            # if this fails to work, try the version 10 lines shown just above.
            set MATHLIBS="-Wl,--start-group"
+@@ -479,7 +480,7 @@
+          if ($GMS_PHI == true) then
+            set LDOPTS="$LDOPTS -mmic"
+          endif
+-         if ($GMS_OPENMP == true) set LDOPTS="$LDOPTS -qopenmp"
++         if ($GMS_OPENMP == true) set LDOPTS="$LDOPTS -openmp"
+          breaksw
+       case pgfortran:
+       case pgf77:
 @@ -527,6 +528,7 @@
          case 10:
          case 11:
