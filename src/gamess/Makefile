@@ -95,7 +95,7 @@ setenv GMS_MPI_LIB        $${MPIFLAVOR}\n\
 setenv GMS_MPI_PATH       $${MPIHOME}\n\
 setenv GMS_MVAPICH2_VERNO $${mvapich2Vers}\n\
 setenv GMS_PHI            false\n\
-setenv GMS_OPENMP         true\n\
+setenv GMS_OPENMP         false\n\
 setenv GMS_SHMTYPE        posix\n
 
 $(NAME).spec: DESCRIPTION LICENSE
