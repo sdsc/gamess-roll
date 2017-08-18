@@ -1,11 +1,11 @@
---- gamess.2014.12/source/gamess.src	2014-12-18 14:20:21.000000000 -0800
-+++ patch-files/gamess.src	2015-07-15 17:31:22.851405380 -0700
-@@ -560,7 +560,7 @@
+--- gamess-2017.04/source/gamess.src	2017-04-25 19:54:07.000000000 -0700
++++ patch-files/gamess.src	2017-08-17 17:34:01.442316418 -0700
+@@ -586,7 +586,7 @@
  C     INTO 'STANDARD OUTPUT', I.E. INTO THE NORMAL JOB LOG FILE.
  C
        IF(KCHRMM.EQ.0) THEN
 -         CALL SEQOPN(IR,'INPUT', 'OLD',.TRUE., 'FORMATTED')
 +         CALL SEQOPN(IR,'NEWINPUT', 'OLD',.TRUE., 'FORMATTED')
- C---     CALL SEQOPN(IW,'OUTPUT','NEW',.FALSE.,'FORMATTED')
+ C--      CALL SEQOPN(IW,'OUTPUT','NEW',.FALSE.,'FORMATTED')
           CALL SEQOPN(IP,'PUNCH', 'NEW',.FALSE.,'FORMATTED')
        ELSE

@@ -1,5 +1,5 @@
---- gamess.2014.12/ddi/compddi	2015-01-15 06:49:05.000000000 -0800
-+++ patch-files/compddi	2015-09-24 21:58:45.237940690 -0700
+--- gamess-2017.04/ddi/compddi	2017-04-25 19:54:06.000000000 -0700
++++ patch-files/compddi	2017-08-17 16:32:48.085632645 -0700
 @@ -1,4 +1,4 @@
 -#!/bin/csh
 +#!/bin/csh -f
@@ -24,7 +24,7 @@
  #
  #     high end machines are just hardwired as follows.  Don't change them.
  #
-@@ -616,7 +616,7 @@
+@@ -633,7 +633,7 @@
  
       switch ($FORTRAN)
          case g77:
@@ -33,7 +33,7 @@
          case pgf77:
          case f2c:
             set NumUS=2
-@@ -675,7 +675,7 @@
+@@ -699,7 +699,7 @@
             set NumUS=1
             set FORT_FLAGS = "-O2 $ARCH -fdefault-integer-8 -std=legacy"
             breaksw
@@ -41,8 +41,8 @@
 +#       case pgfortran
          case pgf77:
             set NumUS=1
-            set CFLAGS = "$CFLAGS -mcmodel=medium"
-@@ -906,7 +906,7 @@
+            if ( `uname` == Darwin ) then
+@@ -935,7 +935,7 @@
  
       set FORTRAN=$GMS_FORTRAN     # choose from pgf77 and pgfortran
  
@@ -51,7 +51,7 @@
          case pgf77:
             set CC = 'pgcc'
  #
-@@ -958,7 +958,7 @@
+@@ -987,7 +987,7 @@
             set NumUS=0
             set F77_OPTS = "-DF77_UPPERCASE -Dgetarg_=GETARG -Diargc_=IARGC"
             breaksw
@@ -60,7 +60,7 @@
          case pgf77:
             set CC = 'pgcc'
  #
-@@ -1064,7 +1064,8 @@
+@@ -1093,7 +1093,8 @@
                )
      echo "Compiling common object: $OBJ.o"
      set echo
@@ -70,8 +70,13 @@
      unset echo
      if(-e $OBJ.obj) mv -v $OBJ.obj $OBJ.o
      if(-e $OBJ.o) then
-@@ -1124,7 +1125,8 @@
-       $CC $WFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
+@@ -1150,10 +1151,12 @@
+       set WFLAGS = '-DLINUX -DWINDOWS -DWINDOWS64 -DWINTEL -DOLDDDITIMER'
+       set WFLAGS = "$WFLAGS -Od $GMS_WIN_TP -I./include"
+       set echo
+-      $CC $WFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
++#     $CC $WFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
++      $CC $WFLAGS $DDI_OPTS -o $OBJ.o -c $OBJ.c
      else
        set echo
 -      $CC $CFLAGS $EXTRA_FLAGS:q $DDI_OPTS -o $OBJ.o -c $OBJ.c
@@ -80,7 +85,7 @@
      endif
      unset echo
      if(-e $OBJ.obj) mv -v $OBJ.obj $OBJ.o
-@@ -1146,7 +1148,8 @@
+@@ -1175,7 +1178,8 @@
    chdir src
    echo "Compiling FORTRAN wrappers for DDI"
    set echo

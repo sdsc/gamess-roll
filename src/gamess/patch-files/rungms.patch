@@ -1,6 +1,6 @@
---- gamess.2014.12/rungms	2014-12-10 08:01:06.000000000 -0800
-+++ patch-files/rungms	2015-09-24 21:54:42.289995760 -0700
-@@ -59,10 +59,14 @@
+--- gamess-2017.04/rungms	2017-04-25 19:54:06.000000000 -0700
++++ patch-files/rungms	2017-08-17 17:31:05.036700284 -0700
+@@ -60,10 +60,15 @@
  #       both Sun Grid Engine (SGE), and Portable Batch System (PBS).
  #       See also a very old LoadLeveler "ll-gms" for some IBM systems.
  #
@@ -12,22 +12,23 @@
 +set USERSCR=$PWD
 +if ( ! $?GAMESS_SCR )  then
 +  set SCR=$PWD
-+else   
++else
 +  set SCR=$GAMESS_SCR
 +endif
 +set GMSPATH=ROLL_PATHGAMESS
++
  #
  set JOB=$1      # name of the input file xxx.inp, give only the xxx part
  set VERNO=$2    # revision number of the executable created by 'lked' step
-@@ -84,6 +88,7 @@
+@@ -85,6 +90,7 @@
  #      The SCHED variable, and scheduler assigned work space, is used
  #      below only in the MPI section.  See that part for more info.
                        set SCHED=none
-+if ($?SLURM_JOBID)  set SCHED=SLURM
++if ($?SLURM_JOBID)    set SCHED=SLURM
  if ($?PBS_O_LOGNAME)  set SCHED=PBS
  if ($?SGE_O_LOGNAME)  set SCHED=SGE
  if ($SCHED == SGE) then
-@@ -92,15 +97,15 @@
+@@ -93,15 +99,17 @@
     uniq $TMPDIR/machines
  endif
  if ($SCHED == PBS) then
@@ -46,28 +47,21 @@
 +   setenv PBS_NUM_PPN $SLURM_NTASKS_PER_NODE
 +   uniq $PBS_NODEFILE
 +endif
++
++
  #
  echo "Available scratch disk space (Kbyte units) at beginning of the job is"
  df -k $SCR
-@@ -415,7 +420,7 @@
- #          names into the HOSTLIST string for the kickoff program,
- #          and to request the host name of the fast network adapters.
- #
--    if ($?PBS_JOBID) then
-+    if ($?PBS_JOBID || $?SLURM_JOBID) then
- #
- #         The IBM cluster has two Gigabit adapters in each 4-way SMP,
- #         while the AXP cluster is based on a Myrinet network.
-@@ -558,7 +563,7 @@
+@@ -537,7 +545,7 @@
     #      we'll pass in a "processers per node" value, that is,
     #      all nodes are presumed to have equal numbers of cores.
     #
 -   set PPN=$4
-+   set  PPN=$PBS_NUM_PPN
++   set PPN=$PBS_NUM_PPN
     #
     #      Allow for compute process and data servers (one pair per core)
     #      note that NCPUS = #cores, and NPROCS = #MPI processes
-@@ -573,7 +578,7 @@
+@@ -552,7 +560,7 @@
     #          this will have directories like include/lib/bin below it.
     #       3. a bit lower, perhaps specify your ifort path information.
     #
@@ -76,7 +70,7 @@
     #
     #        ISU's various clusters have various iMPI paths, in this order:
     #              dynamo/chemphys2011/exalted/bolt/CyEnce/CJ
-@@ -588,20 +593,14 @@
+@@ -567,20 +575,9 @@
     #
     #        ISU's various clusters have various MVAPICH2 paths, in this order:
     #              dynamo/exalted/bolt/thebunny/CJ
@@ -87,31 +81,27 @@
 -      #-- DDI_MPI_ROOT=/share/apps/mpi/mvapich2-2.0a-generic
 -      set DDI_MPI_ROOT=/share/apps/mpi/mvapich2-2.1a-mlnx
 -   endif
+-   #
 +   set DDI_MPI_ROOT=ROLLMPI
-    #
     #        ISU's various clusters have various openMPI paths
     #          examples are our bolt/CyEnce clusters
 -   if ($DDI_MPI_CHOICE == openmpi) then
 -      #-- DDI_MPI_ROOT=/share/apps/mpi/openmpi-1.6.4-generic
 -      set DDI_MPI_ROOT=/shared/openmpi-1.6.4/intel-13.0.1
 -   endif
-+#  if ($DDI_MPI_CHOICE == openmpi) then
-+#     #-- DDI_MPI_ROOT=/share/apps/mpi/openmpi-1.6.4-generic
-+#     set DDI_MPI_ROOT=/shared/openmpi-1.6.4/intel-13.0.1
-+#  endif
     #
-    #        pre-pend our MPI choice to the library and execution paths.
-    switch ($DDI_MPI_CHOICE)
-@@ -660,7 +659,7 @@
+    #   MPICH/MPICH2
+    if ($DDI_MPI_CHOICE == mpich) then
+@@ -651,7 +648,7 @@
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
        endif
 -      if ($SCHED == PBS) then
-+      if ($SCHED == PBS || $SCHED == SLURM) then
++      if ($SCHED == PBS $SCHED == SLURM) then
           uniq $PBS_NODEFILE $HOSTFILE
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
-@@ -787,12 +786,13 @@
+@@ -783,12 +780,6 @@
     endif
     #
     #      similar tunings for MVAPICH2 are
@@ -121,34 +111,30 @@
 -      setenv MV2_ENABLE_AFFINITY 0
 -      unset echo
 -   endif
-+#  if ($DDI_MPI_CHOICE == mvapich2) then
-+#      set echo
-+#      setenv MV2_USE_BLOCKING 1
-+#      setenv MV2_ENABLE_AFFINITY 0
-+#      setenv MV2_USE_THREAD_WARNING 0
-+#      unset echo
-+#  endif
     #
     #      similar tunings for openMPI are
     #         this parameter appears to be ignored, in our hands,
-@@ -934,14 +934,14 @@
+@@ -930,15 +921,15 @@
           unset echo
        endif
        set echo
 -      mpiexec.hydra -f $PROCFILE -n $NPROCS \
+-            $GMSPATH/gamess.$VERNO.x < /dev/null
 +      mpirun_rsh -export -hostfile $PROCFILE -np $NPROCS \
-             $GMSPATH/gamess.$VERNO.x < /dev/null
++             $GMSPATH/gamess.$VERNO.x < /dev/null
        unset echo
        breaksw
  
     case orte:
        set echo
 -      orterun -np $NPROCS --npernode $PPN2 \
+-              $GMSPATH/gamess.$VERNO.x < /dev/null
 +      mpirun -np $NPROCS --npernode $PPN2 \
-               $GMSPATH/gamess.$VERNO.x < /dev/null
++               $GMSPATH/gamess.$VERNO.x < /dev/null
        unset echo
        breaksw
-@@ -1017,7 +1017,7 @@
+    #
+@@ -1023,7 +1014,7 @@
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
        endif
@@ -157,13 +143,13 @@
           uniq $PBS_NODEFILE $HOSTFILE
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
-@@ -1619,7 +1619,9 @@
+@@ -1641,7 +1632,9 @@
           #--endif
           #---------FMO rescue------
           ssh $host -l $USER "ls -l $SCR/$JOB.*"
 -         ssh $host -l $USER "rm -f $SCR/$JOB.*"
 +         if( $USERSCR != $SCR ) then
-+              ssh $host -l $USER "rm -f $SCR/$JOB.*"
++             ssh $host -l $USER "rm -f $SCR/$JOB.*"
 +         endif
        endif
        @ n++
