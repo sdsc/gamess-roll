@@ -1,5 +1,5 @@
 --- gamess-2017.04/rungms	2017-04-25 19:54:06.000000000 -0700
-+++ patch-files/rungms	2017-08-17 17:31:05.036700284 -0700
++++ patch-files/rungms	2017-08-18 17:34:04.248334387 -0700
 @@ -60,10 +60,15 @@
  #       both Sun Grid Engine (SGE), and Portable Batch System (PBS).
  #       See also a very old LoadLeveler "ll-gms" for some IBM systems.
@@ -97,7 +97,7 @@
           set NNODES=$NNODES[1]
        endif
 -      if ($SCHED == PBS) then
-+      if ($SCHED == PBS $SCHED == SLURM) then
++      if ($SCHED == PBS || $SCHED == SLURM) then
           uniq $PBS_NODEFILE $HOSTFILE
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
