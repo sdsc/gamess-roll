@@ -1,9 +1,9 @@
---- gamess.2014.12/gms-files.csh	2014-05-16 07:14:43.000000000 -0700
-+++ patch-files/gms-files.csh	2015-07-15 17:35:53.059935779 -0700
-@@ -41,7 +41,7 @@
- setenv   GAMMA $USERSCR/$JOB.gamma
- setenv TRAJECT $USERSCR/$JOB.trj
- setenv RESTART $USERSCR/$JOB.rst
+--- gamess-2017.04/gms-files.csh	2017-04-25 19:54:06.000000000 -0700
++++ patch-files/gms-files.csh	2017-08-17 17:42:29.705095192 -0700
+@@ -46,7 +46,7 @@
+ setenv OPTHES1 $USERSCR/$JOB.hs1
+ setenv OPTHES2 $USERSCR/$JOB.hs2
+ setenv     XYZ $SCR/$JOB.xyz
 -setenv   INPUT $SCR/$JOB.F05
 +setenv   NEWINPUT $SCR/$JOB.F05
  setenv   PUNCH $USERSCR/$JOB.dat

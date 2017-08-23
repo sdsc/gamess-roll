@@ -1,14 +1,23 @@
---- comp	2017-08-15 11:07:22.000000000 -0700
-+++ patch-files/comp	2017-08-15 11:08:28.000000000 -0700
-@@ -1577,6 +1577,7 @@
-             breaksw
-          case 4.8:
-          case 4.9:
+--- gamess-2017.04/comp	2017-04-25 19:54:06.000000000 -0700
++++ patch-files/comp	2017-08-17 18:13:59.703131513 -0700
+@@ -1593,6 +1593,7 @@
+          case 5.1:
+          case 5.2:
+          case 5.3:
 +         case 7.[0-9]:
              if ($MODULE == cosmo)  set OPT='-O0'
              if ($MODULE == dcscf)  set OPT='-O0'
              if ($MODULE == tddgrd) set OPT='-O0'
-@@ -1740,7 +1741,7 @@
+@@ -1631,7 +1632,7 @@
+    if ($GMS_IFORT_VERNO == 11) set EXTRAOPT="$EXTRAOPT -vec-report0"
+    if ($GMS_IFORT_VERNO == 12) set EXTRAOPT="$EXTRAOPT -vec-report0"
+    if ($GMS_IFORT_VERNO == 13) set EXTRAOPT="$EXTRAOPT -vec-report0"
+-   if ($GMS_IFORT_VERNO >= 14) set EXTRAOPT="$EXTRAOPT -qopt-report=0"
++   if ($GMS_IFORT_VERNO >= 14) set EXTRAOPT="$EXTRAOPT -opt-report=0"
+    if ($GMS_IFORT_VERNO  < 12) set EXTRAOPT="$EXTRAOPT -w95 -cm"
+    if ($GMS_IFORT_VERNO >= 12) set EXTRAOPT="$EXTRAOPT -warn nousage -inline-level=0"
+    set echo
+@@ -1766,7 +1767,7 @@
  #
  #         first, initialize OPT and EXTRAOPT
  #
@@ -17,15 +26,21 @@
        if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
  
        set EXTRAOPT=" "
-@@ -1793,6 +1794,7 @@
-             breaksw
-          case 4.8:
-          case 4.9:
+@@ -1823,11 +1824,13 @@
+          case 5.1:
+          case 5.2:
+          case 5.3:
 +         case 7.[0-9]:
              if ($MODULE == cosmo)  set OPT='-O0'  # same issue as seen in 4.6
              if ($MODULE == dcscf)  set OPT='-O0'  # exam44, continues from 4.7
              if ($MODULE == tddgrd) set OPT='-O0'  # exam41, continues from 4.6
-@@ -1829,7 +1831,7 @@
+             set EXTRAOPT="$EXTRAOPT -w -fno-aggressive-loop-optimizations"
+             breaksw
++ 
+          default:
+             echo Unrecognized gfortran version for linux64
+             exit 4
+@@ -1864,7 +1867,7 @@
  #     -WB means warn but don't fail on out-of-bounds array references
  #     -ftz flushes underflow results to zero
  #
@@ -34,18 +49,36 @@
        if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
  #       alas, I'm so tired of hearing about so many versions failing to
  #       diagonalize, that this time critical code is run w/o optimization.
-@@ -2008,6 +2010,7 @@
-             breaksw
-          case 4.8:
-          case 4.9:
+@@ -1902,7 +1905,7 @@
+       if ($GMS_IFORT_VERNO == 11) set EXTRAOPT="$EXTRAOPT -vec-report0"
+       if ($GMS_IFORT_VERNO == 12) set EXTRAOPT="$EXTRAOPT -vec-report0"
+       if ($GMS_IFORT_VERNO == 13) set EXTRAOPT="$EXTRAOPT -vec-report0"
+-      if ($GMS_IFORT_VERNO >= 14) set EXTRAOPT="$EXTRAOPT -qopt-report=0"
++      if ($GMS_IFORT_VERNO >= 14) set EXTRAOPT="$EXTRAOPT -opt-report=0"
+       if ($GMS_IFORT_VERNO  < 12) set EXTRAOPT="$EXTRAOPT -w95 -cm"
+       if ($GMS_IFORT_VERNO >= 12) set EXTRAOPT="$EXTRAOPT -warn nousage -inline-level=0"
+ 
+@@ -1911,7 +1914,7 @@
+       endif
+ 
+       if ($GMS_OPENMP == true)  then
+-         set OPT="$OPT -qopenmp"
++         set OPT="$OPT -openmp"
+          if ($MODULE != ompmod) $GMS_BUILD_DIR/tools/addomp.sh $MODULE_F
+       endif
+ 
+@@ -2074,6 +2077,7 @@
+          case 5.1:
+          case 5.2:
+          case 5.3:
 +         case 7.[0-9]:
              if ($MODULE == cosmo)  set OPT='-O0'
              if ($MODULE == dcscf)  set OPT='-O0'
              if ($MODULE == tddgrd) set OPT='-O0'
-@@ -2122,6 +2125,7 @@
-             breaksw
-          case 4.8:
-          case 4.9:
+@@ -2191,6 +2195,7 @@
+          case 5.1:
+          case 5.2:
+          case 5.3:
 +         case 7.[0-9]:
              if ($MODULE == cosmo)  set OPT='-O0'
              if ($MODULE == dcscf)  set OPT='-O0'

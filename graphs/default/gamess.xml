@@ -12,11 +12,20 @@ Copyright (c) 2000 - 2014 The Regents of the University of California.
 All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 </copyright>
 
-<edge from="base">
+<edge from="login">
   <to>gamess-common</to>
 </edge>
-<order head="base">
+<order head="login">
   <tail>gamess-common</tail>
 </order>
+
+<edge from="compute">
+  <to>gamess-common</to>
+</edge>
+<order head="compute">
+  <tail>gamess-common</tail>
+</order>
+
+
 
 </graph>
