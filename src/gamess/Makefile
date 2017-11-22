@@ -57,6 +57,7 @@
 # $Log$
 
 REDHAT.ROOT = $(CURDIR)/../../
+LIBINT_CACHE = $(REDHAT.ROOT)/cache
 
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
@@ -213,13 +214,14 @@ build: $(SRC_DIRS)
                aclocal -I lib/autoconf; \
                autoconf; \
              fi; \
-             ./configure --with-cc-optflags="$(COMPILE_FLAGS)" \
-               --enable-1body=1 --enable-eri=1 --with-max-am=4 \
+             export CC=$(CC); \
+             export CXX=$(CXX); \
+             ./configure --enable-1body=1 --enable-eri=1 --with-max-am=4 \
                --with-cartgauss-ordering=gamess \
                --with-incdirs="-I$${BOOSTHOME}/include --I$${GNUTOOLSHOME}/gmp/include" \
                --with-libdirs="-L$${BOOSTHOME}/boost/lib -L$${GNUTOOLSHOME}/gmp/lib" \
                --with-cxx-optflags=-O2 \
-               --prefix=`pwd`/../libint; \
+               --prefix=$(LIBINT_CACHE); \
              $(MAKE) -j 16; \
              $(MAKE) install; \
              cd ../$(SOURCE_DIR)/libcchem; \
