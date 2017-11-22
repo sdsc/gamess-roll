@@ -201,7 +201,7 @@ build: $(SRC_DIRS)
 	  ./compddi; \
 	  cd ..; \
 	  ./compall; \
-	  ./lked \
+	  ./lked; \
           if test "$(CUDABUILD)" = "yes"; then \
              module load gnutools; \
              $(MODULE_LOAD_GAMESS_CUDA); \
