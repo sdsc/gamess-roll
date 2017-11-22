@@ -137,6 +137,7 @@ DESCRIPTION:
 	  $(DESCRIBE_MPI); \
           if test "$(CUDABUILD)" = "yes"; then \
               $(DESCRIBE_HDF5); \
+              $(DESCRIBE_BOOST); \
               $(DESCRIBE_EIGEN); \
           fi \
 	) > $@
@@ -197,8 +198,10 @@ build: $(SRC_DIRS)
 	  ./compall; \
 	  ./lked \
           if test "$(CUDABUILD)" = "yes"; then \
+             module load gnutools; \
              $(MODULE_LOAD_CUDA); \
              $(MODULE_LOAD_HDF5); \
+             $(MODULE_LOAD_BOOST); \
              $(MODULE_LOAD_EIGEN); \
              cd ../$(LIBINT_DIR); \
              if test ! -f configure; then \
@@ -206,8 +209,12 @@ build: $(SRC_DIRS)
                autoconf; \
              fi; \
              ./configure --with-cc-optflags="$(COMPILE_FLAGS)" \
-               --with-cxx-optflags="$(COMPILE_FLAGS)" --with-libint-max-am=5 \
-               --with-libderiv-max-am1=4 --prefix=`pwd`/../libint; \
+               --enable-1body=1 --enable-eri=1 --with-max-am=4 \
+               --with-cartgauss-ordering=gamess \
+               --with-incdirs="-I$${BOOSTHOME}/include --I$${GNUTOOLSHOME}/gmp/include" \
+               --with-libdirs="-L$${BOOSTHOME}/boost/lib -L$${GNUTOOLSHOME}/gmp/lib" \
+               --with-cxx-optflags=-O2 \
+               --prefix=`pwd`/../libint; \
              $(MAKE) -j 16; \
              $(MAKE) install; \
              cd ../$(SOURCE_DIR)/libcchem; \
