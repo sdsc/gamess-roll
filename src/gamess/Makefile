@@ -119,6 +119,10 @@ set GMS_HDF5_PATH         $${HDF5HOME} \n\
 set GMS_LIBCCHEM_LIBINT   false \n\
 set GMS_EIGEN_PATH=$${EIGENHOME} \n\
 
+
+MODULE_LOAD_GAMESS_CUDA = $(call MODULE_LOAD_PACKAGE, $(CUDAVERSION), CUDAHOME)
+DESCRIBE_GAMESS_CUDA = echo built with cuda $(call GET_MODULE_VERSION, $(CUDAVERSION))
+
 CUDABUILD = no
 ifneq ("$(ROLLOPTS)", "$(subst cuda,,$(ROLLOPTS))")
   CUDABUILD = yes
@@ -136,6 +140,7 @@ DESCRIPTION:
 	  $(DESCRIBE_MKL); \
 	  $(DESCRIBE_MPI); \
           if test "$(CUDABUILD)" = "yes"; then \
+              $(DESCRIBE_GAMESS_CUDA); \
               $(DESCRIBE_HDF5); \
               $(DESCRIBE_BOOST); \
               $(DESCRIBE_EIGEN); \
@@ -199,7 +204,7 @@ build: $(SRC_DIRS)
 	  ./lked \
           if test "$(CUDABUILD)" = "yes"; then \
              module load gnutools; \
-             $(MODULE_LOAD_CUDA); \
+             $(MODULE_LOAD_GAMESS_CUDA); \
              $(MODULE_LOAD_HDF5); \
              $(MODULE_LOAD_BOOST); \
              $(MODULE_LOAD_EIGEN); \
