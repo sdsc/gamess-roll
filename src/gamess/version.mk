@@ -8,9 +8,15 @@ ifndef ROLLMPI
 endif
 MPINAME := $(firstword $(subst /, ,$(ROLLMPI)))
 
+CUDAVERSION=cuda
+ifneq ("$(ROLLOPTS)", "$(subst cuda=,,$(ROLLOPTS))")
+  CUDAVERSION = $(subst cuda=,,$(filter cuda=%,$(ROLLOPTS)))
+endif
+
+
 NAME           = sdsc-gamess
 VERSION        = 2017.04
-RELEASE        = 1
+RELEASE        = 2
 PKGROOT        = /opt/gamess
 
 SRC_SUBDIR     = gamess
@@ -20,6 +26,13 @@ SOURCE_SUFFIX  = tar.gz
 SOURCE_VERSION = $(VERSION)
 SOURCE_PKG     = $(SOURCE_NAME)-$(SOURCE_VERSION).$(SOURCE_SUFFIX)
 SOURCE_DIR     = $(SOURCE_NAME)-$(SOURCE_VERSION)
+
+
+LIBINT_NAME    = libint
+LIBINT_SUFFIX  = tar.gz
+LIBINT_VERSION = 1-1-6
+LIBINT_PKG     = $(LIBINT_NAME)-release-$(LIBINT_VERSION).$(LIBINT_SUFFIX)
+LIBINT_DIR     = $(LIBINT_PKG:%.$(LIBINT_SUFFIX)=%)
 
 TAR_GZ_PKGS       = $(SOURCE_PKG)
 

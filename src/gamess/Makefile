@@ -98,6 +98,34 @@ setenv GMS_PHI            false\n\
 setenv GMS_OPENMP         false\n\
 setenv GMS_SHMTYPE        posix\n
 
+INSTALL.LIBCHEM.INFO += \
+\# mathematical library setup\n\
+setenv GMS_MATHLIB        mkl\n\
+setenv GMS_MATHLIB_PATH   $${MKLLIB}\n\
+setenv GMS_MKL_VERNO      $${mklVers}\n\
+\# parallel message passing model setup\n\
+setenv GMS_DDI_COMM       mpi\n\
+setenv GMS_MPI_LIB        $${MPIFLAVOR}\n\
+setenv GMS_MPI_PATH       $${MPIHOME}\n\
+setenv GMS_MVAPICH2_VERNO $${mvapich2Vers}\n\
+setenv GMS_PHI            false\n\
+setenv GMS_OPENMP         false\n\
+setenv GMS_SHMTYPE        posix\n\
+setenv GMS_LIBCCHEM       true\n\
+setenv GMS_LIBCCHEM_GPU   true\n\
+set GMS_CUDA_BOARD        P100     \n\     
+set GMS_CUDA_PATH         $${CUDAHOME} \n\
+set GMS_HDF5_PATH         $${HDF5HOME} \n\
+set GMS_LIBCCHEM_LIBINT   false \n\
+set GMS_EIGEN_PATH=$${EIGENHOME} \n\
+
+CUDABUILD = no
+ifneq ("$(ROLLOPTS)", "$(subst cuda,,$(ROLLOPTS))")
+  CUDABUILD = yes
+endif
+
+
+
 $(NAME).spec: DESCRIPTION LICENSE
 
 DESCRIPTION:
@@ -106,7 +134,11 @@ DESCRIPTION:
 	  $(DESCRIBE_PKG); \
 	  $(DESCRIBE_FC); \
 	  $(DESCRIBE_MKL); \
-	  $(DESCRIBE_MPI) \
+	  $(DESCRIBE_MPI); \
+          if test "$(CUDABUILD)" = "yes"; then \
+              $(DESCRIBE_HDF5); \
+              $(DESCRIBE_EIGEN); \
+          fi \
 	) > $@
 
 LICENSE: $(SRC_DIRS)
@@ -164,6 +196,22 @@ build: $(SRC_DIRS)
 	  cd ..; \
 	  ./compall; \
 	  ./lked \
+          if test "$(CUDABUILD)" = "yes"; then \
+             $(MODULE_LOAD_CUDA); \
+             $(MODULE_LOAD_HDF5); \
+             $(MODULE_LOAD_EIGEN); \
+             cd ../$(LIBINT_DIR); \
+             if test ! -f configure; then \
+               aclocal -I lib/autoconf; \
+               autoconf; \
+             fi; \
+             ./configure --with-cc-optflags="$(COMPILE_FLAGS)" \
+               --with-cxx-optflags="$(COMPILE_FLAGS)" --with-libint-max-am=5 \
+               --with-libderiv-max-am1=4 --prefix=`pwd`/../libint; \
+             $(MAKE) -j 16; \
+             $(MAKE) install; \
+             cd ../$(SOURCE_DIR)/libcchem; \
+             fi; \
 	)
 	@echo "::: Package $(NAME) build complete :::"
 	
