@@ -57,7 +57,8 @@
 # $Log$
 
 REDHAT.ROOT = $(CURDIR)/../../
-LIBINT_CACHE = $(REDHAT.ROOT)/cache
+LIBINT_CACHE = $(REDHAT.ROOT)/cache/libint
+GMP_CACHE = $(REDHAT.ROOT)/cache/gmp
 
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
@@ -209,18 +210,20 @@ build: $(SRC_DIRS)
              $(MODULE_LOAD_HDF5); \
              $(MODULE_LOAD_BOOST); \
              $(MODULE_LOAD_EIGEN); \
+             cd ../$(GMP_DIR); \
+             ./configure --prefix=$(LIBINT_CACHE) --enable-cxx; \
+             make -j 16; \
+             make install; \
              cd ../$(LIBINT_DIR); \
-             if test ! -f configure; then \
-               aclocal -I lib/autoconf; \
-               autoconf; \
-             fi; \
+             ./autogen.sh; \
              export CC=$(CC); \
              export CXX=$(CXX); \
+             export LD_LIBRARY_PATH=$(GMP_CACHE)/lib:$${LD_LIBRARY_PATH}; \
              ./configure --enable-1body=1 --enable-eri=1 --with-max-am=4 \
                --with-cartgauss-ordering=gamess \
-               --with-incdirs="-I$${BOOSTHOME}/include --I$${GNUTOOLSHOME}/gmp/include" \
-               --with-libdirs="-L$${BOOSTHOME}/boost/lib -L$${GNUTOOLSHOME}/gmp/lib" \
-               --with-cxx-optflags=-O2 \
+               --with-incdirs="-I$${BOOSTHOME}/include -I$(GMP_CACHE)/include" \
+               --with-libdirs="-L$${BOOSTHOME}/boost/lib -L$(GMP_CACHE)/lib" \
+               --with-cxx-optflags="-O2 -std=c++11" \
                --prefix=$(LIBINT_CACHE); \
              $(MAKE) -j 16; \
              $(MAKE) install; \
@@ -242,4 +245,4 @@ install::
 	@echo "::: Package $(NAME) install complete :::"
 
 clean::
-	rm -rf $(SOURCE_DIR) DESCRIPTION LICENSE
+	rm -rf $(SOURCE_DIR) $(LIBINT_DIR) $(GMP_DIR) DESCRIPTION LICENSE
