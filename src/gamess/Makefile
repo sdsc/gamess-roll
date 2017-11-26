@@ -75,11 +75,22 @@ setenv GMS_TARGET         linux64\n\
 \# FORTRAN compiler setup\n\
 setenv GMS_FORTRAN        $(FC)\n
 
+INSTALL.LIBCCHEM.INFO := \
+\#!/bin/csh -f\n\
+setenv GMS_PATH           $(PWD)/$(SOURCE_DIR)\n\
+setenv GMS_BUILD_DIR      $(PWD)/$(SOURCE_DIR)\n\
+\# machine type\n\
+setenv GMS_TARGET         linux64\n\
+\# FORTRAN compiler setup\n\
+setenv GMS_FORTRAN        $(FC)\n
+
 # Note: config wants major.minor version for gnu, major only for intel
 ifeq ("$(COMPILERNAME)", "gnu")
   INSTALL.INFO += setenv GMS_GFORTRAN_VERNO $${fortVers}\n
+  INSTALL.LIBCCHEM.INFO += setenv GMS_GFORTRAN_VERNO $${fortVers}\n
 else ifeq ("$(COMPILERNAME)", "intel")
   INSTALL.INFO += setenv GMS_IFORT_VERNO    $${fortVers}\n
+  INSTALL.LIBCCHEM.INFO += setenv GMS_IFORT_VERNO    $${fortVers}\n
 endif
 
 # List of recognized MPI flavors from gamess/comp. A comment in gamess/config
@@ -100,7 +111,7 @@ setenv GMS_PHI            false\n\
 setenv GMS_OPENMP         false\n\
 setenv GMS_SHMTYPE        posix\n
 
-INSTALL.LIBCHEM.INFO += \
+INSTALL.LIBCCHEM.INFO += \
 \# mathematical library setup\n\
 setenv GMS_MATHLIB        mkl\n\
 setenv GMS_MATHLIB_PATH   $${MKLLIB}\n\
@@ -115,11 +126,11 @@ setenv GMS_OPENMP         false\n\
 setenv GMS_SHMTYPE        posix\n\
 setenv GMS_LIBCCHEM       true\n\
 setenv GMS_LIBCCHEM_GPU   true\n\
-set GMS_CUDA_BOARD        P100     \n\     
-set GMS_CUDA_PATH         $${CUDAHOME} \n\
-set GMS_HDF5_PATH         $${HDF5HOME} \n\
-set GMS_LIBCCHEM_LIBINT   false \n\
-set GMS_EIGEN_PATH=$${EIGENHOME} \n\
+setenv GMS_CUDA_BOARD        K80\n\     
+setenv GMS_CUDA_PATH         $${CUDAHOME} \n\
+setenv GMS_HDF5_PATH         $${HDF5HOME} \n\
+setenv GMS_LIBCCHEM_LIBINT   true \n\
+setenv GMS_EIGEN_PATH=$${EIGENHOME}/include \n\
 
 
 MODULE_LOAD_GAMESS_CUDA = $(call MODULE_LOAD_PACKAGE, $(CUDAVERSION), CUDAHOME)
@@ -211,7 +222,7 @@ build: $(SRC_DIRS)
              $(MODULE_LOAD_BOOST); \
              $(MODULE_LOAD_EIGEN); \
              cd ../$(GMP_DIR); \
-             ./configure --prefix=$(LIBINT_CACHE) --enable-cxx; \
+             ./configure --prefix=$(GMP_CACHE) --enable-cxx; \
              make -j 16; \
              make install; \
              cd ../$(LIBINT_DIR); \
@@ -227,8 +238,12 @@ build: $(SRC_DIRS)
                --prefix=$(LIBINT_CACHE); \
              $(MAKE) -j 16; \
              $(MAKE) install; \
-             cd ../$(SOURCE_DIR)/libcchem; \
-             fi; \
+             patch $(LIBINT_CACHE)/include/libint2/shell.h ../patch-files/shell.h.diff; \
+             cd ../$(SOURCE_DIR); \
+	     echo -e "$(INSTALL.LIBCCHEM.INFO)" > install.info; \
+             cd libcchem; \
+             ./build-cchem; \
+          fi; \
 	)
 	@echo "::: Package $(NAME) build complete :::"
 	
