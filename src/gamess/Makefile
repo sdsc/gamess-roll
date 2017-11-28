@@ -126,11 +126,13 @@ setenv GMS_OPENMP         false\n\
 setenv GMS_SHMTYPE        posix\n\
 setenv GMS_LIBCCHEM       true\n\
 setenv GMS_LIBCCHEM_GPU   true\n\
-setenv GMS_CUDA_BOARD        K80\n\     
-setenv GMS_CUDA_PATH         $${CUDAHOME} \n\
-setenv GMS_HDF5_PATH         $${HDF5HOME} \n\
-setenv GMS_LIBCCHEM_LIBINT   true \n\
-setenv GMS_EIGEN_PATH=$${EIGENHOME}/include \n\
+setenv GMS_LIBCCHEM_GPU_SUPPORT true\n\
+setenv GMS_CUDA_BOARD        kepler\n\
+setenv GMS_CUDA_PATH         $${CUDAHOME}\n\
+setenv GMS_HDF5_PATH         $${HDF5HOME}\n\
+setenv GMS_LIBCCHEM_LIBINT   true\n\
+setenv GMS_EIGEN_PATH $${EIGENHOME}/include\n\
+setenv GMS_LIBINT_PATH $(LIBINT_CACHE)\n
 
 
 MODULE_LOAD_GAMESS_CUDA = $(call MODULE_LOAD_PACKAGE, $(CUDAVERSION), CUDAHOME)
@@ -142,6 +144,8 @@ ifneq ("$(ROLLOPTS)", "$(subst cuda,,$(ROLLOPTS))")
 endif
 
 
+MODULE_LOAD_GAMESS_MKL = $(call MODULE_LOAD_PACKAGE, $(L_MKL_VERSION), MKLHOME)
+DESCRIBE_GAMESS_MKL = echo built with mkl $(call GET_MODULE_VERSION, $(L_MKL_VERSION))
 
 $(NAME).spec: DESCRIPTION LICENSE
 
@@ -150,7 +154,7 @@ DESCRIPTION:
 	( \
 	  $(DESCRIBE_PKG); \
 	  $(DESCRIBE_FC); \
-	  $(DESCRIBE_MKL); \
+	  $(DESCRIBE_GAMESS_MKL); \
 	  $(DESCRIBE_MPI); \
           if test "$(CUDABUILD)" = "yes"; then \
               $(DESCRIBE_GAMESS_CUDA); \
@@ -179,7 +183,7 @@ build: $(SRC_DIRS)
 	perl -pi -e 's!ROLL_PATHGAMESS!$(PKGROOT)!' $(SOURCE_DIR)/rungms
 	( \
 	  $(MODULE_LOAD_FC); \
-	  $(MODULE_LOAD_MKL); \
+	  $(MODULE_LOAD_GAMESS_MKL); \
 	  export MKLLIB=$${MKLHOME}/lib/intel64; \
 	  $(MODULE_LOAD_MPI); \
 	  MPILIBS=`mpif77 -show|sed 's/.*-L/-L/'` ; \
@@ -216,19 +220,18 @@ build: $(SRC_DIRS)
 	  ./compall; \
 	  ./lked; \
           if test "$(CUDABUILD)" = "yes"; then \
-             module load gnutools; \
              $(MODULE_LOAD_GAMESS_CUDA); \
              $(MODULE_LOAD_HDF5); \
              $(MODULE_LOAD_BOOST); \
              $(MODULE_LOAD_EIGEN); \
+             export CC=$(CC); \
+             export CXX=$(CXX); \
              cd ../$(GMP_DIR); \
              ./configure --prefix=$(GMP_CACHE) --enable-cxx; \
              make -j 16; \
              make install; \
              cd ../$(LIBINT_DIR); \
              ./autogen.sh; \
-             export CC=$(CC); \
-             export CXX=$(CXX); \
              export LD_LIBRARY_PATH=$(GMP_CACHE)/lib:$${LD_LIBRARY_PATH}; \
              ./configure --enable-1body=1 --enable-eri=1 --with-max-am=4 \
                --with-cartgauss-ordering=gamess \
@@ -238,9 +241,10 @@ build: $(SRC_DIRS)
                --prefix=$(LIBINT_CACHE); \
              $(MAKE) -j 16; \
              $(MAKE) install; \
-             patch $(LIBINT_CACHE)/include/libint2/shell.h ../patch-files/shell.h.diff; \
+             patch $(LIBINT_CACHE)/include/libint2/shell.h ../patch-files/shell.h.patch; \
              cd ../$(SOURCE_DIR); \
 	     echo -e "$(INSTALL.LIBCCHEM.INFO)" > install.info; \
+             patch libcchem/boost/Makefile ../patch-files/Makefile.patch; \
              cd libcchem; \
              ./build-cchem; \
           fi; \

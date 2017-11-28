@@ -13,6 +13,11 @@ ifneq ("$(ROLLOPTS)", "$(subst cuda=,,$(ROLLOPTS))")
   CUDAVERSION = $(subst cuda=,,$(filter cuda=%,$(ROLLOPTS)))
 endif
 
+L_MKL_VERSION=mkl
+ifneq ("$(ROLLOPTS)", "$(subst gamess_othermkl,,$(ROLLOPTS))")
+    L_MKL_VERSION = $(subst gamess_othermkl=,,$(filter gamess_othermkl=%,$(ROLLOPTS)))
+endif
+
 
 NAME           = sdsc-gamess
 VERSION        = 2017.04
