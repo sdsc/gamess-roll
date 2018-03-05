@@ -23,5 +23,5 @@ SOURCE_DIR     = $(SOURCE_NAME)-$(SOURCE_VERSION)
 
 TAR_GZ_PKGS    = $(SOURCE_PKG)
 
-RPM.EXTRAS     = AutoReq:No\nAutoProv:No
+RPM.EXTRAS     = AutoReq:No\nAutoProv:No\n%define __os_install_post /usr/lib/rpm/brp-compress
 RPM.PREFIX     = $(PKGROOT)
