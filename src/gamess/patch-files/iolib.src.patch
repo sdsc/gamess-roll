@@ -1,6 +1,6 @@
---- gamess-2017.04/source/iolib.src	2017-04-25 19:54:07.000000000 -0700
-+++ patch-files/iolib.src	2017-08-17 17:46:29.255982408 -0700
-@@ -850,7 +850,7 @@
+--- gamess-2018-09/source/iolib.src	2018-09-30 20:45:26.000000000 -0700
++++ patch-files/iolib.src	2019-02-11 14:53:19.002287900 -0800
+@@ -855,7 +855,7 @@
  C
        IOUT = 0
  C
@@ -9,7 +9,7 @@
       *    (FNAME.EQ.'PUNCH')   .OR. (FNAME.EQ.'RESTART') .OR.
       *    (FNAME.EQ.'TRAJECT') .OR. (FNAME.EQ.'MAKEFP')  .OR.
       *       (.NOT.DSKWRK)     .OR.     (NPROC.EQ.1)) THEN
-@@ -2577,7 +2577,7 @@
+@@ -2588,7 +2588,7 @@
           CALL GMS_GETENV('ERICFMT',ENVBUF(2))
           CALL GMS_GETENV('EXTBAS', ENVBUF(3))
           CALL GMS_GETENV('TRAJECT',ENVBUF(4))

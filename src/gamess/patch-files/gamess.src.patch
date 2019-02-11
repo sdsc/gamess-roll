@@ -1,6 +1,6 @@
---- gamess-2017.04/source/gamess.src	2017-04-25 19:54:07.000000000 -0700
-+++ patch-files/gamess.src	2017-08-17 17:34:01.442316418 -0700
-@@ -586,7 +586,7 @@
+--- gamess-2018-09/source/gamess.src	2018-09-30 20:45:26.000000000 -0700
++++ patch-files/gamess.src	2019-02-11 14:48:31.655270375 -0800
+@@ -607,7 +607,7 @@
  C     INTO 'STANDARD OUTPUT', I.E. INTO THE NORMAL JOB LOG FILE.
  C
        IF(KCHRMM.EQ.0) THEN
