@@ -9,8 +9,8 @@ endif
 MPINAME := $(firstword $(subst /, ,$(ROLLMPI)))
 
 NAME           = sdsc-gamess
-VERSION        = 2017.04
-RELEASE        = 3
+VERSION        = 2018.09
+RELEASE        = 0
 PKGROOT        = /opt/gamess
 
 SRC_SUBDIR     = gamess

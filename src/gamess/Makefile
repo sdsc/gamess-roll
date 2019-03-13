@@ -70,7 +70,8 @@ setenv GMS_BUILD_DIR      $(PWD)/$(SOURCE_DIR)\n\
 \# machine type\n\
 setenv GMS_TARGET         linux64\n\
 \# FORTRAN compiler setup\n\
-setenv GMS_FORTRAN        $(FC)\n
+setenv GMS_FORTRAN        $(FC)\n\
+setenv GMS_MSUCC false\n
 
 # Note: config wants major.minor version for gnu, major only for intel
 ifeq ("$(COMPILERNAME)", "gnu")

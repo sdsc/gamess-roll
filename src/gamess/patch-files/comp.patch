@@ -1,14 +1,12 @@
---- comp	2018-05-03 15:26:25.533120075 -0700
-+++ patch-files/comp	2018-05-03 15:28:56.083124700 -0700
-@@ -1593,6 +1593,7 @@
-          case 5.1:
-          case 5.2:
-          case 5.3:
-+         case 7.[0-9]:
-             if ($MODULE == cosmo)  set OPT='-O0'
-             if ($MODULE == dcscf)  set OPT='-O0'
-             if ($MODULE == tddgrd) set OPT='-O0'
-@@ -1766,7 +1767,7 @@
+--- gamess-2018-09/comp	2018-09-30 20:45:26.000000000 -0700
++++ patch-files/comp	2019-02-11 14:39:07.779209744 -0800
+@@ -1,4 +1,4 @@
+-#!/bin/csh
++#!/bin/csh -f
+ #
+ #   5 Dec 2014 - script to compile one GAMESS source file
+ #  Invoke this script by './comp MODULE >& MODULE.log &'.
+@@ -1944,7 +1944,7 @@
  #
  #         first, initialize OPT and EXTRAOPT
  #
@@ -17,21 +15,7 @@
        if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
  
        set EXTRAOPT=" "
-@@ -1823,11 +1824,13 @@
-          case 5.1:
-          case 5.2:
-          case 5.3:
-+         case 7.[0-9]:
-             if ($MODULE == cosmo)  set OPT='-O0'  # same issue as seen in 4.6
-             if ($MODULE == dcscf)  set OPT='-O0'  # exam44, continues from 4.7
-             if ($MODULE == tddgrd) set OPT='-O0'  # exam41, continues from 4.6
-             set EXTRAOPT="$EXTRAOPT -w -fno-aggressive-loop-optimizations"
-             breaksw
-+ 
-          default:
-             echo Unrecognized gfortran version for linux64
-             exit 4
-@@ -1864,7 +1867,7 @@
+@@ -2109,7 +2109,7 @@
  #     -WB means warn but don't fail on out-of-bounds array references
  #     -ftz flushes underflow results to zero
  #
@@ -40,19 +24,3 @@
        if (".$GMS_DEBUG_FLAGS" != .) set OPT="$GMS_DEBUG_FLAGS"
  #       alas, I'm so tired of hearing about so many versions failing to
  #       diagonalize, that this time critical code is run w/o optimization.
-@@ -2074,6 +2077,7 @@
-          case 5.1:
-          case 5.2:
-          case 5.3:
-+         case 7.[0-9]:
-             if ($MODULE == cosmo)  set OPT='-O0'
-             if ($MODULE == dcscf)  set OPT='-O0'
-             if ($MODULE == tddgrd) set OPT='-O0'
-@@ -2191,6 +2195,7 @@
-          case 5.1:
-          case 5.2:
-          case 5.3:
-+         case 7.[0-9]:
-             if ($MODULE == cosmo)  set OPT='-O0'
-             if ($MODULE == dcscf)  set OPT='-O0'
-             if ($MODULE == tddgrd) set OPT='-O0'
