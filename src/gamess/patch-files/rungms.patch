@@ -1,6 +1,6 @@
 --- gamess-2018.09/rungms	2018-09-30 20:45:26.000000000 -0700
-+++ patch-files/rungms	2019-02-11 16:50:06.095769933 -0800
-@@ -60,10 +60,14 @@
++++ patch-files/rungms	2019-06-20 11:19:50.056293398 -0700
+@@ -60,10 +60,15 @@
  #       both Sun Grid Engine (SGE), and Portable Batch System (PBS).
  #       See also a very old LoadLeveler "ll-gms" for some IBM systems.
  #
@@ -16,10 +16,11 @@
 +  set SCR=$GAMESS_SCR
 +endif
 +set GMSPATH=ROLL_PATHGAMESS
++
  #
  set JOB=$1      # name of the input file xxx.inp, give only the xxx part
  set VERNO=$2    # revision number of the executable created by 'lked' step
-@@ -85,6 +89,7 @@
+@@ -85,6 +90,7 @@
  #      The SCHED variable, and scheduler assigned work space, is used
  #      below only in the MPI section.  See that part for more info.
                        set SCHED=none
@@ -27,7 +28,7 @@
  if ($?PBS_O_LOGNAME)  set SCHED=PBS
  if ($?SGE_O_LOGNAME)  set SCHED=SGE
  if ($SCHED == SGE) then
-@@ -93,15 +98,17 @@
+@@ -93,15 +99,18 @@
     uniq $TMPDIR/machines
  endif
  if ($SCHED == PBS) then
@@ -46,12 +47,13 @@
 +   setenv PBS_NUM_PPN $SLURM_NTASKS_PER_NODE
 +   uniq $PBS_NODEFILE
 +endif
-++
-++
++
++
++
  #
  echo "Available scratch disk space (Kbyte units) at beginning of the job is"
  df -k $SCR
-@@ -550,7 +557,7 @@
+@@ -550,7 +559,7 @@
     #      we'll pass in a "processers per node" value, that is,
     #      all nodes are presumed to have equal numbers of cores.
     #
@@ -60,7 +62,7 @@
     #
     #      Allow for compute process and data servers (one pair per core)
     #      note that NCPUS = #cores, and NPROCS = #MPI processes
-@@ -565,28 +572,14 @@
+@@ -565,28 +574,14 @@
     #          this will have directories like include/lib/bin below it.
     #       3. a bit lower, perhaps specify your ifort path information.
     #
@@ -91,7 +93,7 @@
     #
     #        ISU's various clusters have various openMPI paths
     #          examples are our bolt/CyEnce clusters
-@@ -664,7 +657,7 @@
+@@ -664,7 +659,7 @@
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
        endif
@@ -100,20 +102,15 @@
           uniq $PBS_NODEFILE $HOSTFILE
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
-@@ -796,12 +789,6 @@
-    endif
-    #
+@@ -798,7 +793,6 @@
     #      similar tunings for MVAPICH2 are
--   if ($DDI_MPI_CHOICE == mvapich2) then
--      set echo
+    if ($DDI_MPI_CHOICE == mvapich2) then
+       set echo
 -      setenv MV2_USE_BLOCKING 1
--      setenv MV2_ENABLE_AFFINITY 0
--      unset echo
--   endif
-    #
-    #      similar tunings for openMPI are
-    #         this parameter appears to be ignored, in our hands,
-@@ -943,15 +930,15 @@
+       setenv MV2_ENABLE_AFFINITY 0
+       unset echo
+    endif
+@@ -943,15 +937,15 @@
           unset echo
        endif
        set echo
@@ -133,7 +130,7 @@
        unset echo
        breaksw
     #
-@@ -1036,7 +1023,7 @@
+@@ -1036,7 +1030,7 @@
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
        endif
@@ -142,14 +139,15 @@
           uniq $PBS_NODEFILE $HOSTFILE
           set NNODES=`wc -l $HOSTFILE`
           set NNODES=$NNODES[1]
-@@ -1654,7 +1641,9 @@
+@@ -1654,7 +1648,10 @@
           #--endif
           #---------FMO rescue------
           ssh $host -l $USER "ls -l $SCR/$JOB.*"
 -         ssh $host -l $USER "rm -f $SCR/$JOB.*"
 +         if( $USERSCR != $SCR ) then
-+             ssh $host -l $USER "rm -f $SCR/$JOB.*"
-+         endif
++              ssh $host -l $USER "rm -f $SCR/$JOB.*"
++          endif
++
        endif
        @ n++
     end
