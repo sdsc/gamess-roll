@@ -1,6 +1,6 @@
---- gamess-2018-09/lked	2018-09-30 20:45:26.000000000 -0700
-+++ patch-files/lked	2019-02-11 15:04:10.270326406 -0800
-@@ -409,6 +409,7 @@
+--- gamess-2019.06/lked	2019-08-04 10:27:44.000000000 -0700
++++ patch-files/lked	2019-09-06 13:24:43.465232565 -0700
+@@ -419,6 +419,7 @@
            breaksw
          case 11:
          case 12:
@@ -8,7 +8,7 @@
            # next attempts a static link, whereas 10 above is a dynamic link.
            # if this fails to work, try the version 10 lines shown just above.
            set MATHLIBS="-Wl,--start-group"
-@@ -575,6 +576,7 @@
+@@ -608,6 +609,7 @@
          case 10:
          case 11:
          case 12:
@@ -16,7 +16,7 @@
            # next are a static link, in single-threaded mode (serial BLAS).
            # The choices preclude any need to
            #     a) install .so shared object libraries on every node,
-@@ -599,6 +601,7 @@
+@@ -632,6 +634,7 @@
          case 10-so:
          case 11-so:
          case 12-so:
@@ -24,7 +24,7 @@
            #  next one chooses dynamic linking (so= shared object libs)
            #  Just hand edit GMS_MKL_VERNO in your 'install.info' to use this.
            #  run-time libs (and LD_LIBRARY_PATH) needed on every compute node!
-@@ -1048,6 +1051,7 @@
+@@ -1124,6 +1127,7 @@
        set MPILIBS=''
        if ($TARGET == linux64) then
          if (($GMS_DDI_COMM == mpi) || ($GMS_DDI_COMM == mixed)) then
@@ -32,7 +32,7 @@
            switch ($GMS_MPI_LIB)
              case impi:
                 set MPILIBS="-L$GMS_MPI_PATH/lib64"
-@@ -1079,42 +1083,9 @@
+@@ -1165,45 +1169,10 @@
                    case 1.7:
                    case 1.8:
                    case 1.9:
@@ -72,17 +72,20 @@
 -#                       without any need to specify them here.
                    case 2.0:
                    case 2.1:
-+                     set MPILIBS="$MPILIBS ROLLMPILIBS"
                    default:
-                      set MPILIBS="-L$GMS_MPI_PATH/lib -lmpifort -lmpi"
-                      set MPILIBS="$MPILIBS -lpthread"
-@@ -1122,8 +1093,7 @@
+-                     set MPILIBS="-L$GMS_MPI_PATH/lib -lmpifort -lmpi"
+-                     set MPILIBS="$MPILIBS -lpthread"
++                     set MPILIBS="$MPILIBS ROLLMPILIBS"
+                      breaksw
                    endsw
                 breaksw
-             case openmpi:
--               set MPILIBS="-L$GMS_MPI_PATH/lib"
--               set MPILIBS="$MPILIBS -lmpi"
-+               set MPILIBS="$MPILIBS ROLLMPILIBS"
+@@ -1212,8 +1181,7 @@
+                  set MPILIBS="-L$GMS_MPI_PATH/lib"
+                  set MPILIBS="$MPILIBS -lmpi -lmpi_mpifh"
+                else
+-                 set MPILIBS="-L$GMS_MPI_PATH/lib"
+-                 set MPILIBS="$MPILIBS -lmpi"
++                 set MPILIBS="$MPILIBS ROLLMPILIBS"
+                endif
                 breaksw
              case mpt:
-                set MPILIBS="-L$GMS_MPI_PATH/lib"

@@ -1,12 +1,12 @@
---- gamess-2018-09/ddi/compddi	2018-08-07 00:23:20.000000000 -0700
-+++ patch-files/compddi	2019-02-11 14:45:54.669255295 -0800
+--- gamess-2019.06/ddi/compddi	2019-08-04 10:27:44.000000000 -0700
++++ patch-files/compddi	2019-09-06 10:07:57.569064917 -0700
 @@ -1,4 +1,4 @@
 -#!/bin/csh
 +#!/bin/csh -f
  #
  # 27 Mar 2014 - script to compile the Distributed Data Interface (DDI)
  #
-@@ -61,7 +61,7 @@
+@@ -65,7 +65,7 @@
  #  along with collecting information about which flavor of mpi,
  #  where the MPI library is located, and so forth.
  #
@@ -15,7 +15,16 @@
  #
  #     high end machines are just hardwired as follows.  Don't change them.
  #
-@@ -702,7 +702,7 @@
+@@ -269,7 +269,7 @@
+         breaksw
+ #            MicroSoft MPI uses a compiler flag, set below, not a pathname
+      case msmpi:
+-        if(($GMS_FORTRAN == pgf77) || ($GMS_FORTRAN == pgfortran) || ($GMS_FORTRAN == ifort)) set MPI_INCLUDE_PATH = " "
++        if(($GMS_FORTRAN == pgf77) || ($GMS_FORTRAN == ifort)) set MPI_INCLUDE_PATH = " "
+         goto skip_mpi_setup
+         breaksw
+ #            big machines will find their mpi.f, don't check it.
+@@ -712,7 +712,7 @@
  
       switch ($FORTRAN)
          case g77:
@@ -24,7 +33,7 @@
          case pgf77:
          case f2c:
             set NumUS=2
-@@ -769,7 +769,7 @@
+@@ -786,7 +786,7 @@
             set NumUS=1
             set FORT_FLAGS = "-O2 $ARCH -fdefault-integer-8 -std=legacy"
             breaksw
@@ -32,8 +41,8 @@
 +#       case pgfortran
          case pgf77:
             set NumUS=1
-            if ( `uname` == Darwin ) then
-@@ -1005,7 +1005,7 @@
+            set CC = 'pgcc'
+@@ -1024,7 +1024,7 @@
  
       set FORTRAN=$GMS_FORTRAN     # choose from pgf77 and pgfortran
  
@@ -42,7 +51,7 @@
          case pgf77:
             set CC = 'pgcc'
  #
-@@ -1057,7 +1057,7 @@
+@@ -1076,7 +1076,7 @@
             set NumUS=0
             set F77_OPTS = "-DF77_UPPERCASE -Dgetarg_=GETARG -Diargc_=IARGC"
             breaksw
@@ -51,7 +60,16 @@
          case pgf77:
             set CC = 'pgcc'
  #
-@@ -1164,7 +1164,7 @@
+@@ -1141,7 +1141,7 @@
+   if($COMM == mpi)   then
+      switch ($GMS_MPI_LIB)
+         case msmpi:
+-           if (($GMS_FORTRAN == pgf77) || ($GMS_FORTRAN == pgfortran)) set CFLAGS = "$CFLAGS -Mmpi=msmpi"
++           if ($GMS_FORTRAN == pgf77) set CFLAGS = "$CFLAGS -Mmpi=msmpi"
+            if ($GMS_FORTRAN == ifort) then
+              if ($?MSMPI_INC) then
+                echo "MPI headers path: $MSMPI_INC"
+@@ -1183,7 +1183,7 @@
                )
      echo "Compiling common object: $OBJ.o"
      set echo
@@ -60,7 +78,7 @@
      unset echo
      if(-e $OBJ.obj) mv -v $OBJ.obj $OBJ.o
      if(-e $OBJ.o) then
-@@ -1221,10 +1221,10 @@
+@@ -1240,10 +1240,10 @@
        set WFLAGS = '-DLINUX -DWINDOWS -DWINDOWS64 -DWINTEL -DOLDDDITIMER'
        set WFLAGS = "$WFLAGS -Od $GMS_WIN_TP -I./include"
        set echo
@@ -73,7 +91,7 @@
      endif
      unset echo
      if(-e $OBJ.obj) mv -v $OBJ.obj $OBJ.o
-@@ -1246,7 +1246,7 @@
+@@ -1265,7 +1265,7 @@
    chdir src
    echo "Compiling FORTRAN wrappers for DDI"
    set echo

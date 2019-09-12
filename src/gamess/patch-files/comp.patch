@@ -1,12 +1,21 @@
---- gamess-2018-09/comp	2018-09-30 20:45:26.000000000 -0700
-+++ patch-files/comp	2019-02-11 14:39:07.779209744 -0800
+--- gamess-2019.06/comp	2019-08-04 10:27:44.000000000 -0700
++++ patch-files/comp	2019-09-06 10:14:02.290907991 -0700
 @@ -1,4 +1,4 @@
 -#!/bin/csh
 +#!/bin/csh -f
  #
- #   5 Dec 2014 - script to compile one GAMESS source file
- #  Invoke this script by './comp MODULE >& MODULE.log &'.
-@@ -1944,7 +1944,7 @@
+ # set verbose
+ #
+@@ -1941,7 +1941,7 @@
+            set OPT="$OPT -openmp"
+          endif
+          switch ($MODULE)
+-             case omp*:
++             c -fase omp*:
+              case rimp2grd:
+              breaksw
+              default:
+@@ -2015,7 +2015,7 @@
  #
  #         first, initialize OPT and EXTRAOPT
  #
@@ -15,7 +24,7 @@
        if ($MODULE == zheev)  set OPT='-O0'  # defensive compiling
  
        set EXTRAOPT=" "
-@@ -2109,7 +2109,7 @@
+@@ -2307,7 +2307,7 @@
  #     -WB means warn but don't fail on out-of-bounds array references
  #     -ftz flushes underflow results to zero
  #

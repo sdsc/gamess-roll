@@ -1,5 +1,5 @@
---- gamess-2018-09/gms-files.csh	2018-09-30 20:45:26.000000000 -0700
-+++ patch-files/gms-files.csh	2019-02-11 14:50:49.501279421 -0800
+--- gamess-2019.06/gms-files.csh	2019-08-04 10:27:44.000000000 -0700
++++ patch-files/gms-files.csh	2019-09-06 10:18:14.711941659 -0700
 @@ -48,7 +48,7 @@
  setenv OPTHES1 $USERSCR/$JOB.hs1
  setenv OPTHES2 $USERSCR/$JOB.hs2
