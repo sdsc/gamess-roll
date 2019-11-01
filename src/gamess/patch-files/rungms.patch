@@ -1,5 +1,5 @@
 --- gamess-2019.06/rungms	2019-08-04 10:27:44.000000000 -0700
-+++ patch-files/rungms	2019-10-15 12:33:19.917629072 -0700
++++ patch-files/rungms	2019-11-01 11:44:35.174745732 -0700
 @@ -60,11 +60,16 @@
  #       both Sun Grid Engine (SGE), and Portable Batch System (PBS).
  #       See also a very old LoadLeveler "ll-gms" for some IBM systems.
@@ -131,7 +131,7 @@
        set echo
 -      orterun -np $NPROCS --npernode $PPN2 \
 -              $GMSPATH/gamess.$VERNO.x < /dev/null
-+      mpirun --oversubscribe -np $NPROCS --npernode $PPN2 \
++      mpirun --oversubscribe -hostfile $HOSTFILE -np $NPROCS --npernode $PPN2 \
 +         $GMSPATH/gamess.$VERNO.x < /dev/null
        unset echo
        breaksw
