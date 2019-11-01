@@ -83,7 +83,7 @@ endif
 
 # List of recognized MPI flavors from gamess/comp. A comment in gamess/config
 # indicates that openmpi doesn't work, but minimal testing passes.
-MPIFLAVORS = impi mvapich2 myrinet openmpi mpt mpich2 msmpi
+MPIFLAVORS = intelmpi mvapich2 myrinet openmpi mpt mpich2 msmpi
 
 INSTALL.INFO += \
 \# mathematical library setup\n\
@@ -152,6 +152,9 @@ build: $(SRC_DIRS)
 	  MPIFLAVOR=unknown; \
 	  for F in $(MPIFLAVORS); do \
 	    if [[ "$(ROLLMPI)" =~ "$$F" ]]; then \
+              if [[ $${F} = "intelmpi"]]; then \
+                  F=impi; \
+              fi; \
 	      MPIFLAVOR=$$F; \
 	    fi; \
 	  done; \
