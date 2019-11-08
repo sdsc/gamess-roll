@@ -83,7 +83,7 @@ endif
 
 # List of recognized MPI flavors from gamess/comp. A comment in gamess/config
 # indicates that openmpi doesn't work, but minimal testing passes.
-MPIFLAVORS = impi mvapich2 myrinet openmpi mpt mpich2 msmpi
+MPIFLAVORS = intelmpi mvapich2 myrinet openmpi mpt mpich2 msmpi
 
 INSTALL.INFO += \
 \# mathematical library setup\n\
@@ -93,7 +93,7 @@ setenv GMS_MKL_VERNO      $${mklVers}\n\
 \# parallel message passing model setup\n\
 setenv GMS_DDI_COMM       mpi\n\
 setenv GMS_MPI_LIB        $${MPIFLAVOR}\n\
-setenv GMS_MPI_PATH       $${MPIHOME}\n\
+setenv GMS_MPI_PATH       $${MPIPATH}\n\
 setenv GMS_MVAPICH2_VERNO $${mvapich2Vers}\n\
 setenv GMS_PHI            false\n\
 setenv GMS_OPENMP         false\n\
@@ -132,6 +132,7 @@ build: $(SRC_DIRS)
 	  $(MODULE_LOAD_MKL); \
 	  export MKLLIB=$${MKLHOME}/lib/intel64; \
 	  $(MODULE_LOAD_MPI); \
+          export MPIPATH=$${MPIHOME}; \
 	  MPILIBS=`mpif77 -show|sed 's/.*-L/-L/'` ; \
 	  perl -pi -e "s!ROLLMPILIBS!$${MPILIBS}!" $(SOURCE_DIR)/lked; \
 	  if test "$(COMPILERNAME)" = "intel"; then \
@@ -152,19 +153,23 @@ build: $(SRC_DIRS)
 	  MPIFLAVOR=unknown; \
 	  for F in $(MPIFLAVORS); do \
 	    if [[ "$(ROLLMPI)" =~ "$$F" ]]; then \
+              if [[ "$${F}" =~ "intelmpi" ]]; then \
+                  F='impi'; \
+                  export MPIPATH=$${MPIHOME}/..; \
+              fi; \
 	      MPIFLAVOR=$$F; \
 	    fi; \
 	  done; \
-	  perl -pi -e "s!ROLL_MPITYPE!$$MPIFLAVOR!" $(SOURCE_DIR)/rungms; \
-	  echo -e "$(INSTALL.INFO)" > $(SOURCE_DIR)/install.info; \
-	  perl -pi -e "s!ROLLMPI!$${MPIHOME}!" $(SOURCE_DIR)/rungms; \
-	  cd $(SOURCE_DIR)/tools; \
-	  $(FC) -o actvte.x actvte.f; \
-	  cd ../ddi; \
-	  ./compddi; \
-	  cd ..; \
-	  ./compall; \
-	  ./lked \
+ 	  perl -pi -e "s!ROLL_MPITYPE!$$MPIFLAVOR!" $(SOURCE_DIR)/rungms; \
+          echo -e "$(INSTALL.INFO)" > $(SOURCE_DIR)/install.info; \
+ 	  perl -pi -e "s!ROLLMPI!$${MPIHOME}!" $(SOURCE_DIR)/rungms; \
+ 	  cd $(SOURCE_DIR)/tools; \
+ 	  $(FC) -o actvte.x actvte.f; \
+ 	  cd ../ddi; \
+ 	  ./compddi; \
+ 	  cd ..; \
+ 	  ./compall; \
+ 	  ./lked \
 	)
 	@echo "::: Package $(NAME) build complete :::"
 	
